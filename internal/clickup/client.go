@@ -2,6 +2,7 @@ package clickup
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -302,9 +303,9 @@ func (s *CommentsService) Add(ctx context.Context, taskID string, text string) (
 
 	req := CreateCommentRequest{CommentText: text}
 
-	// ClickUp returns the comment ID in a wrapper
+	// ClickUp returns the comment ID as a number in a wrapper
 	var result struct {
-		ID string `json:"id"`
+		ID json.Number `json:"id"`
 	}
 
 	path := fmt.Sprintf("/task/%s/comment", taskID)
@@ -339,7 +340,7 @@ func (s *TimeService) List(ctx context.Context, teamID, taskID string) (*TimeEnt
 }
 
 // Log creates a time entry for a task.
-func (s *TimeService) Log(ctx context.Context, teamID, taskID string, durationMs int64) (*TimeEntry, error) {
+func (s *TimeService) Log(ctx context.Context, teamID, taskID string, durationMs, startMs int64) (*TimeEntry, error) {
 	if teamID == "" || taskID == "" {
 		return nil, errIDRequired
 	}
@@ -347,6 +348,7 @@ func (s *TimeService) Log(ctx context.Context, teamID, taskID string, durationMs
 	req := map[string]any{
 		"duration": durationMs,
 		"tid":      taskID,
+		"start":    startMs,
 	}
 
 	var result struct {
