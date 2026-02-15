@@ -57,3 +57,5 @@ brews:
     homepage: "https://github.com/builtbyrobben/clickup-cli"
     description: "ClickUp project management CLI"
     license: "MIT"
+    test: |
+      system "#{bin}/clickup-cli", "--version"
