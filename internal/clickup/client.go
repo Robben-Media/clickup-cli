@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 
 	"github.com/builtbyrobben/clickup-cli/internal/api"
 )
@@ -77,11 +78,11 @@ func (s *TasksService) List(ctx context.Context, listID string, status, assignee
 	path := fmt.Sprintf("/list/%s/task?include_closed=true", listID)
 
 	if status != "" {
-		path += fmt.Sprintf("&statuses[]=%s", status)
+		path += fmt.Sprintf("&statuses[]=%s", url.QueryEscape(status))
 	}
 
 	if assignee != "" {
-		path += fmt.Sprintf("&assignees[]=%s", assignee)
+		path += fmt.Sprintf("&assignees[]=%s", url.QueryEscape(assignee))
 	}
 
 	var result TasksListResponse
