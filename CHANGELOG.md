@@ -7,15 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Initial release
-
-## [0.1.0] - 2024-01-01
+## [0.1.0] - 2026-02-15
 
 ### Added
-- Template repository for CLI tools
+- ClickUp API client with services: Tasks, Spaces, Lists, Members, Comments, Time
+- Task commands: list, get, create, update, delete
+- Space commands: list
+- List commands: list (by space or folder)
+- Member commands: list
+- Comment commands: list, add
+- Time tracking commands: log, list
+- Auth commands: set-key, set-team, status, remove
+- Team ID storage in platform-aware config file
 - Keyring-backed credential storage with file fallback
-- Auth commands (set-key, status, remove)
 - Output formatting (JSON/plain)
 - Cross-platform build support (macOS/Linux/Windows)
 - GitHub Actions CI/CD

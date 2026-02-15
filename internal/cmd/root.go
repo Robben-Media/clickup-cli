@@ -9,22 +9,17 @@ import (
 
 	"github.com/alecthomas/kong"
 
-	"github.com/builtbyrobben/cli-template/internal/errfmt"
-	"github.com/builtbyrobben/cli-template/internal/outfmt"
-)
-
-const (
-	colorAuto  = "auto"
-	colorNever = "never"
+	"github.com/builtbyrobben/clickup-cli/internal/errfmt"
+	"github.com/builtbyrobben/clickup-cli/internal/outfmt"
 )
 
 type RootFlags struct {
-	Color          string `help:"Color output: auto|always|never" default:"${color}"`
-	JSON           bool   `help:"Output JSON to stdout (best for scripting)" default:"${json}"`
-	Plain          bool   `help:"Output stable, parseable text to stdout (TSV; no colors)" default:"${plain}"`
-	Force          bool   `help:"Skip confirmations for destructive commands"`
-	NoInput        bool   `help:"Never prompt; fail instead (useful for CI)"`
-	Verbose        bool   `help:"Enable verbose logging"`
+	Color   string `help:"Color output: auto|always|never" default:"${color}"`
+	JSON    bool   `help:"Output JSON to stdout (best for scripting)" default:"${json}"`
+	Plain   bool   `help:"Output stable, parseable text to stdout (TSV; no colors)" default:"${plain}"`
+	Force   bool   `help:"Skip confirmations for destructive commands"`
+	NoInput bool   `help:"Never prompt; fail instead (useful for CI)"`
+	Verbose bool   `help:"Enable verbose logging"`
 }
 
 type CLI struct {
@@ -32,6 +27,12 @@ type CLI struct {
 
 	Version    kong.VersionFlag `help:"Print version and exit"`
 	Auth       AuthCmd          `cmd:"" help:"Auth and credentials"`
+	Tasks      TasksCmd         `cmd:"" help:"Task operations"`
+	Spaces     SpacesCmd        `cmd:"" help:"Space operations"`
+	Lists      ListsCmd         `cmd:"" help:"List operations"`
+	Members    MembersCmd       `cmd:"" help:"Team member operations"`
+	Comments   CommentsCmd      `cmd:"" help:"Comment operations"`
+	Time       TimeCmd          `cmd:"" help:"Time tracking"`
 	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 
@@ -68,6 +69,7 @@ func Execute(args []string) (err error) {
 	if cli.Verbose {
 		logLevel = slog.LevelDebug
 	}
+
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: logLevel,
 	})))
@@ -89,6 +91,7 @@ func Execute(args []string) (err error) {
 	}
 
 	_, _ = fmt.Fprintln(os.Stderr, errfmt.Format(err))
+
 	return err
 }
 
@@ -96,10 +99,12 @@ func wrapParseError(err error) error {
 	if err == nil {
 		return nil
 	}
+
 	var parseErr *kong.ParseError
 	if errors.As(err, &parseErr) {
 		return &ExitError{Code: 2, Err: parseErr}
 	}
+
 	return err
 }
 
@@ -107,6 +112,7 @@ func envOr(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
 	}
+
 	return fallback
 }
 
@@ -114,22 +120,24 @@ func boolString(v bool) string {
 	if v {
 		return "true"
 	}
+
 	return "false"
 }
 
 func newParser(description string) (*kong.Kong, *CLI, error) {
-	envMode := outfmt.FromEnv("PLACEHOLDER_CLI")
+	envMode := outfmt.FromEnv("CLICKUP_CLI")
 	vars := kong.Vars{
-		"color":   envOr("PLACEHOLDER_CLI_COLOR", "auto"),
+		"color":   envOr("CLICKUP_CLI_COLOR", "auto"),
 		"json":    boolString(envMode.JSON),
 		"plain":   boolString(envMode.Plain),
 		"version": VersionString(),
 	}
 
 	cli := &CLI{}
+
 	parser, err := kong.New(
 		cli,
-		kong.Name("placeholder-cli"),
+		kong.Name("clickup-cli"),
 		kong.Description(description),
 		kong.ConfigureHelp(kong.HelpOptions{
 			Compact: true,
@@ -142,11 +150,12 @@ func newParser(description string) (*kong.Kong, *CLI, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+
 	return parser, cli, nil
 }
 
 func helpDescription() string {
-	return "Placeholder CLI - Replace with your service description"
+	return "ClickUp CLI - Project management from the command line"
 }
 
 // newUsageError wraps errors in a way main() can map to exit code 2.
@@ -154,5 +163,6 @@ func newUsageError(err error) error {
 	if err == nil {
 		return nil
 	}
+
 	return &ExitError{Code: 2, Err: err}
 }
