@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/builtbyrobben/clickup-cli/internal/outfmt"
 )
@@ -16,6 +18,7 @@ type TimeCmd struct {
 type TimeLogCmd struct {
 	TaskID     string `arg:"" required:"" help:"Task ID"`
 	DurationMs int64  `arg:"" required:"" help:"Duration in milliseconds"`
+	Start      string `help:"Start time as Unix ms timestamp, or 'now' (default: now)" default:"now"`
 }
 
 func (cmd *TimeLogCmd) Run(ctx context.Context) error {
@@ -29,7 +32,17 @@ func (cmd *TimeLogCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	result, err := client.Time().Log(ctx, teamID, cmd.TaskID, cmd.DurationMs)
+	var startMs int64
+	if cmd.Start == "" || cmd.Start == "now" {
+		startMs = time.Now().UnixMilli()
+	} else {
+		startMs, err = strconv.ParseInt(cmd.Start, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid start timestamp %q: %w", cmd.Start, err)
+		}
+	}
+
+	result, err := client.Time().Log(ctx, teamID, cmd.TaskID, cmd.DurationMs, startMs)
 	if err != nil {
 		return err
 	}

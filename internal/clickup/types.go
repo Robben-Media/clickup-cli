@@ -1,5 +1,7 @@
 package clickup
 
+import "encoding/json"
+
 // Task represents a ClickUp task.
 type Task struct {
 	ID          string     `json:"id"`
@@ -57,19 +59,19 @@ type Folder struct {
 
 // Comment represents a ClickUp comment.
 type Comment struct {
-	ID   string `json:"id"`
-	Text string `json:"comment_text"`
-	User User   `json:"user"`
-	Date string `json:"date"`
+	ID   json.Number `json:"id"`
+	Text string      `json:"comment_text"`
+	User User        `json:"user"`
+	Date string      `json:"date"`
 }
 
 // TimeEntry represents a ClickUp time entry.
 type TimeEntry struct {
-	ID       string  `json:"id"`
-	Task     TaskRef `json:"task"`
-	Duration string  `json:"duration"`
-	Start    string  `json:"start"`
-	End      string  `json:"end"`
+	ID       json.Number `json:"id"`
+	Task     TaskRef     `json:"task"`
+	Duration json.Number `json:"duration"`
+	Start    json.Number `json:"start"`
+	End      json.Number `json:"end"`
 }
 
 // Tag represents a ClickUp tag.
