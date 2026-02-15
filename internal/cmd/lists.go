@@ -46,6 +46,14 @@ func (cmd *ListsListCmd) listByFolder(ctx context.Context, client *clickup.Clien
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, result)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "NAME"}
+		var rows [][]string
+		for _, list := range result.Lists {
+			rows = append(rows, []string{list.ID, list.Name})
+		}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	if len(result.Lists) == 0 {
 		fmt.Fprintln(os.Stderr, "No lists found")
@@ -81,6 +89,19 @@ func (cmd *ListsListCmd) listBySpace(ctx context.Context, client *clickup.Client
 			"folders":          folders.Folders,
 			"folderless_lists": folderless.Lists,
 		})
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "NAME", "FOLDER"}
+		var rows [][]string
+		for _, folder := range folders.Folders {
+			for _, list := range folder.Lists {
+				rows = append(rows, []string{list.ID, list.Name, folder.Name})
+			}
+		}
+		for _, list := range folderless.Lists {
+			rows = append(rows, []string{list.ID, list.Name, ""})
+		}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
 	}
 
 	if len(folders.Folders) == 0 && len(folderless.Lists) == 0 {

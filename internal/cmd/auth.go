@@ -76,6 +76,9 @@ func (cmd *AuthSetKeyCmd) Run(ctx context.Context) error {
 			"message": "API key stored in keyring",
 		})
 	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout, []string{"STATUS", "MESSAGE"}, [][]string{{"success", "API key stored in keyring"}})
+	}
 
 	fmt.Fprintln(os.Stderr, "API key stored in keyring")
 
@@ -101,6 +104,9 @@ func (cmd *AuthSetTeamCmd) Run(ctx context.Context) error {
 			"message": "Team ID stored in config",
 			"team_id": cmd.TeamID,
 		})
+	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout, []string{"STATUS", "TEAM_ID"}, [][]string{{"success", cmd.TeamID}})
 	}
 
 	fmt.Fprintf(os.Stderr, "Team ID %s stored in config\n", cmd.TeamID)
@@ -159,28 +165,40 @@ func (cmd *AuthStatusCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, status)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"HAS_KEY", "ENV_OVERRIDE", "STORAGE", "HAS_TEAM_ID", "TEAM_ID", "TEAM_SOURCE"}
+		rows := [][]string{{
+			fmt.Sprintf("%t", hasKey),
+			fmt.Sprintf("%t", envOverride),
+			"keyring",
+			fmt.Sprintf("%t", teamID != ""),
+			teamID,
+			teamSource,
+		}}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	// Human-readable output
-	fmt.Fprintf(os.Stderr, "Storage: %s\n", status["storage_backend"])
+	fmt.Fprintf(os.Stdout, "Storage: %s\n", status["storage_backend"])
 
 	switch {
 	case envOverride:
-		fmt.Fprintln(os.Stderr, "API Key: Using CLICKUP_API_KEY environment variable")
+		fmt.Fprintln(os.Stdout, "API Key: Using CLICKUP_API_KEY environment variable")
 	case hasKey:
-		fmt.Fprintln(os.Stderr, "API Key: Authenticated")
+		fmt.Fprintln(os.Stdout, "API Key: Authenticated")
 
 		if redacted, ok := status["key_redacted"].(string); ok {
-			fmt.Fprintf(os.Stderr, "Key: %s\n", redacted)
+			fmt.Fprintf(os.Stdout, "Key: %s\n", redacted)
 		}
 	default:
-		fmt.Fprintln(os.Stderr, "API Key: Not authenticated")
+		fmt.Fprintln(os.Stdout, "API Key: Not authenticated")
 		fmt.Fprintln(os.Stderr, "Run: clickup-cli auth set-key --stdin")
 	}
 
 	if teamID != "" {
-		fmt.Fprintf(os.Stderr, "Team ID: %s (source: %s)\n", teamID, teamSource)
+		fmt.Fprintf(os.Stdout, "Team ID: %s (source: %s)\n", teamID, teamSource)
 	} else {
-		fmt.Fprintln(os.Stderr, "Team ID: Not configured")
+		fmt.Fprintln(os.Stdout, "Team ID: Not configured")
 		fmt.Fprintln(os.Stderr, "Run: clickup-cli auth set-team <TEAM_ID>")
 	}
 
@@ -204,6 +222,9 @@ func (cmd *AuthRemoveCmd) Run(ctx context.Context) error {
 			"status":  "success",
 			"message": "API key removed",
 		})
+	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout, []string{"STATUS", "MESSAGE"}, [][]string{{"success", "API key removed"}})
 	}
 
 	fmt.Fprintln(os.Stderr, "API key removed")

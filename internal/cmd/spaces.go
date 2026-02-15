@@ -33,6 +33,14 @@ func (cmd *SpacesListCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, result)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "NAME"}
+		var rows [][]string
+		for _, space := range result.Spaces {
+			rows = append(rows, []string{space.ID, space.Name})
+		}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	if len(result.Spaces) == 0 {
 		fmt.Fprintln(os.Stderr, "No spaces found")

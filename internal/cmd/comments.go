@@ -31,6 +31,14 @@ func (cmd *CommentsListCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, result)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "USER", "TEXT", "DATE"}
+		var rows [][]string
+		for _, comment := range result.Comments {
+			rows = append(rows, []string{comment.ID.String(), comment.User.Username, comment.Text, comment.Date})
+		}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	if len(result.Comments) == 0 {
 		fmt.Fprintln(os.Stderr, "No comments found")
@@ -72,6 +80,11 @@ func (cmd *CommentsAddCmd) Run(ctx context.Context) error {
 
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, result)
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID"}
+		rows := [][]string{{result.ID.String()}}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
 	}
 
 	fmt.Fprintf(os.Stderr, "Comment added (ID: %s)\n", result.ID)

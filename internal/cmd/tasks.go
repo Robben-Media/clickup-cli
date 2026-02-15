@@ -37,6 +37,18 @@ func (cmd *TasksListCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, result)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "NAME", "STATUS", "PRIORITY", "URL"}
+		var rows [][]string
+		for _, task := range result.Tasks {
+			priority := ""
+			if task.Priority != nil {
+				priority = task.Priority.Name
+			}
+			rows = append(rows, []string{task.ID, task.Name, task.Status.Status, priority, task.URL})
+		}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	if len(result.Tasks) == 0 {
 		fmt.Fprintln(os.Stderr, "No tasks found")
@@ -69,6 +81,15 @@ func (cmd *TasksGetCmd) Run(ctx context.Context) error {
 
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, result)
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "NAME", "STATUS", "PRIORITY", "DUE_DATE", "URL"}
+		priority := ""
+		if result.Priority != nil {
+			priority = result.Priority.Name
+		}
+		rows := [][]string{{result.ID, result.Name, result.Status.Status, priority, result.DueDate, result.URL}}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
 	}
 
 	printTaskDetail(result)
@@ -105,6 +126,11 @@ func (cmd *TasksCreateCmd) Run(ctx context.Context) error {
 
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, result)
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "NAME", "STATUS", "URL"}
+		rows := [][]string{{result.ID, result.Name, result.Status.Status, result.URL}}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
 	}
 
 	fmt.Fprintf(os.Stderr, "Created task\n\n")
@@ -143,6 +169,11 @@ func (cmd *TasksUpdateCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, result)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "NAME", "STATUS", "URL"}
+		rows := [][]string{{result.ID, result.Name, result.Status.Status, result.URL}}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	fmt.Fprintf(os.Stderr, "Updated task\n\n")
 	printTaskDetail(result)
@@ -170,6 +201,11 @@ func (cmd *TasksDeleteCmd) Run(ctx context.Context) error {
 			"message": "Task deleted",
 			"task_id": cmd.TaskID,
 		})
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"STATUS", "TASK_ID"}
+		rows := [][]string{{"success", cmd.TaskID}}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
 	}
 
 	fmt.Fprintf(os.Stderr, "Task %s deleted\n", cmd.TaskID)

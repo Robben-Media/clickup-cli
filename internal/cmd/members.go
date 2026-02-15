@@ -33,6 +33,14 @@ func (cmd *MembersListCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, result)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "USERNAME", "EMAIL"}
+		var rows [][]string
+		for _, member := range result.Members {
+			rows = append(rows, []string{fmt.Sprintf("%d", member.User.ID), member.User.Username, member.User.Email})
+		}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	if len(result.Members) == 0 {
 		fmt.Fprintln(os.Stderr, "No members found")

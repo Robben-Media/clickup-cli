@@ -50,6 +50,11 @@ func (cmd *TimeLogCmd) Run(ctx context.Context) error {
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, result)
 	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "DURATION", "START", "END"}
+		rows := [][]string{{result.ID.String(), result.Duration.String(), result.Start.String(), result.End.String()}}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
 
 	fmt.Fprintf(os.Stderr, "Time logged (ID: %s)\n", result.ID)
 	fmt.Printf("Duration: %s ms\n", result.Duration)
@@ -79,6 +84,14 @@ func (cmd *TimeListCmd) Run(ctx context.Context) error {
 
 	if outfmt.IsJSON(ctx) {
 		return outfmt.WriteJSON(os.Stdout, result)
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "DURATION", "START", "END"}
+		var rows [][]string
+		for _, entry := range result.Data {
+			rows = append(rows, []string{entry.ID.String(), entry.Duration.String(), entry.Start.String(), entry.End.String()})
+		}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
 	}
 
 	if len(result.Data) == 0 {
