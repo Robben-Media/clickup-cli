@@ -167,13 +167,17 @@ func (cmd *AuthStatusCmd) Run(ctx context.Context) error {
 	}
 	if outfmt.IsPlain(ctx) {
 		headers := []string{"HAS_KEY", "ENV_OVERRIDE", "STORAGE", "HAS_TEAM_ID", "TEAM_ID", "TEAM_SOURCE"}
+		ts := teamSource
+		if teamID == "" {
+			ts = ""
+		}
 		rows := [][]string{{
 			fmt.Sprintf("%t", hasKey),
 			fmt.Sprintf("%t", envOverride),
 			"keyring",
 			fmt.Sprintf("%t", teamID != ""),
 			teamID,
-			teamSource,
+			ts,
 		}}
 		return outfmt.WritePlain(os.Stdout, headers, rows)
 	}
