@@ -328,7 +328,7 @@ func (s *TimeService) List(ctx context.Context, teamID, taskID string) (*TimeEnt
 		return nil, errIDRequired
 	}
 
-	path := fmt.Sprintf("/team/%s/time_entries?task_id=%s", teamID, taskID)
+	path := fmt.Sprintf("/team/%s/time_entries?task_id=%s", teamID, url.QueryEscape(taskID))
 
 	var result TimeEntriesListResponse
 	if err := s.client.Get(ctx, path, &result); err != nil {
