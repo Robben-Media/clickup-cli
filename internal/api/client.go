@@ -43,8 +43,8 @@ func NewClient(apiKey string, opts ...ClientOption) *Client {
 			Timeout: 30 * time.Second,
 		},
 		apiKey:    apiKey,
-		userAgent: "placeholder-cli/1.0",
-		baseURL:   "https://api.example.com",
+		userAgent: "clickup-cli/1.0",
+		baseURL:   "https://api.clickup.com/api/v2",
 	}
 
 	for _, opt := range opts {
@@ -63,15 +63,18 @@ type Request struct {
 
 func (c *Client) Do(ctx context.Context, req Request) (*http.Response, error) {
 	var bodyReader io.Reader
+
 	if req.Body != nil {
 		bodyBytes, err := json.Marshal(req.Body)
 		if err != nil {
 			return nil, fmt.Errorf("marshal request body: %w", err)
 		}
+
 		bodyReader = bytes.NewReader(bodyBytes)
 	}
 
 	url := c.baseURL + req.Path
+
 	httpReq, err := http.NewRequestWithContext(ctx, req.Method, url, bodyReader)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
@@ -81,9 +84,9 @@ func (c *Client) Do(ctx context.Context, req Request) (*http.Response, error) {
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("User-Agent", c.userAgent)
 
-	// Set API key header (override in specific CLI implementations)
+	// ClickUp uses Authorization: <key> (no Bearer prefix)
 	if c.apiKey != "" {
-		httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
+		httpReq.Header.Set("Authorization", c.apiKey)
 	}
 
 	// Set custom headers
@@ -168,6 +171,7 @@ func parseAPIError(resp *http.Response) error {
 		if msg == "" {
 			msg = apiErr.Error
 		}
+
 		if msg != "" {
 			return &APIError{StatusCode: resp.StatusCode, Message: msg}
 		}

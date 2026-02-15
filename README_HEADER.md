@@ -1,1 +1,1 @@
-# CLI Template
+# ClickUp CLI

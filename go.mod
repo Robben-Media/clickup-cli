@@ -1,6 +1,6 @@
-module github.com/builtbyrobben/cli-template
+module github.com/builtbyrobben/clickup-cli
 
-go 1.22.0
+go 1.25.0
 
 require (
 	github.com/99designs/keyring v1.2.2

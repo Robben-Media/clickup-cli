@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/builtbyrobben/cli-template/internal/cmd"
+	"github.com/builtbyrobben/clickup-cli/internal/cmd"
 )
 
 func main() {
