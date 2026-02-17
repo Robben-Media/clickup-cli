@@ -100,6 +100,7 @@ func (cmd *TasksGetCmd) Run(ctx context.Context) error {
 type TasksCreateCmd struct {
 	ListID   string `arg:"" required:"" help:"List ID to create task in"`
 	Name     string `arg:"" required:"" help:"Task name"`
+	Assignee int    `help:"Assign to user ID"`
 	Priority *int   `help:"Priority (1=urgent, 2=high, 3=normal, 4=low)"`
 	Due      string `help:"Due date (unix timestamp in milliseconds)"`
 }
@@ -113,6 +114,10 @@ func (cmd *TasksCreateCmd) Run(ctx context.Context) error {
 	req := clickup.CreateTaskRequest{
 		Name:    cmd.Name,
 		DueDate: cmd.Due,
+	}
+
+	if cmd.Assignee != 0 {
+		req.Assignees = []int{cmd.Assignee}
 	}
 
 	if cmd.Priority != nil {
@@ -143,6 +148,8 @@ type TasksUpdateCmd struct {
 	TaskID   string `arg:"" required:"" help:"Task ID"`
 	Status   string `help:"New status"`
 	Name     string `help:"New name"`
+	Assignee int    `help:"Assign to user ID (adds assignee)"`
+	Unassign int    `help:"Unassign user ID (removes assignee)"`
 	Priority *int   `help:"New priority (1=urgent, 2=high, 3=normal, 4=low)"`
 }
 
@@ -155,6 +162,16 @@ func (cmd *TasksUpdateCmd) Run(ctx context.Context) error {
 	req := clickup.UpdateTaskRequest{
 		Name:   cmd.Name,
 		Status: cmd.Status,
+	}
+
+	if cmd.Assignee != 0 || cmd.Unassign != 0 {
+		req.Assignees = &clickup.TaskAssigneesUpdate{}
+		if cmd.Assignee != 0 {
+			req.Assignees.Add = []int{cmd.Assignee}
+		}
+		if cmd.Unassign != 0 {
+			req.Assignees.Rem = []int{cmd.Unassign}
+		}
 	}
 
 	if cmd.Priority != nil {

@@ -167,3 +167,50 @@ func TestTimeList_EscapesTaskID(t *testing.T) {
 		t.Fatalf("expected one time entry, got %d", len(result.Data))
 	}
 }
+
+func TestTasksUpdate_SendsAssigneesAddRem(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/task/task-1" {
+			t.Fatalf("expected path /task/task-1, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		assignees, ok := body["assignees"].(map[string]any)
+		if !ok {
+			t.Fatalf("expected assignees object in request")
+		}
+
+		add, ok := assignees["add"].([]any)
+		if !ok || len(add) != 1 || int(add[0].(float64)) != 123 {
+			t.Fatalf("expected assignees.add [123], got %#v", assignees["add"])
+		}
+
+		rem, ok := assignees["rem"].([]any)
+		if !ok || len(rem) != 1 || int(rem[0].(float64)) != 456 {
+			t.Fatalf("expected assignees.rem [456], got %#v", assignees["rem"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Task{ID: "task-1", Name: "Task 1"})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Tasks().Update(context.Background(), "task-1", UpdateTaskRequest{
+		Assignees: &TaskAssigneesUpdate{Add: []int{123}, Rem: []int{456}},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

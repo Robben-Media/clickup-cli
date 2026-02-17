@@ -113,15 +113,24 @@ type Member struct {
 type CreateTaskRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
+	Assignees   []int  `json:"assignees,omitempty"`
 	Priority    *int   `json:"priority,omitempty"`
 	DueDate     string `json:"due_date,omitempty"`
 }
 
+// TaskAssigneesUpdate is the assignee update payload for the task update endpoint.
+// ClickUp expects assignees as an object with add/rem arrays.
+type TaskAssigneesUpdate struct {
+	Add []int `json:"add,omitempty"`
+	Rem []int `json:"rem,omitempty"`
+}
+
 // UpdateTaskRequest is the request body for updating a task.
 type UpdateTaskRequest struct {
-	Name     string `json:"name,omitempty"`
-	Status   string `json:"status,omitempty"`
-	Priority *int   `json:"priority,omitempty"`
+	Name      string              `json:"name,omitempty"`
+	Status    string              `json:"status,omitempty"`
+	Assignees *TaskAssigneesUpdate `json:"assignees,omitempty"`
+	Priority  *int                `json:"priority,omitempty"`
 }
 
 // CreateCommentRequest is the request body for creating a comment.
