@@ -12,10 +12,26 @@ Implement the next task from the implementation plan. You may delegate subtasks 
 
 Every iteration:
 
-1. **Sync repo** — pull latest changes:
+1. **Sync repo and check PR status**:
    ```bash
    git fetch origin
-   git pull origin $(git branch --show-current)
+   
+   # Check if current branch's PR is merged
+   CURRENT_BRANCH=$(git branch --show-current)
+   PR_STATE=$(gh pr list --head "$CURRENT_BRANCH" --json state --jq '.[0].state' 2>/dev/null || echo "none")
+   
+   if [ "$PR_STATE" = "MERGED" ]; then
+     # PR was merged - sync from base and continue or start new phase
+     git checkout fix/plain-output  # or your base branch
+     git pull origin fix/plain-output
+     # Continue working on this base - next task will create its own branch if needed
+   elif [ "$PR_STATE" = "OPEN" ]; then
+     # PR exists - pull and continue
+     git pull origin "$CURRENT_BRANCH"
+   else
+     # No PR - check if we need to create a branch or just pull
+     git pull origin "$CURRENT_BRANCH" 2>/dev/null || true
+   fi
    ```
 2. Read `IMPLEMENTATION_PLAN.md` for task status
 3. Read `AGENTS.md` for build commands, patterns, and design mandates
