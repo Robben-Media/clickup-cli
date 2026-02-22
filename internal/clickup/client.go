@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 
 	"github.com/builtbyrobben/clickup-cli/internal/api"
@@ -95,6 +96,11 @@ func (c *Client) Time() *TimeService {
 // Users provides methods for the Users API.
 func (c *Client) Users() *UsersService {
 	return &UsersService{client: c}
+}
+
+// Attachments provides methods for the Attachments API.
+func (c *Client) Attachments() *AttachmentsService {
+	return &AttachmentsService{client: c}
 }
 
 // --- TasksService ---
@@ -500,4 +506,67 @@ func (s *UsersService) Remove(ctx context.Context, teamID, userID string) error 
 	}
 
 	return nil
+}
+
+// --- AttachmentsService ---
+
+// AttachmentsService handles file attachment operations.
+type AttachmentsService struct {
+	client *Client
+}
+
+// Upload uploads a file attachment to a task using the v2 API.
+func (s *AttachmentsService) Upload(ctx context.Context, taskID string, reader io.Reader, fileName string) (*Attachment, error) {
+	if taskID == "" {
+		return nil, errIDRequired
+	}
+
+	var result Attachment
+
+	path := fmt.Sprintf("/v2/task/%s/attachment", taskID)
+	if err := s.client.PostMultipart(ctx, path, "attachment", reader, fileName, &result); err != nil {
+		return nil, fmt.Errorf("upload attachment: %w", err)
+	}
+
+	return &result, nil
+}
+
+// List returns attachments for a parent entity using the v3 API.
+// parentType should be one of: task, list, folder, space.
+func (s *AttachmentsService) List(ctx context.Context, parentType, parentID string) (*AttachmentsResponse, error) {
+	if parentType == "" || parentID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/%s/%s/attachments", parentType, parentID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result AttachmentsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list attachments: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Create uploads a file attachment to a parent entity using the v3 API.
+// parentType should be one of: task, list, folder, space.
+func (s *AttachmentsService) Create(ctx context.Context, parentType, parentID string, reader io.Reader, fileName string) (*Attachment, error) {
+	if parentType == "" || parentID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/%s/%s/attachments", parentType, parentID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result Attachment
+	if err := s.client.PostMultipart(ctx, path, "attachment", reader, fileName, &result); err != nil {
+		return nil, fmt.Errorf("create attachment: %w", err)
+	}
+
+	return &result, nil
 }

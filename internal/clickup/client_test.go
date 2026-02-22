@@ -1,6 +1,7 @@
 package clickup
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -560,5 +561,168 @@ func TestMembersTaskMembers_RequiresTaskID(t *testing.T) {
 	_, err := NewClient("test-key").Members().TaskMembers(context.Background(), "")
 	if err == nil {
 		t.Fatal("expected error for missing task ID, got nil")
+	}
+}
+
+// --- AttachmentsService tests ---
+
+func TestAttachmentsUpload_SendsMultipart(t *testing.T) {
+	t.Parallel()
+
+	fileContent := []byte("test file content")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		wantPath := "/v2/task/task-1/attachment"
+		if r.URL.Path != wantPath {
+			t.Fatalf("expected path %s, got %s", wantPath, r.URL.Path)
+		}
+
+		// Verify multipart content type
+		contentType := r.Header.Get("Content-Type")
+		if len(contentType) < 9 || contentType[:9] != "multipart" {
+			t.Fatalf("expected multipart content-type, got %s", contentType)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Attachment{
+			ID:    "att-1",
+			Title: "test.txt",
+			Size:  int64(len(fileContent)),
+			URL:   "https://example.com/test.txt",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Attachments().Upload(context.Background(), "task-1", bytes.NewReader(fileContent), "test.txt")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "att-1" {
+		t.Fatalf("expected ID att-1, got %s", result.ID)
+	}
+
+	if result.Size != int64(len(fileContent)) {
+		t.Fatalf("expected size %d, got %d", len(fileContent), result.Size)
+	}
+}
+
+func TestAttachmentsUpload_RequiresTaskID(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewClient("test-key").Attachments().Upload(context.Background(), "", bytes.NewReader([]byte("test")), "test.txt")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+}
+
+func TestAttachmentsList_UsesV3Path(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		// Verify v3 path structure
+		wantPath := "/v3/workspaces/ws-1/task/task-1/attachments"
+		if r.URL.Path != wantPath {
+			t.Fatalf("expected path %s, got %s", wantPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(AttachmentsResponse{
+			Attachments: []Attachment{
+				{ID: "att-1", Title: "file1.pdf", Size: 1024, URL: "https://example.com/file1.pdf"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := &Client{
+		Client:      api.NewClient("test-key", api.WithBaseURL(server.URL)),
+		workspaceID: "ws-1",
+	}
+
+	result, err := client.Attachments().List(context.Background(), "task", "task-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Attachments) != 1 {
+		t.Fatalf("expected 1 attachment, got %d", len(result.Attachments))
+	}
+
+	if result.Attachments[0].Title != "file1.pdf" {
+		t.Fatalf("expected title file1.pdf, got %s", result.Attachments[0].Title)
+	}
+}
+
+func TestAttachmentsList_RequiresWorkspaceID(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient("test-key") // No workspace ID
+
+	_, err := client.Attachments().List(context.Background(), "task", "task-1")
+	if err == nil {
+		t.Fatal("expected error for missing workspace ID, got nil")
+	}
+}
+
+func TestAttachmentsCreate_UsesV3Path(t *testing.T) {
+	t.Parallel()
+
+	fileContent := []byte("test content")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		// Verify v3 path structure
+		wantPath := "/v3/workspaces/ws-1/list/list-1/attachments"
+		if r.URL.Path != wantPath {
+			t.Fatalf("expected path %s, got %s", wantPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Attachment{
+			ID:    "att-2",
+			Title: "report.pdf",
+			Size:  int64(len(fileContent)),
+			URL:   "https://example.com/report.pdf",
+		})
+	}))
+	defer server.Close()
+
+	client := &Client{
+		Client:      api.NewClient("test-key", api.WithBaseURL(server.URL)),
+		workspaceID: "ws-1",
+	}
+
+	result, err := client.Attachments().Create(context.Background(), "list", "list-1", bytes.NewReader(fileContent), "report.pdf")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "att-2" {
+		t.Fatalf("expected ID att-2, got %s", result.ID)
+	}
+}
+
+func TestAttachmentsCreate_RequiresWorkspaceID(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient("test-key") // No workspace ID
+
+	_, err := client.Attachments().Create(context.Background(), "list", "list-1", bytes.NewReader([]byte("test")), "test.txt")
+	if err == nil {
+		t.Fatal("expected error for missing workspace ID, got nil")
 	}
 }

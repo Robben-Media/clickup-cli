@@ -224,3 +224,19 @@ type MemberUser struct {
 type MemberUsersResponse struct {
 	Members []MemberUser `json:"members"`
 }
+
+// --- Attachments types ---
+
+// Attachment represents a file attachment in ClickUp.
+type Attachment struct {
+	ID        string `json:"id"`
+	URL       string `json:"url"`
+	Title     string `json:"title"`
+	Extension string `json:"extension,omitempty"`
+	Size      int64  `json:"size"`
+}
+
+// AttachmentsResponse is the response for listing attachments.
+type AttachmentsResponse struct {
+	Attachments []Attachment `json:"attachments"`
+}
