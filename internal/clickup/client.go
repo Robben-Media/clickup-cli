@@ -15,6 +15,10 @@ var (
 	errNameRequired        = errors.New("name is required")
 	errTextRequired        = errors.New("comment text is required")
 	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
+	errMembersRequired     = errors.New("members are required")
+	errParentRequired      = errors.New("parent_type and parent_id are required")
+	errContentRequired     = errors.New("content is required")
+	errReactionRequired    = errors.New("reaction is required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -89,6 +93,16 @@ func (c *Client) Comments() *CommentsService {
 // Time provides methods for the Time Tracking API.
 func (c *Client) Time() *TimeService {
 	return &TimeService{client: c}
+}
+
+// Chat provides methods for the Chat v3 API.
+func (c *Client) Chat() *ChatService {
+	return &ChatService{client: c}
+}
+
+// Docs provides methods for the Docs v3 API.
+func (c *Client) Docs() *DocsService {
+	return &DocsService{client: c}
 }
 
 // --- TasksService ---
@@ -389,4 +403,559 @@ func (s *TimeService) Log(ctx context.Context, teamID, taskID string, durationMs
 	}
 
 	return &result.Data, nil
+}
+
+// --- ChatService (v3) ---
+
+// ChatService handles Chat v3 API operations.
+type ChatService struct {
+	client *Client
+}
+
+// ListChannels retrieves all chat channels in a workspace.
+func (s *ChatService) ListChannels(ctx context.Context) (*ChatChannelsResponse, error) {
+	path, err := s.client.v3Path("/chat/channels")
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatChannelsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list chat channels: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetChannel retrieves a single chat channel by ID.
+func (s *ChatService) GetChannel(ctx context.Context, channelID string) (*ChatChannel, error) {
+	if channelID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/channels/%s", channelID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatChannel
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get chat channel: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetChannelFollowers retrieves followers of a channel.
+func (s *ChatService) GetChannelFollowers(ctx context.Context, channelID string) (*ChatUsersResponse, error) {
+	if channelID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/channels/%s/followers", channelID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatUsersResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get channel followers: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetChannelMembers retrieves members of a channel.
+func (s *ChatService) GetChannelMembers(ctx context.Context, channelID string) (*ChatUsersResponse, error) {
+	if channelID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/channels/%s/members", channelID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatUsersResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get channel members: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListMessages retrieves messages from a channel.
+func (s *ChatService) ListMessages(ctx context.Context, channelID string, limit int, cursor string) (*ChatMessagesResponse, error) {
+	if channelID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/channels/%s/messages", channelID))
+	if err != nil {
+		return nil, err
+	}
+
+	// Build query parameters
+	params := url.Values{}
+
+	if limit > 0 {
+		params.Set("limit", fmt.Sprintf("%d", limit))
+	}
+
+	if cursor != "" {
+		params.Set("cursor", cursor)
+	}
+
+	if len(params) > 0 {
+		path = path + "?" + params.Encode()
+	}
+
+	var result ChatMessagesResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list chat messages: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CreateChannel creates a new chat channel.
+func (s *ChatService) CreateChannel(ctx context.Context, req CreateChatChannelRequest) (*ChatChannel, error) {
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	path, err := s.client.v3Path("/chat/channels")
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatChannel
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create chat channel: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CreateDirectMessage creates a direct message channel.
+func (s *ChatService) CreateDirectMessage(ctx context.Context, req CreateDMRequest) (*ChatChannel, error) {
+	if len(req.Members) == 0 {
+		return nil, errMembersRequired
+	}
+
+	path, err := s.client.v3Path("/chat/channels/direct_message")
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatChannel
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create direct message: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CreateLocationChannel creates a channel tied to a space/folder/list.
+func (s *ChatService) CreateLocationChannel(ctx context.Context, req CreateLocationChannelRequest) (*ChatChannel, error) {
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	if req.ParentType == "" || req.ParentID == "" {
+		return nil, errParentRequired
+	}
+
+	path, err := s.client.v3Path("/chat/channels/location")
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatChannel
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create location channel: %w", err)
+	}
+
+	return &result, nil
+}
+
+// UpdateChannel updates a chat channel.
+func (s *ChatService) UpdateChannel(ctx context.Context, channelID string, req UpdateChannelRequest) (*ChatChannel, error) {
+	if channelID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/channels/%s", channelID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatChannel
+	if err := s.client.Patch(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update chat channel: %w", err)
+	}
+
+	return &result, nil
+}
+
+// DeleteChannel deletes a chat channel.
+func (s *ChatService) DeleteChannel(ctx context.Context, channelID string) error {
+	if channelID == "" {
+		return errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/channels/%s", channelID))
+	if err != nil {
+		return err
+	}
+
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete chat channel: %w", err)
+	}
+
+	return nil
+}
+
+// SendMessage sends a message to a channel.
+func (s *ChatService) SendMessage(ctx context.Context, channelID string, req SendMessageRequest) (*ChatMessage, error) {
+	if channelID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Content == "" {
+		return nil, errContentRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/channels/%s/messages", channelID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatMessage
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("send chat message: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetReactions retrieves reactions on a message.
+func (s *ChatService) GetReactions(ctx context.Context, messageID string) (*ChatReactionsResponse, error) {
+	if messageID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/messages/%s/reactions", messageID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatReactionsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get chat reactions: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetReplies retrieves replies to a message.
+func (s *ChatService) GetReplies(ctx context.Context, messageID string) (*ChatMessagesResponse, error) {
+	if messageID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/messages/%s/replies", messageID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatMessagesResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get chat replies: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetTaggedUsers retrieves users tagged in a message.
+func (s *ChatService) GetTaggedUsers(ctx context.Context, messageID string) (*ChatUsersResponse, error) {
+	if messageID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/messages/%s/tagged_users", messageID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatUsersResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get tagged users: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CreateReaction adds a reaction to a message.
+func (s *ChatService) CreateReaction(ctx context.Context, messageID string, req CreateReactionRequest) (*ChatReaction, error) {
+	if messageID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Reaction == "" {
+		return nil, errReactionRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/messages/%s/reactions", messageID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatReaction
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create chat reaction: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CreateReply creates a reply to a message.
+func (s *ChatService) CreateReply(ctx context.Context, messageID string, req SendMessageRequest) (*ChatMessage, error) {
+	if messageID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Content == "" {
+		return nil, errContentRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/messages/%s/replies", messageID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatMessage
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create chat reply: %w", err)
+	}
+
+	return &result, nil
+}
+
+// UpdateMessage updates a chat message.
+func (s *ChatService) UpdateMessage(ctx context.Context, messageID string, req UpdateMessageRequest) (*ChatMessage, error) {
+	if messageID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/messages/%s", messageID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result ChatMessage
+	if err := s.client.Patch(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update chat message: %w", err)
+	}
+
+	return &result, nil
+}
+
+// DeleteMessage deletes a chat message.
+func (s *ChatService) DeleteMessage(ctx context.Context, messageID string) error {
+	if messageID == "" {
+		return errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/messages/%s", messageID))
+	if err != nil {
+		return err
+	}
+
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete chat message: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteReaction removes a reaction from a message.
+func (s *ChatService) DeleteReaction(ctx context.Context, messageID, reactionID string) error {
+	if messageID == "" || reactionID == "" {
+		return errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/chat/messages/%s/reactions/%s", messageID, reactionID))
+	if err != nil {
+		return err
+	}
+
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete chat reaction: %w", err)
+	}
+
+	return nil
+}
+
+// --- DocsService (v3) ---
+
+// DocsService handles Docs v3 API operations.
+type DocsService struct {
+	client *Client
+}
+
+// Search searches for docs in a workspace.
+func (s *DocsService) Search(ctx context.Context, query string) (*DocsResponse, error) {
+	path, err := s.client.v3Path("/docs")
+	if err != nil {
+		return nil, err
+	}
+
+	if query != "" {
+		path = path + "?query=" + url.QueryEscape(query)
+	}
+
+	var result DocsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("search docs: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Get retrieves a single doc by ID.
+func (s *DocsService) Get(ctx context.Context, docID string) (*Doc, error) {
+	if docID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/docs/%s", docID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result Doc
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get doc: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetPageListing retrieves the page listing for a doc.
+func (s *DocsService) GetPageListing(ctx context.Context, docID string) (*DocPagesResponse, error) {
+	if docID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/docs/%s/page_listing", docID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result DocPagesResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get page listing: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetPages retrieves all pages in a doc.
+func (s *DocsService) GetPages(ctx context.Context, docID string) (*DocPagesResponse, error) {
+	if docID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/docs/%s/pages", docID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result DocPagesResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get pages: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetPage retrieves a single page from a doc.
+func (s *DocsService) GetPage(ctx context.Context, docID, pageID string) (*DocPage, error) {
+	if docID == "" || pageID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/docs/%s/pages/%s", docID, pageID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result DocPage
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get page: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Create creates a new doc.
+func (s *DocsService) Create(ctx context.Context, req CreateDocRequest) (*Doc, error) {
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	path, err := s.client.v3Path("/docs")
+	if err != nil {
+		return nil, err
+	}
+
+	var result Doc
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create doc: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CreatePage creates a new page in a doc.
+func (s *DocsService) CreatePage(ctx context.Context, docID string, req CreatePageRequest) (*DocPage, error) {
+	if docID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/docs/%s/pages", docID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result DocPage
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create page: %w", err)
+	}
+
+	return &result, nil
+}
+
+// EditPage updates a page in a doc.
+func (s *DocsService) EditPage(ctx context.Context, docID, pageID string, req EditPageRequest) (*DocPage, error) {
+	if docID == "" || pageID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/docs/%s/pages/%s", docID, pageID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result DocPage
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("edit page: %w", err)
+	}
+
+	return &result, nil
 }

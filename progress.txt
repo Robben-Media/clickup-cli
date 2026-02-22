@@ -107,3 +107,106 @@ All 3 foundation architecture tasks are complete:
 Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 2 (Workspaces & Authorization)
 
 ---
+
+## Task 22 - 2026-02-22
+### Completed: Create Chat Service (v3)
+
+**What was implemented:**
+- Created `ChatService` with 19 methods covering the entire ClickUp Chat v3 API
+- Channel operations: ListChannels, GetChannel, GetChannelFollowers, GetChannelMembers, CreateChannel, CreateDirectMessage, CreateLocationChannel, UpdateChannel, DeleteChannel
+- Message operations: ListMessages (with cursor pagination), SendMessage, UpdateMessage, DeleteMessage
+- Reaction operations: GetReactions, CreateReaction, DeleteReaction
+- Reply operations: GetReplies, CreateReply
+- Utility: GetTaggedUsers
+- All methods use `v3Path()` helper for workspace-prefixed paths
+- Added static error variables for validation: errMembersRequired, errParentRequired, errContentRequired, errReactionRequired
+- Added Chat types: ChatChannel, ChatMessage, ChatReaction, ChatUser, ChatPagination
+- Added request types: CreateChatChannelRequest, CreateDMRequest, CreateLocationChannelRequest, SendMessageRequest, CreateReactionRequest, UpdateChannelRequest, UpdateMessageRequest
+- Added response types: ChatChannelsResponse, ChatMessagesResponse, ChatReactionsResponse, ChatUsersResponse
+
+**CLI commands added:**
+- `chat channels` — list all channels
+- `chat channel <id>` — get channel details
+- `chat channel-followers <id>` — get channel followers
+- `chat channel-members <id>` — get channel members
+- `chat messages <id>` — list messages (with --limit and --cursor)
+- `chat create-channel --name <name>` — create a channel
+- `chat create-dm --members <ids>` — create direct message
+- `chat create-location --name <name> --parent-type <type> --parent-id <id>` — create location channel
+- `chat update-channel <id> --name <name>` — update channel
+- `chat delete-channel <id>` — delete channel
+- `chat send <channel_id> --text <content>` — send message
+- `chat reactions <message_id>` — list reactions
+- `chat replies <message_id>` — list replies
+- `chat tagged-users <message_id>` — get tagged users
+- `chat react <message_id> --emoji <emoji>` — add reaction
+- `chat reply <message_id> --text <content>` — create reply
+- `chat update-message <id> --text <content>` — update message
+- `chat delete-message <id>` — delete message
+- `chat delete-reaction <message_id> <reaction_id>` — remove reaction
+
+**Files changed:**
+- `internal/clickup/client.go` — added Chat() accessor and ChatService with all methods
+- `internal/clickup/types.go` — added all Chat types
+- `internal/clickup/client_test.go` — added 13 tests for Chat service
+- `internal/cmd/chat.go` — created with all CLI commands
+- `internal/cmd/root.go` — added ChatCmd to CLI struct
+
+**Branch:** `phase/8-v3-domains`
+
+**Learnings:**
+- v3 API uses PATCH for updates (not PUT)
+- Cursor-based pagination with `next_page_token` instead of page numbers
+- DM channels require member user IDs array
+- Location channels are tied to space/folder/list via parent_type and parent_id
+
+---
+
+## Task 23 - 2026-02-22
+### Completed: Create Docs Service (v3)
+
+**What was implemented:**
+- Created `DocsService` with 8 methods covering the ClickUp Docs v3 API
+- Doc operations: Search, Get, Create
+- Page operations: GetPageListing, GetPages, GetPage, CreatePage, EditPage
+- All methods use `v3Path()` helper for workspace-prefixed paths
+- Added Doc types: Doc, DocPage
+- Added request types: CreateDocRequest, CreatePageRequest, EditPageRequest
+- Added response types: DocsResponse, DocPagesResponse
+
+**CLI commands added:**
+- `docs search [--query <query>]` — search for docs
+- `docs get <doc_id>` — get doc details
+- `docs page-listing <doc_id>` — get page listing
+- `docs pages <doc_id>` — get all pages
+- `docs page <doc_id> <page_id>` — get single page with content
+- `docs create --name <name> [--parent-type <type>] [--parent-id <id>]` — create doc
+- `docs create-page <doc_id> --name <name> [--content <content>] [--content-format <md|html>]` — create page
+- `docs edit-page <doc_id> <page_id> [--name <name>] [--content <content>]` — edit page
+
+**Files changed:**
+- `internal/clickup/client.go` — added Docs() accessor and DocsService with all methods
+- `internal/clickup/types.go` — added all Doc types
+- `internal/clickup/client_test.go` — added 9 tests for Docs service
+- `internal/cmd/docs.go` — created with all CLI commands
+- `internal/cmd/root.go` — added DocsCmd to CLI struct
+
+**Branch:** `phase/8-v3-domains`
+
+**Learnings:**
+- Docs EditPage uses PUT (not PATCH like Chat)
+- Content format can be markdown or html
+- Page listing returns structure (ID + title) without full content
+- Doc creation can be scoped to space/folder/list via parent refs
+
+---
+
+## Phase 8 Complete
+
+All 2 v3 domain tasks are complete:
+22. ✅ Create Chat Service (v3) — 19 endpoints, 20 CLI commands
+23. ✅ Create Docs Service (v3) — 8 endpoints, 8 CLI commands
+
+Next: Push Phase 8 branch, create PR
+
+---

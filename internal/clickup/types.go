@@ -182,3 +182,162 @@ type TimeEntriesListResponse struct {
 type MembersListResponse struct {
 	Members []Member `json:"members"`
 }
+
+// --- Chat v3 types ---
+
+// ChatChannel represents a ClickUp chat channel.
+type ChatChannel struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Type        string `json:"type"` // public, private, direct_message
+	MemberCount int    `json:"member_count,omitempty"`
+}
+
+// ChatMessage represents a chat message.
+type ChatMessage struct {
+	ID            string      `json:"id"`
+	Content       string      `json:"content"`
+	UserID        string      `json:"user_id"`
+	Type          string      `json:"type"` // message, post
+	DateCreated   json.Number `json:"date_created"`
+	DateUpdated   json.Number `json:"date_updated"`
+	ParentChannel string      `json:"parent_channel"`
+	ParentMessage string      `json:"parent_message,omitempty"`
+	Resolved      bool        `json:"resolved"`
+	RepliesCount  int         `json:"replies_count"`
+}
+
+// ChatReaction represents a reaction on a message.
+type ChatReaction struct {
+	ID          string      `json:"id"`
+	MessageID   string      `json:"message_id"`
+	UserID      string      `json:"user_id"`
+	Reaction    string      `json:"reaction"`
+	DateCreated json.Number `json:"date_created"`
+}
+
+// ChatUser represents a user in the chat system.
+type ChatUser struct {
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+}
+
+// ChatPagination represents cursor-based pagination.
+type ChatPagination struct {
+	NextPageToken string `json:"next_page_token,omitempty"`
+}
+
+// --- Chat Request types ---
+
+// CreateChatChannelRequest is the request body for creating a channel.
+type CreateChatChannelRequest struct {
+	Name string `json:"name"`
+}
+
+// CreateDMRequest is the request body for creating a direct message.
+type CreateDMRequest struct {
+	Members []string `json:"members"` // user IDs
+}
+
+// CreateLocationChannelRequest is the request body for creating a location channel.
+type CreateLocationChannelRequest struct {
+	Name       string `json:"name"`
+	ParentType string `json:"parent_type"` // space, folder, list
+	ParentID   string `json:"parent_id"`
+}
+
+// SendMessageRequest is the request body for sending a message.
+type SendMessageRequest struct {
+	Content string `json:"content"`
+}
+
+// CreateReactionRequest is the request body for creating a reaction.
+type CreateReactionRequest struct {
+	Reaction string `json:"reaction"`
+}
+
+// UpdateChannelRequest is the request body for updating a channel.
+type UpdateChannelRequest struct {
+	Name string `json:"name,omitempty"`
+}
+
+// UpdateMessageRequest is the request body for updating a message.
+type UpdateMessageRequest struct {
+	Content string `json:"content,omitempty"`
+}
+
+// --- Chat Response types ---
+
+// ChatChannelsResponse is the response for listing channels.
+type ChatChannelsResponse struct {
+	Channels []ChatChannel `json:"channels"`
+}
+
+// ChatMessagesResponse is the response for listing messages.
+type ChatMessagesResponse struct {
+	Data       []ChatMessage   `json:"data"`
+	Pagination *ChatPagination `json:"pagination,omitempty"`
+}
+
+// ChatReactionsResponse is the response for listing reactions.
+type ChatReactionsResponse struct {
+	Reactions []ChatReaction `json:"reactions"`
+}
+
+// ChatUsersResponse is the response for listing users (followers, members, tagged).
+type ChatUsersResponse struct {
+	Users []ChatUser `json:"users"`
+}
+
+// --- Docs v3 types ---
+
+// Doc represents a ClickUp doc.
+type Doc struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	DateCreated int64  `json:"date_created,omitempty"`
+	Creator     *User  `json:"creator,omitempty"`
+}
+
+// DocPage represents a page within a doc.
+type DocPage struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Content string `json:"content,omitempty"`
+	Order   int    `json:"order,omitempty"`
+}
+
+// --- Docs Request types ---
+
+// CreateDocRequest is the request body for creating a doc.
+type CreateDocRequest struct {
+	Name       string `json:"name"`
+	ParentType string `json:"parent_type,omitempty"`
+	ParentID   string `json:"parent_id,omitempty"`
+}
+
+// CreatePageRequest is the request body for creating a page.
+type CreatePageRequest struct {
+	Name          string `json:"name"`
+	Content       string `json:"content,omitempty"`
+	ContentFormat string `json:"content_format,omitempty"` // "md" or "html"
+}
+
+// EditPageRequest is the request body for editing a page.
+type EditPageRequest struct {
+	Name          string `json:"name,omitempty"`
+	Content       string `json:"content,omitempty"`
+	ContentFormat string `json:"content_format,omitempty"`
+}
+
+// --- Docs Response types ---
+
+// DocsResponse is the response for listing/searching docs.
+type DocsResponse struct {
+	Docs []Doc `json:"docs"`
+}
+
+// DocPagesResponse is the response for listing pages.
+type DocPagesResponse struct {
+	Pages []DocPage `json:"pages"`
+}
