@@ -308,3 +308,58 @@ type TimeEntriesListResponse struct {
 type MembersListResponse struct {
 	Members []Member `json:"members"`
 }
+
+// FilteredTeamTasksParams contains query parameters for the filtered team tasks endpoint.
+type FilteredTeamTasksParams struct {
+	Page          int      `url:"page,omitempty"`
+	OrderBy       string   `url:"order_by,omitempty"`
+	Reverse       bool     `url:"reverse,omitempty"`
+	Subtasks      bool     `url:"subtasks,omitempty"`
+	Statuses      []string `url:"statuses[],omitempty"`
+	IncludeClosed bool     `url:"include_closed,omitempty"`
+	Assignees     []int    `url:"assignees[],omitempty"`
+	Tags          []string `url:"tags[],omitempty"`
+	DueDateGt     int64    `url:"due_date_gt,omitempty"`
+	DueDateLt     int64    `url:"due_date_lt,omitempty"`
+	DateCreatedGt int64    `url:"date_created_gt,omitempty"`
+	DateCreatedLt int64    `url:"date_created_lt,omitempty"`
+	DateUpdatedGt int64    `url:"date_updated_gt,omitempty"`
+	DateUpdatedLt int64    `url:"date_updated_lt,omitempty"`
+}
+
+// FilteredTeamTasksResponse is the response for filtered team tasks search.
+type FilteredTeamTasksResponse struct {
+	Tasks []Task `json:"tasks"`
+}
+
+// TimeInStatusResponse represents time-in-status data for a single task.
+type TimeInStatusResponse struct {
+	CurrentStatus StatusTime   `json:"current_status"`
+	StatusHistory []StatusTime `json:"status_history"`
+}
+
+// StatusTime represents time spent in a particular status.
+type StatusTime struct {
+	Status    string    `json:"status"`
+	Color     string    `json:"color,omitempty"`
+	TotalTime TimeValue `json:"total_time"`
+}
+
+// TimeValue represents a time duration with since timestamp.
+type TimeValue struct {
+	ByMinute int64  `json:"by_minute"`
+	Since    string `json:"since,omitempty"`
+}
+
+// BulkTimeInStatusResponse maps task IDs to their time-in-status data.
+type BulkTimeInStatusResponse map[string]TimeInStatusResponse
+
+// MergeTasksRequest is the request body for merging tasks.
+type MergeTasksRequest struct {
+	MergedTaskIDs []string `json:"merged_task_ids"`
+}
+
+// CreateTaskFromTemplateRequest is the request body for creating a task from template.
+type CreateTaskFromTemplateRequest struct {
+	Name string `json:"name,omitempty"`
+}

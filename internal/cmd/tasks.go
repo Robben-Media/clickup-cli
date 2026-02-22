@@ -10,11 +10,17 @@ import (
 )
 
 type TasksCmd struct {
-	List   TasksListCmd   `cmd:"" help:"List tasks in a list"`
-	Get    TasksGetCmd    `cmd:"" help:"Get a task by ID"`
-	Create TasksCreateCmd `cmd:"" help:"Create a new task"`
-	Update TasksUpdateCmd `cmd:"" help:"Update a task"`
-	Delete TasksDeleteCmd `cmd:"" help:"Delete a task"`
+	List             TasksListCmd             `cmd:"" help:"List tasks in a list"`
+	Get              TasksGetCmd              `cmd:"" help:"Get a task by ID"`
+	Create           TasksCreateCmd           `cmd:"" help:"Create a new task"`
+	Update           TasksUpdateCmd           `cmd:"" help:"Update a task"`
+	Delete           TasksDeleteCmd           `cmd:"" help:"Delete a task"`
+	Search           TasksSearchCmd           `cmd:"" help:"Search tasks across workspace"`
+	TimeInStatus     TasksTimeInStatusCmd     `cmd:"" help:"Get time in status for a task"`
+	BulkTimeInStatus TasksBulkTimeInStatusCmd `cmd:"" help:"Get time in status for multiple tasks"`
+	Merge            TasksMergeCmd            `cmd:"" help:"Merge tasks into one"`
+	Move             TasksMoveCmd             `cmd:"" help:"Move task to a new list"`
+	FromTemplate     TasksFromTemplateCmd     `cmd:"" help:"Create task from a template"`
 }
 
 type TasksListCmd struct {
@@ -276,4 +282,289 @@ func printTaskDetail(task *clickup.Task) {
 	if task.URL != "" {
 		fmt.Printf("URL: %s\n", task.URL)
 	}
+}
+
+type TasksSearchCmd struct {
+	Team          string   `required:"" help:"Team/workspace ID to search"`
+	Status        []string `help:"Filter by status (can be repeated)"`
+	Assignee      []int    `help:"Filter by assignee ID (can be repeated)"`
+	Tag           []string `help:"Filter by tag (can be repeated)"`
+	DueDateGt     int64    `help:"Filter tasks due after this timestamp (ms)"`
+	DueDateLt     int64    `help:"Filter tasks due before this timestamp (ms)"`
+	IncludeClosed bool     `help:"Include closed tasks"`
+	Page          int      `help:"Page number for pagination"`
+	OrderBy       string   `help:"Order by field (e.g., due_date, created)"`
+}
+
+func (cmd *TasksSearchCmd) Run(ctx context.Context) error {
+	client, err := getClickUpClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	params := clickup.FilteredTeamTasksParams{
+		Page:          cmd.Page,
+		OrderBy:       cmd.OrderBy,
+		Statuses:      cmd.Status,
+		Assignees:     cmd.Assignee,
+		Tags:          cmd.Tag,
+		DueDateGt:     cmd.DueDateGt,
+		DueDateLt:     cmd.DueDateLt,
+		IncludeClosed: cmd.IncludeClosed,
+	}
+
+	result, err := client.Tasks().Search(ctx, cmd.Team, params)
+	if err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, result)
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "NAME", "STATUS", "PRIORITY", "ASSIGNEES", "LIST", "URL"}
+		var rows [][]string
+		for _, task := range result.Tasks {
+			priority := ""
+			if task.Priority != nil {
+				priority = task.Priority.Name
+			}
+
+			assignees := ""
+			for i, a := range task.Assignees {
+				if i > 0 {
+					assignees += ","
+				}
+				assignees += a.Username
+			}
+
+			rows = append(rows, []string{task.ID, task.Name, task.Status.Status, priority, assignees, task.List.Name, task.URL})
+		}
+
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
+
+	if len(result.Tasks) == 0 {
+		fmt.Fprintln(os.Stderr, "No tasks found")
+		return nil
+	}
+
+	fmt.Fprintf(os.Stderr, "Found %d tasks\n\n", len(result.Tasks))
+
+	for _, task := range result.Tasks {
+		printTask(&task)
+	}
+
+	return nil
+}
+
+type TasksTimeInStatusCmd struct {
+	TaskID string `arg:"" required:"" help:"Task ID"`
+}
+
+func (cmd *TasksTimeInStatusCmd) Run(ctx context.Context) error {
+	client, err := getClickUpClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	result, err := client.Tasks().TimeInStatus(ctx, cmd.TaskID)
+	if err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, result)
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"STATUS", "MINUTES", "CURRENT"}
+		var rows [][]string
+
+		for _, s := range result.StatusHistory {
+			rows = append(rows, []string{s.Status, fmt.Sprintf("%d", s.TotalTime.ByMinute), "false"})
+		}
+
+		rows = append(rows, []string{
+			result.CurrentStatus.Status,
+			fmt.Sprintf("%d", result.CurrentStatus.TotalTime.ByMinute),
+			"true",
+		})
+
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
+
+	fmt.Fprintf(os.Stderr, "Time in Status for task %s\n\n", cmd.TaskID)
+
+	for _, s := range result.StatusHistory {
+		fmt.Printf("  %s: %s\n", s.Status, formatDuration(s.TotalTime.ByMinute))
+	}
+
+	fmt.Printf("  %s: %s (current)\n", result.CurrentStatus.Status, formatDuration(result.CurrentStatus.TotalTime.ByMinute))
+
+	return nil
+}
+
+type TasksBulkTimeInStatusCmd struct {
+	TaskIDs []string `arg:"" required:"" help:"Task IDs (space-separated)"`
+}
+
+func (cmd *TasksBulkTimeInStatusCmd) Run(ctx context.Context) error {
+	client, err := getClickUpClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	result, err := client.Tasks().BulkTimeInStatus(ctx, cmd.TaskIDs)
+	if err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, result)
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"TASK_ID", "STATUS", "MINUTES", "CURRENT"}
+		var rows [][]string
+
+		for taskID, data := range result {
+			for _, s := range data.StatusHistory {
+				rows = append(rows, []string{taskID, s.Status, fmt.Sprintf("%d", s.TotalTime.ByMinute), "false"})
+			}
+
+			rows = append(rows, []string{
+				taskID,
+				data.CurrentStatus.Status,
+				fmt.Sprintf("%d", data.CurrentStatus.TotalTime.ByMinute),
+				"true",
+			})
+		}
+
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
+
+	for taskID, data := range result {
+		fmt.Fprintf(os.Stderr, "Task %s:\n", taskID)
+
+		for _, s := range data.StatusHistory {
+			fmt.Printf("  %s: %s\n", s.Status, formatDuration(s.TotalTime.ByMinute))
+		}
+
+		fmt.Printf("  %s: %s (current)\n\n", data.CurrentStatus.Status, formatDuration(data.CurrentStatus.TotalTime.ByMinute))
+	}
+
+	return nil
+}
+
+type TasksMergeCmd struct {
+	TargetTaskID string   `arg:"" required:"" help:"Target task ID to merge into"`
+	SourceIDs    []string `arg:"" required:"" help:"Source task IDs to merge from"`
+}
+
+func (cmd *TasksMergeCmd) Run(ctx context.Context) error {
+	client, err := getClickUpClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	result, err := client.Tasks().Merge(ctx, cmd.TargetTaskID, cmd.SourceIDs)
+	if err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, map[string]string{
+			"status":      "success",
+			"message":     "Tasks merged",
+			"task_id":     result.ID,
+			"merged_into": cmd.TargetTaskID,
+		})
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"STATUS", "TASK_ID", "MERGED_INTO"}
+		rows := [][]string{{"success", result.ID, cmd.TargetTaskID}}
+
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
+
+	fmt.Fprintf(os.Stderr, "Tasks merged into %s\n", cmd.TargetTaskID)
+
+	return nil
+}
+
+type TasksMoveCmd struct {
+	TaskID string `arg:"" required:"" help:"Task ID"`
+	ListID string `required:"" help:"Target list ID"`
+}
+
+func (cmd *TasksMoveCmd) Run(ctx context.Context) error {
+	client, err := getClickUpClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := client.Tasks().Move(ctx, cmd.TaskID, cmd.ListID); err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, map[string]string{
+			"status":  "success",
+			"message": "Task moved",
+			"task_id": cmd.TaskID,
+			"list_id": cmd.ListID,
+		})
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"STATUS", "TASK_ID", "LIST_ID"}
+		rows := [][]string{{"success", cmd.TaskID, cmd.ListID}}
+
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
+
+	fmt.Fprintf(os.Stderr, "Task %s moved to list %s\n", cmd.TaskID, cmd.ListID)
+
+	return nil
+}
+
+type TasksFromTemplateCmd struct {
+	ListID     string `arg:"" required:"" help:"List ID to create task in"`
+	TemplateID string `arg:"" required:"" help:"Template ID"`
+	Name       string `help:"Override task name"`
+}
+
+func (cmd *TasksFromTemplateCmd) Run(ctx context.Context) error {
+	client, err := getClickUpClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	req := clickup.CreateTaskFromTemplateRequest{Name: cmd.Name}
+
+	result, err := client.Tasks().FromTemplate(ctx, cmd.ListID, cmd.TemplateID, req)
+	if err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, result)
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "NAME", "STATUS", "URL"}
+		rows := [][]string{{result.ID, result.Name, result.Status.Status, result.URL}}
+
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
+
+	fmt.Fprintf(os.Stderr, "Created task from template\n\n")
+	printTaskDetail(result)
+
+	return nil
+}
+
+// formatDuration converts minutes to a human-readable format.
+func formatDuration(minutes int64) string {
+	hours := minutes / 60
+	mins := minutes % 60
+
+	return fmt.Sprintf("%dh %dm", hours, mins)
 }
