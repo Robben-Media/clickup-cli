@@ -92,14 +92,9 @@ func (c *Client) Time() *TimeService {
 	return &TimeService{client: c}
 }
 
-// Workspaces provides methods for the Workspaces API.
-func (c *Client) Workspaces() *WorkspacesService {
-	return &WorkspacesService{client: c}
-}
-
-// Auth provides methods for the Authorization API.
-func (c *Client) Auth() *AuthService {
-	return &AuthService{client: c}
+// UserGroups provides methods for the User Groups API.
+func (c *Client) UserGroups() *UserGroupsService {
+	return &UserGroupsService{client: c}
 }
 
 // --- TasksService ---
@@ -402,89 +397,71 @@ func (s *TimeService) Log(ctx context.Context, teamID, taskID string, durationMs
 	return &result.Data, nil
 }
 
-// --- WorkspacesService ---
+// --- UserGroupsService ---
 
-// WorkspacesService handles workspace operations.
-type WorkspacesService struct {
+// UserGroupsService handles user group operations.
+type UserGroupsService struct {
 	client *Client
 }
 
-// List returns all authorized workspaces (teams).
-func (s *WorkspacesService) List(ctx context.Context) (*WorkspacesResponse, error) {
-	var result WorkspacesResponse
+// List returns all user groups.
+func (s *UserGroupsService) List(ctx context.Context) (*UserGroupsResponse, error) {
+	path := "/v2/group"
 
-	path := "/v2/team"
+	var result UserGroupsResponse
 	if err := s.client.Get(ctx, path, &result); err != nil {
-		return nil, fmt.Errorf("list workspaces: %w", err)
+		return nil, fmt.Errorf("list user groups: %w", err)
 	}
 
 	return &result, nil
 }
 
-// Plan returns the workspace plan for a team.
-func (s *WorkspacesService) Plan(ctx context.Context, teamID string) (*WorkspacePlanResponse, error) {
+// Create creates a new user group.
+func (s *UserGroupsService) Create(ctx context.Context, teamID string, req CreateUserGroupRequest) (*UserGroup, error) {
 	if teamID == "" {
 		return nil, errIDRequired
 	}
 
-	var result WorkspacePlanResponse
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
 
-	path := fmt.Sprintf("/v2/team/%s/plan", teamID)
-	if err := s.client.Get(ctx, path, &result); err != nil {
-		return nil, fmt.Errorf("get workspace plan: %w", err)
+	var result UserGroup
+
+	path := fmt.Sprintf("/v2/team/%s/group", teamID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create user group: %w", err)
 	}
 
 	return &result, nil
 }
 
-// Seats returns the workspace seat usage for a team.
-func (s *WorkspacesService) Seats(ctx context.Context, teamID string) (*WorkspaceSeatsResponse, error) {
-	if teamID == "" {
+// Update updates a user group.
+func (s *UserGroupsService) Update(ctx context.Context, groupID string, req UpdateUserGroupRequest) (*UserGroup, error) {
+	if groupID == "" {
 		return nil, errIDRequired
 	}
 
-	var result WorkspaceSeatsResponse
+	var result UserGroup
 
-	path := fmt.Sprintf("/v2/team/%s/seats", teamID)
-	if err := s.client.Get(ctx, path, &result); err != nil {
-		return nil, fmt.Errorf("get workspace seats: %w", err)
+	path := fmt.Sprintf("/v2/group/%s", groupID)
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update user group: %w", err)
 	}
 
 	return &result, nil
 }
 
-// --- AuthService ---
-
-// AuthService handles authorization operations.
-type AuthService struct {
-	client *Client
-}
-
-// Whoami returns the currently authorized user.
-func (s *AuthService) Whoami(ctx context.Context) (*AuthorizedUserResponse, error) {
-	var result AuthorizedUserResponse
-
-	path := "/v2/user"
-	if err := s.client.Get(ctx, path, &result); err != nil {
-		return nil, fmt.Errorf("get authorized user: %w", err)
+// Delete deletes a user group.
+func (s *UserGroupsService) Delete(ctx context.Context, groupID string) error {
+	if groupID == "" {
+		return errIDRequired
 	}
 
-	return &result, nil
-}
-
-// Token exchanges an OAuth authorization code for an access token.
-// This endpoint does not require the Authorization header.
-func (s *AuthService) Token(ctx context.Context, req OAuthTokenRequest) (*OAuthTokenResponse, error) {
-	if req.ClientID == "" || req.ClientSecret == "" || req.Code == "" {
-		return nil, errOAuthFieldsRequired
+	path := fmt.Sprintf("/v2/group/%s", groupID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete user group: %w", err)
 	}
 
-	var result OAuthTokenResponse
-
-	path := "/v2/oauth/token"
-	if err := s.client.PostNoAuth(ctx, path, req, &result); err != nil {
-		return nil, fmt.Errorf("exchange oauth token: %w", err)
-	}
-
-	return &result, nil
+	return nil
 }
