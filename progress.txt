@@ -351,3 +351,103 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 **Next:** Task 10 - Extend Comments Service (Full CRUD + Threaded + List/View) - Phase 3 Core CRUD
 
 ---
+
+## Task 10 - 2026-02-22
+### Completed: Extend Comments Service (Full CRUD + Threaded + List/View)
+
+**What was implemented:**
+- Extended `CommentsService` with:
+  - `Delete(ctx, commentID)` - delete a comment
+  - `Update(ctx, commentID, req)` - update comment text, assignee, resolved status
+  - `Replies(ctx, commentID)` - get threaded replies to a comment
+  - `Reply(ctx, commentID, text, assignee)` - create a threaded reply
+  - `ListComments(ctx, listID)` - get list-level comments
+  - `AddList(ctx, listID, req)` - create a list comment
+  - `ViewComments(ctx, viewID, params)` - get view-level comments with pagination
+  - `AddView(ctx, viewID, req)` - create a view comment
+  - `Subtypes(ctx, typeID)` - get post subtypes (v3 API)
+- Added types:
+  - `UpdateCommentRequest` - request body for updating comments
+  - `CreateListCommentRequest` - request body for creating list comments
+  - `CreateViewCommentRequest` - request body for creating view comments
+  - `ViewCommentsParams` - pagination parameters for view comments
+  - `PostSubtypesResponse` - response for v3 subtypes endpoint
+  - `PostSubtype` - individual post subtype with ID and name
+- Implemented API endpoints:
+  - `DELETE /v2/comment/{comment_id}`
+  - `PUT /v2/comment/{comment_id}`
+  - `GET /v2/comment/{comment_id}/reply`
+  - `POST /v2/comment/{comment_id}/reply`
+  - `GET /v2/list/{list_id}/comment`
+  - `POST /v2/list/{list_id}/comment`
+  - `GET /v2/view/{view_id}/comment` (with pagination)
+  - `POST /v2/view/{view_id}/comment`
+  - `GET /v3/workspaces/{wid}/comments/types/{type_id}/subtypes`
+- Added CLI commands:
+  - `comments delete <comment_id>`
+  - `comments update <comment_id> [--text "..."] [--resolved] [--assignee <user_id>]`
+  - `comments replies <comment_id>`
+  - `comments reply <comment_id> --text "..." [--assignee <user_id>]`
+  - `comments list-comments <list_id>`
+  - `comments add-list <list_id> --text "..." [--assignee <user_id>]`
+  - `comments view-comments <view_id> [--start <int>] [--start-id <string>]`
+  - `comments add-view <view_id> --text "..." [--assignee <user_id>]`
+  - `comments subtypes <type_id>`
+- Added comprehensive tests:
+  - `TestCommentsDelete_SendsDeleteRequest` - verifies delete request
+  - `TestCommentsDelete_RequiresCommentID` - validates comment ID requirement
+  - `TestCommentsUpdate_SendsPutRequest` - verifies update with text, assignee, resolved
+  - `TestCommentsUpdate_RequiresCommentID` - validates comment ID requirement
+  - `TestCommentsReplies_ReturnsThreadedComments` - verifies replies parsing
+  - `TestCommentsReplies_RequiresCommentID` - validates comment ID requirement
+  - `TestCommentsReply_CreatesThreadedReply` - verifies reply creation
+  - `TestCommentsReply_RequiresCommentID` - validates comment ID requirement
+  - `TestCommentsReply_RequiresText` - validates text requirement
+  - `TestCommentsListComments_ReturnsListComments` - verifies list comments
+  - `TestCommentsListComments_RequiresListID` - validates list ID requirement
+  - `TestCommentsAddList_CreatesListComment` - verifies list comment creation
+  - `TestCommentsAddList_RequiresListID` - validates list ID requirement
+  - `TestCommentsAddList_RequiresText` - validates text requirement
+  - `TestCommentsViewComments_ReturnsViewComments` - verifies view comments
+  - `TestCommentsViewComments_WithPagination` - verifies pagination params
+  - `TestCommentsViewComments_RequiresViewID` - validates view ID requirement
+  - `TestCommentsAddView_CreatesViewComment` - verifies view comment creation
+  - `TestCommentsAddView_RequiresViewID` - validates view ID requirement
+  - `TestCommentsAddView_RequiresText` - validates text requirement
+  - `TestCommentsSubtypes_ReturnsSubtypes` - verifies v3 subtypes response
+  - `TestCommentsSubtypes_RequiresTypeID` - validates type ID requirement
+  - `TestCommentsSubtypes_RequiresWorkspaceID` - validates workspace ID requirement (v3)
+- Added helper functions:
+  - `newTestClientWithWorkspace(server, workspaceID)` - test client with workspace
+  - `ptrBool(b)` - helper for bool pointer in tests
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (extended CommentsService with 9 new methods)
+- `internal/clickup/types.go` — modified (added 6 new types)
+- `internal/clickup/client_test.go` — modified (added 27 tests, 2 helper functions)
+- `internal/cmd/comments.go` — modified (added 9 new commands)
+
+**Branch:** `phase/3-core-crud`
+**Commit:** `3611b4f`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/11
+
+**Learnings for future iterations:**
+- The `api.Client.Delete()` method only takes `(ctx, path)` - no body parameter
+- The `wsl_v5` linter requires blank lines before variable declarations after other statements
+- The `dupword` linter catches duplicate words in error messages (e.g., "list list comments")
+- v3 endpoints like Subtypes require workspace ID - test with `newTestClientWithWorkspace`
+
+---
+
+## Phase 3 Complete
+
+All 5 core CRUD extension tasks are complete:
+6. ✅ Extend Spaces Service (Get, Create, Update, Delete)
+7. ✅ Create Folders Service (Full CRUD)
+8. ✅ Extend Lists Service (Get, Create, Update, Delete)
+9. ✅ Extend Tasks Service (Search, Time-in-Status, Merge, Move)
+10. ✅ Extend Comments Service (Full CRUD + Threaded + List/View)
+
+Next: Phase 4 - Time Tracking (Task 11)
+
+---
