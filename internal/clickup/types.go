@@ -363,3 +363,39 @@ type MergeTasksRequest struct {
 type CreateTaskFromTemplateRequest struct {
 	Name string `json:"name,omitempty"`
 }
+
+// UpdateCommentRequest is the request body for updating a comment.
+type UpdateCommentRequest struct {
+	CommentText string `json:"comment_text,omitempty"`
+	Assignee    int    `json:"assignee,omitempty"`
+	Resolved    *bool  `json:"resolved,omitempty"`
+}
+
+// CreateListCommentRequest is the request body for creating a list comment.
+type CreateListCommentRequest struct {
+	CommentText string `json:"comment_text"`
+	Assignee    int    `json:"assignee,omitempty"`
+}
+
+// CreateViewCommentRequest is the request body for creating a view comment.
+type CreateViewCommentRequest struct {
+	CommentText string `json:"comment_text"`
+	Assignee    int    `json:"assignee,omitempty"`
+}
+
+// ViewCommentsParams contains query parameters for listing view comments.
+type ViewCommentsParams struct {
+	Start   int    `url:"start,omitempty"`
+	StartID string `url:"start_id,omitempty"`
+}
+
+// PostSubtypesResponse is the response for the v3 post subtypes endpoint.
+type PostSubtypesResponse struct {
+	Subtypes []PostSubtype `json:"subtypes"`
+}
+
+// PostSubtype represents a comment post subtype.
+type PostSubtype struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}

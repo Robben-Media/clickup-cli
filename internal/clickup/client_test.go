@@ -20,6 +20,17 @@ func newTestClient(server *httptest.Server) *Client {
 	}
 }
 
+func newTestClientWithWorkspace(server *httptest.Server, workspaceID string) *Client {
+	client := newTestClient(server)
+	client.workspaceID = workspaceID
+
+	return client
+}
+
+func ptrBool(b bool) *bool {
+	return &b
+}
+
 func TestV3Path_BuildsCorrectPath(t *testing.T) {
 	t.Parallel()
 
@@ -169,6 +180,548 @@ func TestCommentsAdd_ReturnsIDAndText(t *testing.T) {
 
 	if result.Text != "hello from test" {
 		t.Fatalf("expected text hello from test, got %s", result.Text)
+	}
+}
+
+func TestCommentsDelete_SendsDeleteRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/comment/comment-1" {
+			t.Fatalf("expected path /v2/comment/comment-1, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Comments().Delete(context.Background(), "comment-1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCommentsDelete_RequiresCommentID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	err := client.Comments().Delete(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty comment ID")
+	}
+}
+
+func TestCommentsUpdate_SendsPutRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/comment/comment-1" {
+			t.Fatalf("expected path /v2/comment/comment-1, got %s", r.URL.Path)
+		}
+
+		var req UpdateCommentRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.CommentText != "updated text" {
+			t.Fatalf("expected comment_text updated text, got %s", req.CommentText)
+		}
+
+		if req.Assignee != 123 {
+			t.Fatalf("expected assignee 123, got %d", req.Assignee)
+		}
+
+		if req.Resolved == nil || !*req.Resolved {
+			t.Fatal("expected resolved to be true")
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := UpdateCommentRequest{
+		CommentText: "updated text",
+		Assignee:    123,
+		Resolved:    ptrBool(true),
+	}
+
+	if err := client.Comments().Update(context.Background(), "comment-1", req); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCommentsUpdate_RequiresCommentID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	err := client.Comments().Update(context.Background(), "", UpdateCommentRequest{})
+	if err == nil {
+		t.Fatal("expected error for empty comment ID")
+	}
+}
+
+func TestCommentsReplies_ReturnsThreadedComments(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/comment/comment-1/reply" {
+			t.Fatalf("expected path /v2/comment/comment-1/reply, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"comments": []map[string]any{
+				{
+					"id":           "456",
+					"comment_text": "I agree",
+					"date":         "1700000000000",
+					"user": map[string]any{
+						"id":       1,
+						"username": "alice",
+					},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Comments().Replies(context.Background(), "comment-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Comments) != 1 {
+		t.Fatalf("expected 1 reply, got %d", len(result.Comments))
+	}
+
+	if result.Comments[0].Text != "I agree" {
+		t.Fatalf("expected text 'I agree', got %s", result.Comments[0].Text)
+	}
+
+	if result.Comments[0].User.Username != "alice" {
+		t.Fatalf("expected username alice, got %s", result.Comments[0].User.Username)
+	}
+}
+
+func TestCommentsReplies_RequiresCommentID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Comments().Replies(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty comment ID")
+	}
+}
+
+func TestCommentsReply_CreatesThreadedReply(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/comment/comment-1/reply" {
+			t.Fatalf("expected path /v2/comment/comment-1/reply, got %s", r.URL.Path)
+		}
+
+		var req struct {
+			CommentText string `json:"comment_text"`
+			Assignee    int    `json:"assignee,omitempty"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.CommentText != "my reply" {
+			t.Fatalf("expected comment_text my reply, got %s", req.CommentText)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]int{"id": 789})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Comments().Reply(context.Background(), "comment-1", "my reply", 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID.String() != "789" {
+		t.Fatalf("expected ID 789, got %s", result.ID.String())
+	}
+}
+
+func TestCommentsReply_RequiresCommentID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Comments().Reply(context.Background(), "", "text", 0)
+	if err == nil {
+		t.Fatal("expected error for empty comment ID")
+	}
+}
+
+func TestCommentsReply_RequiresText(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Comments().Reply(context.Background(), "comment-1", "", 0)
+	if err == nil {
+		t.Fatal("expected error for empty text")
+	}
+}
+
+func TestCommentsListComments_ReturnsListComments(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/list/list-1/comment" {
+			t.Fatalf("expected path /v2/list/list-1/comment, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"comments": []map[string]any{
+				{
+					"id":           "100",
+					"comment_text": "List comment",
+					"date":         "1700000000000",
+					"user": map[string]any{
+						"id":       1,
+						"username": "bob",
+					},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Comments().ListComments(context.Background(), "list-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Comments) != 1 {
+		t.Fatalf("expected 1 comment, got %d", len(result.Comments))
+	}
+
+	if result.Comments[0].Text != "List comment" {
+		t.Fatalf("expected text 'List comment', got %s", result.Comments[0].Text)
+	}
+}
+
+func TestCommentsListComments_RequiresListID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Comments().ListComments(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty list ID")
+	}
+}
+
+func TestCommentsAddList_CreatesListComment(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/list/list-1/comment" {
+			t.Fatalf("expected path /v2/list/list-1/comment, got %s", r.URL.Path)
+		}
+
+		var req CreateListCommentRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.CommentText != "list comment text" {
+			t.Fatalf("expected comment_text list comment text, got %s", req.CommentText)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]int{"id": 200})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateListCommentRequest{CommentText: "list comment text"}
+
+	result, err := client.Comments().AddList(context.Background(), "list-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID.String() != "200" {
+		t.Fatalf("expected ID 200, got %s", result.ID.String())
+	}
+}
+
+func TestCommentsAddList_RequiresListID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Comments().AddList(context.Background(), "", CreateListCommentRequest{CommentText: "text"})
+	if err == nil {
+		t.Fatal("expected error for empty list ID")
+	}
+}
+
+func TestCommentsAddList_RequiresText(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Comments().AddList(context.Background(), "list-1", CreateListCommentRequest{})
+	if err == nil {
+		t.Fatal("expected error for empty text")
+	}
+}
+
+func TestCommentsViewComments_ReturnsViewComments(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/view/view-1/comment" {
+			t.Fatalf("expected path /v2/view/view-1/comment, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"comments": []map[string]any{
+				{
+					"id":           "300",
+					"comment_text": "View comment",
+					"date":         "1700000000000",
+					"user": map[string]any{
+						"id":       1,
+						"username": "charlie",
+					},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Comments().ViewComments(context.Background(), "view-1", ViewCommentsParams{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Comments) != 1 {
+		t.Fatalf("expected 1 comment, got %d", len(result.Comments))
+	}
+
+	if result.Comments[0].Text != "View comment" {
+		t.Fatalf("expected text 'View comment', got %s", result.Comments[0].Text)
+	}
+}
+
+func TestCommentsViewComments_WithPagination(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("start") != "10" {
+			t.Fatalf("expected start=10, got %s", r.URL.Query().Get("start"))
+		}
+
+		if r.URL.Query().Get("start_id") != "abc123" {
+			t.Fatalf("expected start_id=abc123, got %s", r.URL.Query().Get("start_id"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"comments": []map[string]any{}})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	params := ViewCommentsParams{Start: 10, StartID: "abc123"}
+
+	_, err := client.Comments().ViewComments(context.Background(), "view-1", params)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCommentsViewComments_RequiresViewID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Comments().ViewComments(context.Background(), "", ViewCommentsParams{})
+	if err == nil {
+		t.Fatal("expected error for empty view ID")
+	}
+}
+
+func TestCommentsAddView_CreatesViewComment(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/view/view-1/comment" {
+			t.Fatalf("expected path /v2/view/view-1/comment, got %s", r.URL.Path)
+		}
+
+		var req CreateViewCommentRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.CommentText != "view comment text" {
+			t.Fatalf("expected comment_text view comment text, got %s", req.CommentText)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]int{"id": 400})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateViewCommentRequest{CommentText: "view comment text"}
+
+	result, err := client.Comments().AddView(context.Background(), "view-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID.String() != "400" {
+		t.Fatalf("expected ID 400, got %s", result.ID.String())
+	}
+}
+
+func TestCommentsAddView_RequiresViewID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Comments().AddView(context.Background(), "", CreateViewCommentRequest{CommentText: "text"})
+	if err == nil {
+		t.Fatal("expected error for empty view ID")
+	}
+}
+
+func TestCommentsAddView_RequiresText(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Comments().AddView(context.Background(), "view-1", CreateViewCommentRequest{})
+	if err == nil {
+		t.Fatal("expected error for empty text")
+	}
+}
+
+func TestCommentsSubtypes_ReturnsSubtypes(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/comments/types/type-1/subtypes"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"subtypes": []map[string]any{
+				{"id": "1", "name": "announcement"},
+				{"id": "2", "name": "question"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClientWithWorkspace(server, "ws-1")
+
+	result, err := client.Comments().Subtypes(context.Background(), "type-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Subtypes) != 2 {
+		t.Fatalf("expected 2 subtypes, got %d", len(result.Subtypes))
+	}
+
+	if result.Subtypes[0].Name != "announcement" {
+		t.Fatalf("expected name 'announcement', got %s", result.Subtypes[0].Name)
+	}
+
+	if result.Subtypes[1].Name != "question" {
+		t.Fatalf("expected name 'question', got %s", result.Subtypes[1].Name)
+	}
+}
+
+func TestCommentsSubtypes_RequiresTypeID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Comments().Subtypes(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty type ID")
+	}
+}
+
+func TestCommentsSubtypes_RequiresWorkspaceID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Comments().Subtypes(context.Background(), "type-1")
+	if err == nil {
+		t.Fatal("expected error for missing workspace ID")
 	}
 }
 
