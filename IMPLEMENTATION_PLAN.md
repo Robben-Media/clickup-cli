@@ -90,7 +90,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; `clickup workspaces list` works
 
 ### 5. Implement Authorization Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/authorization.md
 - **Description**:
