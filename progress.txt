@@ -494,3 +494,39 @@ Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
 - Destructive operations should warn users unless --force is used
 
 ---
+
+## Task 8 (was Task 7 in todo) - 2026-02-22
+### Completed: Extend Lists Service
+
+**What was implemented:**
+- Extended `ListsService` with Get, Create, Update, Delete, AddTask, RemoveTask, and template methods
+- Implemented `GET /v2/list/{list_id}` (get list details)
+- Implemented `POST /v2/folder/{folder_id}/list` (create list in folder)
+- Implemented `POST /v2/space/{space_id}/list` (create folderless list)
+- Implemented `PUT /v2/list/{list_id}` (update list)
+- Implemented `DELETE /v2/list/{list_id}` (delete list)
+- Implemented template creation in folder and space
+- Implemented `POST /v2/list/{list_id}/task/{task_id}` (add task to list)
+- Implemented `DELETE /v2/list/{list_id}/task/{task_id}` (remove task from list)
+- Added types: ListDetail, CreateListRequest, UpdateListRequest, CreateListFromTemplateRequest
+- Added CLI commands: lists get, create, update, delete, from-template, add-task, remove-task
+- Added 9 comprehensive tests for all new service methods
+- Delete warns user unless --force is used
+
+**Files changed:**
+- `internal/clickup/client.go` — extended ListsService with all new methods
+- `internal/clickup/types.go` — added ListDetail and related types, added Name to SpaceRef
+- `internal/clickup/client_test.go` — added 9 tests for new methods
+- `internal/cmd/lists.go` — added get, create, update, delete, from-template, add-task, remove-task commands
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `21a41ee`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Add/Remove task endpoints return empty body with 200
+- SpaceRef needed Name field for list detail output
+- CLI needs to validate exactly one of --folder or --space for create commands
+- Template creation requires both location (folder/space) AND template ID
+
+---
