@@ -239,3 +239,31 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 - Plain output format combines all three resource types with a TYPE column for differentiation
 - Human-readable output groups resources by type for clarity
 
+---
+
+## Task 28 - 2026-02-22
+### Completed: Create Templates Service
+
+**What was implemented:**
+- Created `TemplatesService` with List method
+- Implemented `GET /v2/team/{team_id}/taskTemplate` (list task templates)
+- Added TaskTemplate types: TaskTemplate, TaskTemplatesResponse
+- Added CLI command: `templates list` with optional page parameter
+- Added 3 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added Templates() accessor and TemplatesService with List method
+- `internal/clickup/types.go` — added TaskTemplate and TaskTemplatesResponse types
+- `internal/clickup/client_test.go` — added tests for Templates service
+- `internal/cmd/templates.go` — created with CLI command
+- `internal/cmd/root.go` — added TemplatesCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `c0accfb`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Templates endpoint supports pagination via `page` query parameter (0-indexed)
+- The endpoint path uses `taskTemplate` (camelCase) rather than `task_template` (snake_case)
+- Template IDs appear to be string-based (like groups)
+
