@@ -107,3 +107,61 @@ All 3 foundation architecture tasks are complete:
 Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 2 (Workspaces & Authorization)
 
 ---
+
+## Task 12 - 2026-02-22
+### Completed: Create Tags Service
+
+**What was implemented:**
+- Created `TagsService` with List, Create, Update, Delete, AddToTask, RemoveFromTask methods
+- Implemented `GET /v2/space/{space_id}/tag` - list tags in a space
+- Implemented `POST /v2/space/{space_id}/tag` - create a new tag
+- Implemented `PUT /v2/space/{space_id}/tag/{tag_name}` - update a tag
+- Implemented `DELETE /v2/space/{space_id}/tag/{tag_name}` - delete a tag
+- Implemented `POST /v2/task/{task_id}/tag/{tag_name}` - add tag to task
+- Implemented `DELETE /v2/task/{task_id}/tag/{tag_name}` - remove tag from task
+- Added types: `SpaceTag`, `SpaceTagsResponse`, `CreateSpaceTagRequest`, `EditSpaceTagRequest`
+- Added CLI commands:
+  - `tags list --space <space_id>` - list tags in a space
+  - `tags create <space_id> <name> [--bg <color>] [--fg <color>]` - create tag
+  - `tags update <space_id> <name> [--new-name] [--bg] [--fg]` - update tag
+  - `tags delete <space_id> <name>` - delete tag
+  - `tags add <task_id> <tag_name>` - add tag to task
+  - `tags remove <task_id> <tag_name>` - remove tag from task
+- Added comprehensive tests:
+  - `TestTagsList_ReturnsSpaceTags` - verifies list response parsing
+  - `TestTagsList_RequiresSpaceID` - validates space ID requirement
+  - `TestTagsCreate_SendsTagEnvelope` - verifies create with `{"tag": {...}}` envelope
+  - `TestTagsCreate_RequiresSpaceID` - validates space ID requirement
+  - `TestTagsCreate_RequiresName` - validates name requirement
+  - `TestTagsUpdate_SendsPutRequest` - verifies update request
+  - `TestTagsUpdate_RequiresSpaceID` - validates space ID requirement
+  - `TestTagsUpdate_RequiresTagName` - validates tag name requirement
+  - `TestTagsDelete_SendsDeleteRequest` - verifies delete request
+  - `TestTagsDelete_RequiresSpaceID` - validates space ID requirement
+  - `TestTagsDelete_RequiresTagName` - validates tag name requirement
+  - `TestTagsAddToTask_SendsPostRequest` - verifies add to task
+  - `TestTagsAddToTask_EscapesTagName` - verifies URL encoding for spaces
+  - `TestTagsAddToTask_RequiresTaskID` - validates task ID requirement
+  - `TestTagsAddToTask_RequiresTagName` - validates tag name requirement
+  - `TestTagsRemoveFromTask_SendsDeleteRequest` - verifies remove from task
+  - `TestTagsRemoveFromTask_RequiresTaskID` - validates task ID requirement
+  - `TestTagsRemoveFromTask_RequiresTagName` - validates tag name requirement
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (added TagsService with 6 methods)
+- `internal/clickup/types.go` — modified (added SpaceTag, SpaceTagsResponse, CreateSpaceTagRequest, EditSpaceTagRequest)
+- `internal/clickup/client_test.go` — modified (added 18 tests)
+- `internal/cmd/tags.go` — created (CLI commands for all tag operations)
+- `internal/cmd/root.go` — modified (added TagsCmd to CLI struct)
+
+**Branch:** `phase/5-task-extensions`
+**Commit:** `8ad640e`
+
+**Learnings for future iterations:**
+- Use `r.RequestURI` in tests to check URL-encoded paths; `r.URL.Path` is decoded by Go's http server
+- Tag names in ClickUp API are URL-encoded in the path, not sent as IDs
+- Create/Edit operations wrap the tag in a `{"tag": {...}}` envelope
+
+**Next:** Task 13 - Create Checklists Service - Phase 5 Task Extensions
+
+---

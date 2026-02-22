@@ -240,7 +240,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/5-task-extensions` | PR → fix/plain-output
 
 ### 12. Create Tags Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/tags.md
 - **Description**:
