@@ -140,6 +140,33 @@ type Folder struct {
 	Lists []List `json:"lists,omitempty"`
 }
 
+// FolderDetail represents a full folder object with task count and lists.
+type FolderDetail struct {
+	ID               string   `json:"id"`
+	Name             string   `json:"name"`
+	OrderIndex       int      `json:"orderindex"`
+	OverrideStatuses bool     `json:"override_statuses"`
+	Hidden           bool     `json:"hidden"`
+	Space            SpaceRef `json:"space"`
+	TaskCount        string   `json:"task_count"`
+	Lists            []List   `json:"lists,omitempty"`
+}
+
+// CreateFolderRequest is the request body for creating a folder.
+type CreateFolderRequest struct {
+	Name string `json:"name"`
+}
+
+// UpdateFolderRequest is the request body for updating a folder.
+type UpdateFolderRequest struct {
+	Name string `json:"name,omitempty"`
+}
+
+// CreateFolderFromTemplateRequest is the request body for creating a folder from template.
+type CreateFolderFromTemplateRequest struct {
+	Name string `json:"name,omitempty"`
+}
+
 // Comment represents a ClickUp comment.
 type Comment struct {
 	ID   json.Number `json:"id"`

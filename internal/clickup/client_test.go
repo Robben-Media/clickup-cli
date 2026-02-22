@@ -2218,3 +2218,195 @@ func TestListsGet_RequiresListID(t *testing.T) {
 		t.Fatal("expected error for missing list ID, got nil")
 	}
 }
+
+// --- FoldersService tests ---
+
+func TestFoldersGet_ReturnsDetails(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/folder/folder-1" {
+			t.Fatalf("expected path /v2/folder/folder-1, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(FolderDetail{
+			ID:         "folder-1",
+			Name:       "Sprint Backlog",
+			TaskCount:  "12",
+			OrderIndex: 0,
+			Space:      SpaceRef{ID: "space-1"},
+			Lists:      []List{{ID: "list-1", Name: "Sprint 1"}},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Folders().Get(context.Background(), "folder-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "folder-1" {
+		t.Fatalf("expected ID folder-1, got %s", result.ID)
+	}
+
+	if result.Name != "Sprint Backlog" {
+		t.Fatalf("expected name Sprint Backlog, got %s", result.Name)
+	}
+
+	if result.TaskCount != "12" {
+		t.Fatalf("expected task count 12, got %s", result.TaskCount)
+	}
+
+	if len(result.Lists) != 1 {
+		t.Fatalf("expected 1 list, got %d", len(result.Lists))
+	}
+}
+
+func TestFoldersCreate_SendsName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/space/space-1/folder" {
+			t.Fatalf("expected path /v2/space/space-1/folder, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["name"] != "New Folder" {
+			t.Fatalf("expected name New Folder, got %s", body["name"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(FolderDetail{
+			ID:    "folder-new",
+			Name:  "New Folder",
+			Space: SpaceRef{ID: "space-1"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateFolderRequest{Name: "New Folder"}
+
+	result, err := client.Folders().Create(context.Background(), "space-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "folder-new" {
+		t.Fatalf("expected ID folder-new, got %s", result.ID)
+	}
+}
+
+func TestFoldersUpdate_SendsName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/folder/folder-1" {
+			t.Fatalf("expected path /v2/folder/folder-1, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["name"] != "Updated Name" {
+			t.Fatalf("expected name Updated Name, got %s", body["name"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(FolderDetail{
+			ID:   "folder-1",
+			Name: "Updated Name",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := UpdateFolderRequest{Name: "Updated Name"}
+
+	result, err := client.Folders().Update(context.Background(), "folder-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "Updated Name" {
+		t.Fatalf("expected name Updated Name, got %s", result.Name)
+	}
+}
+
+func TestFoldersDelete_SendsCorrectRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/folder/folder-1" {
+			t.Fatalf("expected path /v2/folder/folder-1, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Folders().Delete(context.Background(), "folder-1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestFoldersCreate_RequiresName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Folders().Create(context.Background(), "space-1", CreateFolderRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing name, got nil")
+	}
+}
+
+func TestFoldersGet_RequiresFolderID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Folders().Get(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing folder ID, got nil")
+	}
+}

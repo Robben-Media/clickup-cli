@@ -618,6 +618,100 @@ func (s *SpacesService) Delete(ctx context.Context, spaceID string) error {
 	return nil
 }
 
+// Folders provides methods for the Folders API.
+func (c *Client) Folders() *FoldersService {
+	return &FoldersService{client: c}
+}
+
+// --- FoldersService ---
+
+// FoldersService handles folder operations.
+type FoldersService struct {
+	client *Client
+}
+
+// Get returns a folder by ID with full details.
+func (s *FoldersService) Get(ctx context.Context, folderID string) (*FolderDetail, error) {
+	if folderID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/folder/%s", folderID)
+
+	var result FolderDetail
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get folder: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Create creates a new folder in a space.
+func (s *FoldersService) Create(ctx context.Context, spaceID string, req CreateFolderRequest) (*FolderDetail, error) {
+	if spaceID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	path := fmt.Sprintf("/v2/space/%s/folder", spaceID)
+
+	var result FolderDetail
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create folder: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Update updates a folder.
+func (s *FoldersService) Update(ctx context.Context, folderID string, req UpdateFolderRequest) (*FolderDetail, error) {
+	if folderID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/folder/%s", folderID)
+
+	var result FolderDetail
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update folder: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Delete deletes a folder.
+func (s *FoldersService) Delete(ctx context.Context, folderID string) error {
+	if folderID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/folder/%s", folderID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete folder: %w", err)
+	}
+
+	return nil
+}
+
+// CreateFromTemplate creates a folder from a template in a space.
+func (s *FoldersService) CreateFromTemplate(ctx context.Context, spaceID, templateID string, req CreateFolderFromTemplateRequest) (*FolderDetail, error) {
+	if spaceID == "" || templateID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/space/%s/folder_template/%s", spaceID, templateID)
+
+	var result FolderDetail
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create folder from template: %w", err)
+	}
+
+	return &result, nil
+}
+
 // --- ListsService ---
 
 // ListsService handles list operations.

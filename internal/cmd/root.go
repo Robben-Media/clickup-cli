@@ -31,6 +31,7 @@ type CLI struct {
 	Workspaces WorkspacesCmd    `cmd:"" help:"Workspace operations"`
 	Tasks      TasksCmd         `cmd:"" help:"Task operations"`
 	Spaces     SpacesCmd        `cmd:"" help:"Space operations"`
+	Folders    FoldersCmd       `cmd:"" help:"Folder operations"`
 	Lists      ListsCmd         `cmd:"" help:"List operations"`
 	Members    MembersCmd       `cmd:"" help:"Team member operations"`
 	Comments   CommentsCmd      `cmd:"" help:"Comment operations"`
