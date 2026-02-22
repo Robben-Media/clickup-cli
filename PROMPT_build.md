@@ -15,11 +15,11 @@ Every iteration:
 1. **Sync repo and check PR status**:
    ```bash
    git fetch origin
-   
+
    # Check if current branch's PR is merged
    CURRENT_BRANCH=$(git branch --show-current)
    PR_STATE=$(gh pr list --head "$CURRENT_BRANCH" --json state --jq '.[0].state' 2>/dev/null || echo "none")
-   
+
    if [ "$PR_STATE" = "MERGED" ]; then
      # PR was merged - sync from base and continue or start new phase
      git checkout fix/plain-output  # or your base branch
