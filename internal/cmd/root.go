@@ -36,6 +36,7 @@ type CLI struct {
 	Time       TimeCmd          `cmd:"" help:"Time tracking"`
 	Views      ViewsCmd         `cmd:"" help:"View operations"`
 	Webhooks   WebhooksCmd      `cmd:"" help:"Webhook operations"`
+	Goals      GoalsCmd         `cmd:"" help:"Goal operations"`
 	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

@@ -17,6 +17,7 @@ var (
 	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
 	errEndpointRequired    = errors.New("endpoint URL is required")
 	errEventsRequired      = errors.New("at least one event is required")
+	errKRTypeRequired      = errors.New("key result type is required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -101,6 +102,11 @@ func (c *Client) Views() *ViewsService {
 // Webhooks provides methods for the Webhooks API.
 func (c *Client) Webhooks() *WebhooksService {
 	return &WebhooksService{client: c}
+}
+
+// Goals provides methods for the Goals API.
+func (c *Client) Goals() *GoalsService {
+	return &GoalsService{client: c}
 }
 
 // --- TasksService ---
@@ -691,6 +697,149 @@ func (s *WebhooksService) Delete(ctx context.Context, webhookID string) error {
 	path := fmt.Sprintf("/v2/webhook/%s", webhookID)
 	if err := s.client.Delete(ctx, path); err != nil {
 		return fmt.Errorf("delete webhook: %w", err)
+	}
+
+	return nil
+}
+
+// --- GoalsService ---
+
+// GoalsService handles goal operations.
+type GoalsService struct {
+	client *Client
+}
+
+// List returns goals for a team.
+func (s *GoalsService) List(ctx context.Context, teamID string) (*GoalsResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/goal", teamID)
+
+	var result GoalsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list goals: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Get returns a goal by ID.
+func (s *GoalsService) Get(ctx context.Context, goalID string) (*Goal, error) {
+	if goalID == "" {
+		return nil, errIDRequired
+	}
+
+	var wrapper GoalResponse
+
+	path := fmt.Sprintf("/v2/goal/%s", goalID)
+	if err := s.client.Get(ctx, path, &wrapper); err != nil {
+		return nil, fmt.Errorf("get goal: %w", err)
+	}
+
+	return &wrapper.Goal, nil
+}
+
+// Create creates a goal for a team.
+func (s *GoalsService) Create(ctx context.Context, teamID string, req CreateGoalRequest) (*Goal, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	var wrapper GoalResponse
+
+	path := fmt.Sprintf("/v2/team/%s/goal", teamID)
+	if err := s.client.Post(ctx, path, req, &wrapper); err != nil {
+		return nil, fmt.Errorf("create goal: %w", err)
+	}
+
+	return &wrapper.Goal, nil
+}
+
+// Update updates a goal.
+func (s *GoalsService) Update(ctx context.Context, goalID string, req UpdateGoalRequest) (*Goal, error) {
+	if goalID == "" {
+		return nil, errIDRequired
+	}
+
+	var wrapper GoalResponse
+
+	path := fmt.Sprintf("/v2/goal/%s", goalID)
+	if err := s.client.Put(ctx, path, req, &wrapper); err != nil {
+		return nil, fmt.Errorf("update goal: %w", err)
+	}
+
+	return &wrapper.Goal, nil
+}
+
+// Delete deletes a goal.
+func (s *GoalsService) Delete(ctx context.Context, goalID string) error {
+	if goalID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/goal/%s", goalID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete goal: %w", err)
+	}
+
+	return nil
+}
+
+// CreateKeyResult creates a key result for a goal.
+func (s *GoalsService) CreateKeyResult(ctx context.Context, goalID string, req CreateKeyResultRequest) (*KeyResult, error) {
+	if goalID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	if req.Type == "" {
+		return nil, errKRTypeRequired
+	}
+
+	var result KeyResult
+
+	path := fmt.Sprintf("/v2/goal/%s/key_result", goalID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create key result: %w", err)
+	}
+
+	return &result, nil
+}
+
+// EditKeyResult updates a key result.
+func (s *GoalsService) EditKeyResult(ctx context.Context, keyResultID string, req EditKeyResultRequest) (*KeyResult, error) {
+	if keyResultID == "" {
+		return nil, errIDRequired
+	}
+
+	var result KeyResult
+
+	path := fmt.Sprintf("/v2/key_result/%s", keyResultID)
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("edit key result: %w", err)
+	}
+
+	return &result, nil
+}
+
+// DeleteKeyResult deletes a key result.
+func (s *GoalsService) DeleteKeyResult(ctx context.Context, keyResultID string) error {
+	if keyResultID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/key_result/%s", keyResultID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete key result: %w", err)
 	}
 
 	return nil
