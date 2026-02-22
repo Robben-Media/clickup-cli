@@ -12,11 +12,16 @@ Implement the next task from the implementation plan. You may delegate subtasks 
 
 Every iteration:
 
-1. Read `IMPLEMENTATION_PLAN.md` for task status
-2. Read `AGENTS.md` for build commands, patterns, and design mandates
-3. Read `progress.txt` for context from previous iterations
-4. Check current branch — ensure you're on the correct phase branch
-5. Find the highest-priority task with status "pending" whose dependencies are all "complete"
+1. **Sync repo** — pull latest changes:
+   ```bash
+   git fetch origin
+   git pull origin $(git branch --show-current)
+   ```
+2. Read `IMPLEMENTATION_PLAN.md` for task status
+3. Read `AGENTS.md` for build commands, patterns, and design mandates
+4. Read `progress.txt` for context from previous iterations
+5. Check current branch — ensure you're on the correct phase branch
+6. Find the highest-priority task with status "pending" whose dependencies are all "complete"
 
 ## Branching & PR Strategy
 
@@ -79,12 +84,38 @@ make ci   # runs fmt, lint, test, build
 
 Fix failures before committing.
 
-### 4. Commit
+### 4. Stage, Commit, Push, PR
+
+After implementing and verifying the task:
 
 ```bash
-git add [specific files]
+# Stage all changes
+git add -A
+
+# Commit with task reference
 git commit -m "feat: [task description] (task N)"
-git push
+
+# Push to remote
+git push -u origin $(git branch --show-current)
+```
+
+Then create or update a PR for this iteration's changes:
+
+```bash
+# Check if PR already exists for this branch
+gh pr list --head $(git branch --show-current)
+
+# If no PR exists, create one
+gh pr create --base [base-branch] --title "[Task Name] (task N)" --body "## Summary
+[What was implemented]
+
+## Files Changed
+[List of modified files]
+
+## Testing
+- \`make ci\` passes
+
+Closes #[issue-number] (if applicable)"
 ```
 
 One `feat:` commit per task. Keep it clean.
@@ -98,14 +129,12 @@ One `feat:` commit per task. Keep it clean.
    ### Completed: [Task Name]
    - What was implemented
    - Files changed
+   - PR URL: [link to PR]
    - Agent(s) used (if any)
    - Learnings for future iterations
    ---
    ```
-3. If this was the last task in a phase, also:
-   - Run full verification
-   - Open PR: `gh pr create --base [build-branch] --head phase/N-[name] --title "Phase N: [Name]" --body "..."`
-   - Append PR info to `progress.txt`
+3. If this was the last task in a phase, note it in `progress.txt` for final review
 
 ## Rules
 
