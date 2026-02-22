@@ -251,3 +251,140 @@ func TestTasksUpdate_SendsAssigneesAddRem(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestWorkspacesList_ReturnsTeams(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team" {
+			t.Fatalf("expected path /v2/team, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(WorkspacesResponse{
+			Teams: []Workspace{
+				{ID: "team-1", Name: "Team One", Members: []Member{{User: User{ID: 1, Username: "alice"}}}},
+				{ID: "team-2", Name: "Team Two", Members: []Member{{User: User{ID: 2, Username: "bob"}}}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Workspaces().List(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Teams) != 2 {
+		t.Fatalf("expected two teams, got %d", len(result.Teams))
+	}
+
+	if result.Teams[0].ID != "team-1" || result.Teams[0].Name != "Team One" {
+		t.Fatalf("expected team-1/Team One, got %s/%s", result.Teams[0].ID, result.Teams[0].Name)
+	}
+}
+
+func TestWorkspacesPlan_ReturnsPlanInfo(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/plan" {
+			t.Fatalf("expected path /v2/team/team-1/plan, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(WorkspacePlanResponse{
+			TeamID:   "team-1",
+			PlanID:   3,
+			PlanName: "Business",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Workspaces().Plan(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.TeamID != "team-1" {
+		t.Fatalf("expected team-1, got %s", result.TeamID)
+	}
+
+	if result.PlanID != 3 {
+		t.Fatalf("expected plan ID 3, got %d", result.PlanID)
+	}
+
+	if result.PlanName != "Business" {
+		t.Fatalf("expected plan name Business, got %s", result.PlanName)
+	}
+}
+
+func TestWorkspacesSeats_ReturnsSeatInfo(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/seats" {
+			t.Fatalf("expected path /v2/team/team-1/seats, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(WorkspaceSeatsResponse{
+			Members: SeatInfo{FilledSeats: 5, TotalSeats: 10, EmptySeats: 5},
+			Guests:  SeatInfo{FilledSeats: 2, TotalSeats: 5, EmptySeats: 3},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Workspaces().Seats(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Members.FilledSeats != 5 {
+		t.Fatalf("expected 5 filled member seats, got %d", result.Members.FilledSeats)
+	}
+
+	if result.Members.TotalSeats != 10 {
+		t.Fatalf("expected 10 total member seats, got %d", result.Members.TotalSeats)
+	}
+
+	if result.Guests.FilledSeats != 2 {
+		t.Fatalf("expected 2 filled guest seats, got %d", result.Guests.FilledSeats)
+	}
+}
+
+func TestWorkspacesPlan_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	client := newTestClient(nil)
+
+	_, err := client.Workspaces().Plan(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty team ID, got nil")
+	}
+
+	if !errors.Is(err, errIDRequired) {
+		t.Fatalf("expected errIDRequired, got %v", err)
+	}
+}
+
+func TestWorkspacesSeats_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	client := newTestClient(nil)
+
+	_, err := client.Workspaces().Seats(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty team ID, got nil")
+	}
+
+	if !errors.Is(err, errIDRequired) {
+		t.Fatalf("expected errIDRequired, got %v", err)
+	}
+}

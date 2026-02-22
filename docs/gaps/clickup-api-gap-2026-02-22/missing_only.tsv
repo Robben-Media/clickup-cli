@@ -1,0 +1,155 @@
+missing	delete	/api/v3/workspaces/{}/chat/channels/{}	Chat	Delete a Channel	deleteChatChannel	v3
+missing	delete	/api/v3/workspaces/{}/chat/messages/{}	Chat	Delete a message	deleteChatMessage	v3
+missing	delete	/api/v3/workspaces/{}/chat/messages/{}/reactions/{}	Chat	Delete a message reaction	deleteChatReaction	v3
+missing	delete	/checklist/{}	Task Checklists	Delete Checklist	DeleteChecklist	v2
+missing	delete	/checklist/{}/checklist_item/{}	Task Checklists	Delete Checklist Item	DeleteChecklistItem	v2
+missing	delete	/comment/{}	Comments	Delete Comment	DeleteComment	v2
+missing	delete	/folder/{}	Folders	Delete Folder	DeleteFolder	v2
+missing	delete	/folder/{}/guest/{}	Guests	Remove Guest From Folder	RemoveGuestFromFolder	v2
+missing	delete	/goal/{}	Goals	Delete Goal	DeleteGoal	v2
+missing	delete	/group/{}	User Groups	Delete Group	DeleteTeam	v2
+missing	delete	/key_result/{}	Goals	Delete Key Result	DeleteKeyResult	v2
+missing	delete	/list/{}	Lists	Delete List	DeleteList	v2
+missing	delete	/list/{}/guest/{}	Guests	Remove Guest From List	RemoveGuestFromList	v2
+missing	delete	/list/{}/task/{}	Lists	Remove Task From List	RemoveTaskFromList	v2
+missing	delete	/space/{}	Spaces	Delete Space	DeleteSpace	v2
+missing	delete	/space/{}/tag/{}	Tags	Delete Space Tag	DeleteSpaceTag	v2
+missing	delete	/task/{}/dependency	Task Relationships	Delete Dependency	DeleteDependency	v2
+missing	delete	/task/{}/field/{}	Custom Fields	Remove Custom Field Value	RemoveCustomFieldValue	v2
+missing	delete	/task/{}/guest/{}	Guests	Remove Guest From Task	RemoveGuestFromTask	v2
+missing	delete	/task/{}/link/{}	Task Relationships	Delete Task Link	DeleteTaskLink	v2
+missing	delete	/task/{}/tag/{}	Tags	Remove Tag From Task	RemoveTagFromTask	v2
+missing	delete	/task/{}/time/{}	Time Tracking (Legacy)	Delete time tracked	Deletetimetracked	v2
+missing	delete	/team/{}/guest/{}	Guests	Remove Guest From Workspace	RemoveGuestFromWorkspace	v2
+missing	delete	/team/{}/time_entries/tags	Time Tracking	Remove tags from time entries	Removetagsfromtimeentries	v2
+missing	delete	/team/{}/time_entries/{}	Time Tracking	Delete a time Entry	DeleteatimeEntry	v2
+missing	delete	/team/{}/user/{}	Users	Remove User From Workspace	RemoveUserFromWorkspace	v2
+missing	delete	/view/{}	Views	Delete View	DeleteView	v2
+missing	delete	/webhook/{}	Webhooks	Delete Webhook	DeleteWebhook	v2
+missing	get	/api/v3/workspaces/{}/chat/channels	Chat	Retrieve Channels	getChatChannels	v3
+missing	get	/api/v3/workspaces/{}/chat/channels/{}	Chat	Retrieve a Channel	getChatChannel	v3
+missing	get	/api/v3/workspaces/{}/chat/channels/{}/followers	Chat	Retrieve Channel followers	getChatChannelFollowers	v3
+missing	get	/api/v3/workspaces/{}/chat/channels/{}/members	Chat	Retrieve Channel members	getChatChannelMembers	v3
+missing	get	/api/v3/workspaces/{}/chat/channels/{}/messages	Chat	Retrieve Channel messages	getChatMessages	v3
+missing	get	/api/v3/workspaces/{}/chat/messages/{}/reactions	Chat	Retrieve message reactions	getChatMessageReactions	v3
+missing	get	/api/v3/workspaces/{}/chat/messages/{}/replies	Chat	Retrieve message replies	getChatMessageReplies	v3
+missing	get	/api/v3/workspaces/{}/chat/messages/{}/tagged_users	Chat	Retrieve message tagged users	getChatMessageTaggedUsers	v3
+missing	get	/api/v3/workspaces/{}/comments/types/{}/subtypes	Comments	Get Post Subtype IDs	getSubtypes	v3
+missing	get	/api/v3/workspaces/{}/docs	Docs	Search for Docs	searchDocsPublic	v3
+missing	get	/api/v3/workspaces/{}/docs/{}	Docs	Fetch a Doc	getDocPublic	v3
+missing	get	/api/v3/workspaces/{}/docs/{}/page_listing	Docs	Fetch PageListing for a Doc	getDocPageListingPublic	v3
+missing	get	/api/v3/workspaces/{}/docs/{}/pages	Docs	Fetch Pages belonging to a Doc	getDocPagesPublic	v3
+missing	get	/api/v3/workspaces/{}/docs/{}/pages/{}	Docs	Get page	getPagePublic	v3
+missing	get	/api/v3/workspaces/{}/{}/{}/attachments	Attachments	Get Attachments	getParentEntityAttachments	v3
+missing	get	/comment/{}/reply	Comments	Get Threaded Comments	GetThreadedComments	v2
+missing	get	/folder/{}	Folders	Get Folder	GetFolder	v2
+missing	get	/folder/{}/field	Custom Fields	Get Folder Custom Fields	getFolderAvailableFields	v2
+missing	get	/folder/{}/view	Views	Get Folder Views	GetFolderViews	v2
+missing	get	/goal/{}	Goals	Get Goal	GetGoal	v2
+missing	get	/group	User Groups	Get Groups	GetTeams1	v2
+missing	get	/list/{}	Lists	Get List	GetList	v2
+missing	get	/list/{}/comment	Comments	Get List Comments	GetListComments	v2
+missing	get	/list/{}/field	Custom Fields	Get List Custom Fields	GetAccessibleCustomFields	v2
+missing	get	/list/{}/member	Members	Get List Members	GetListMembers	v2
+missing	get	/list/{}/view	Views	Get List Views	GetListViews	v2
+missing	get	/space/{}	Spaces	Get Space	GetSpace	v2
+missing	get	/space/{}/field	Custom Fields	Get Space Custom Fields	getSpaceAvailableFields	v2
+missing	get	/space/{}/tag	Tags	Get Space Tags	GetSpaceTags	v2
+missing	get	/space/{}/view	Views	Get Space Views	GetSpaceViews	v2
+missing	get	/task/bulk_time_in_status/task_ids	Tasks	Get Bulk Tasks' Time in Status	GetBulkTasks'TimeinStatus	v2
+missing	get	/task/{}/member	Members	Get Task Members	GetTaskMembers	v2
+missing	get	/task/{}/time	Time Tracking (Legacy)	Get tracked time	Gettrackedtime	v2
+missing	get	/task/{}/time_in_status	Tasks	Get Task's Time in Status	GetTask'sTimeinStatus	v2
+missing	get	/team	Workspaces	Get Authorized Workspaces	GetAuthorizedTeams	v2
+missing	get	/team/{}/custom_item	Custom Task Types	Get Custom Task Types	GetCustomItems	v2
+missing	get	/team/{}/customroles	Roles	Get Custom Roles	GetCustomRoles	v2
+missing	get	/team/{}/field	Custom Fields	Get Workspace Custom Fields	getTeamAvailableFields	v2
+missing	get	/team/{}/goal	Goals	Get Goals	GetGoals	v2
+missing	get	/team/{}/guest/{}	Guests	Get Guest	GetGuest	v2
+missing	get	/team/{}/plan	Workspaces	Get Workspace Plan	GetWorkspaceplan	v2
+missing	get	/team/{}/seats	Workspaces	Get Workspace seats	GetWorkspaceseats	v2
+missing	get	/team/{}/shared	Shared Hierarchy	Shared Hierarchy	SharedHierarchy	v2
+missing	get	/team/{}/task	Tasks	Get Filtered Team Tasks	GetFilteredTeamTasks	v2
+missing	get	/team/{}/taskTemplate	Templates	Get Task Templates	GetTaskTemplates	v2
+missing	get	/team/{}/time_entries/current	Time Tracking	Get running time entry	Getrunningtimeentry	v2
+missing	get	/team/{}/time_entries/tags	Time Tracking	Get all tags from time entries	Getalltagsfromtimeentries	v2
+missing	get	/team/{}/time_entries/{}	Time Tracking	Get singular time entry	Getsingulartimeentry	v2
+missing	get	/team/{}/time_entries/{}/history	Time Tracking	Get time entry history	Gettimeentryhistory	v2
+missing	get	/team/{}/user/{}	Users	Get User	GetUser	v2
+missing	get	/team/{}/view	Views	Get Workspace (Everything level) Views	GetTeamViews	v2
+missing	get	/team/{}/webhook	Webhooks	Get Webhooks	GetWebhooks	v2
+missing	get	/user	Authorization	Get Authorized User	GetAuthorizedUser	v2
+missing	get	/view/{}	Views	Get View	GetView	v2
+missing	get	/view/{}/comment	Comments	Get Chat View Comments	GetChatViewComments	v2
+missing	get	/view/{}/task	Views	Get View Tasks	GetViewTasks	v2
+missing	patch	/api/v3/workspaces/{}/chat/channels/{}	Chat	Update a Channel	updateChatChannel	v3
+missing	patch	/api/v3/workspaces/{}/chat/messages/{}	Chat	Update a message	patchChatMessage	v3
+missing	patch	/api/v3/workspaces/{}/{}/{}/acls	Acls	Update privacy and access of an object or location	publicPatchAcl	v3
+missing	post	/api/v3/workspaces/{}/auditlogs	Auditlogs	Create Workspace-level audit logs	queryAuditLog	v3
+missing	post	/api/v3/workspaces/{}/chat/channels	Chat	Create a Channel	createChatChannel	v3
+missing	post	/api/v3/workspaces/{}/chat/channels/direct_message	Chat	Create a Direct Message	createDirectMessageChatChannel	v3
+missing	post	/api/v3/workspaces/{}/chat/channels/location	Chat	Create a Channel on a Space, Folder, or List	createLocationChatChannel	v3
+missing	post	/api/v3/workspaces/{}/chat/channels/{}/messages	Chat	Send a message	createChatMessage	v3
+missing	post	/api/v3/workspaces/{}/chat/messages/{}/reactions	Chat	Create a message reaction	createChatReaction	v3
+missing	post	/api/v3/workspaces/{}/chat/messages/{}/replies	Chat	Create a reply message	createReplyMessage	v3
+missing	post	/api/v3/workspaces/{}/docs	Docs	Create a Doc	createDocPublic	v3
+missing	post	/api/v3/workspaces/{}/docs/{}/pages	Docs	Create a Page	createPagePublic	v3
+missing	post	/api/v3/workspaces/{}/{}/{}/attachments	Attachments	Create an Attachment	postEntityAttachment	v3
+missing	post	/checklist/{}/checklist_item	Task Checklists	Create Checklist Item	CreateChecklistItem	v2
+missing	post	/comment/{}/reply	Comments	Create Threaded Comment	CreateThreadedComment	v2
+missing	post	/folder/{}/guest/{}	Guests	Add Guest To Folder	AddGuestToFolder	v2
+missing	post	/folder/{}/list	Lists	Create List	CreateList	v2
+missing	post	/folder/{}/list_template/{}	Lists	Create List From Template in Folder	CreateFolderListFromTemplate	v2
+missing	post	/folder/{}/view	Views	Create Folder View	CreateFolderView	v2
+missing	post	/goal/{}/key_result	Goals	Create Key Result	CreateKeyResult	v2
+missing	post	/list/{}/comment	Comments	Create List Comment	CreateListComment	v2
+missing	post	/list/{}/guest/{}	Guests	Add Guest To List	AddGuestToList	v2
+missing	post	/list/{}/task/{}	Lists	Add Task To List	AddTaskToList	v2
+missing	post	/list/{}/taskTemplate/{}	Tasks	Create Task From Template	CreateTaskFromTemplate	v2
+missing	post	/list/{}/view	Views	Create List View	CreateListView	v2
+missing	post	/oauth/token	Authorization	Get Access Token	GetAccessToken	v2
+missing	post	/space/{}/folder	Folders	Create Folder	CreateFolder	v2
+missing	post	/space/{}/folder_template/{}	Folders	Create Folder from template	CreateFolderFromTemplate	v2
+missing	post	/space/{}/list	Lists	Create Folderless List	CreateFolderlessList	v2
+missing	post	/space/{}/list_template/{}	Lists	Create List From Template in Space.	CreateSpaceListFromTemplate	v2
+missing	post	/space/{}/tag	Tags	Create Space Tag	CreateSpaceTag	v2
+missing	post	/space/{}/view	Views	Create Space View	CreateSpaceView	v2
+missing	post	/task/{}/attachment	Attachments	Create Task Attachment	CreateTaskAttachment	v2
+missing	post	/task/{}/checklist	Task Checklists	Create Checklist	CreateChecklist	v2
+missing	post	/task/{}/dependency	Task Relationships	Add Dependency	AddDependency	v2
+missing	post	/task/{}/field/{}	Custom Fields	Set Custom Field Value	SetCustomFieldValue	v2
+missing	post	/task/{}/guest/{}	Guests	Add Guest To Task	AddGuestToTask	v2
+missing	post	/task/{}/link/{}	Task Relationships	Add Task Link	AddTaskLink	v2
+missing	post	/task/{}/merge	Tasks	Merge Tasks	mergeTasks	v2
+missing	post	/task/{}/tag/{}	Tags	Add Tag To Task	AddTagToTask	v2
+missing	post	/task/{}/time	Time Tracking (Legacy)	Track time	Tracktime	v2
+missing	post	/team/{}/goal	Goals	Create Goal	CreateGoal	v2
+missing	post	/team/{}/group	User Groups	Create Group	CreateUserGroup	v2
+missing	post	/team/{}/guest	Guests	Invite Guest To Workspace	InviteGuestToWorkspace	v2
+missing	post	/team/{}/space	Spaces	Create Space	CreateSpace	v2
+missing	post	/team/{}/time_entries/start	Time Tracking	Start a time Entry	StartatimeEntry	v2
+missing	post	/team/{}/time_entries/stop	Time Tracking	Stop a time Entry	StopatimeEntry	v2
+missing	post	/team/{}/time_entries/tags	Time Tracking	Add tags from time entries	Addtagsfromtimeentries	v2
+missing	post	/team/{}/user	Users	Invite User To Workspace	InviteUserToWorkspace	v2
+missing	post	/team/{}/view	Views	Create Workspace (Everything level) View	CreateTeamView	v2
+missing	post	/team/{}/webhook	Webhooks	Create Webhook	CreateWebhook	v2
+missing	post	/view/{}/comment	Comments	Create Chat View Comment	CreateChatViewComment	v2
+missing	put	/api/v3/workspaces/{}/docs/{}/pages/{}	Docs	Edit a Page	editPagePublic	v3
+missing	put	/api/v3/workspaces/{}/tasks/{}/home_list/{}	Tasks	Move a task to a new List	moveTask	v3
+missing	put	/checklist/{}	Task Checklists	Edit Checklist	EditChecklist	v2
+missing	put	/checklist/{}/checklist_item/{}	Task Checklists	Edit Checklist Item	EditChecklistItem	v2
+missing	put	/comment/{}	Comments	Update Comment	UpdateComment	v2
+missing	put	/folder/{}	Folders	Update Folder	UpdateFolder	v2
+missing	put	/goal/{}	Goals	Update Goal	UpdateGoal	v2
+missing	put	/group/{}	User Groups	Update Group	UpdateTeam	v2
+missing	put	/key_result/{}	Goals	Edit Key Result	EditKeyResult	v2
+missing	put	/list/{}	Lists	Update List	UpdateList	v2
+missing	put	/space/{}	Spaces	Update Space	UpdateSpace	v2
+missing	put	/space/{}/tag/{}	Tags	Edit Space Tag	EditSpaceTag	v2
+missing	put	/task/{}/time/{}	Time Tracking (Legacy)	Edit time tracked	Edittimetracked	v2
+missing	put	/team/{}/guest/{}	Guests	Edit Guest On Workspace	EditGuestOnWorkspace	v2
+missing	put	/team/{}/time_entries/tags	Time Tracking	Change tag names from time entries	Changetagnamesfromtimeentries	v2
+missing	put	/team/{}/time_entries/{}	Time Tracking	Update a time Entry	UpdateatimeEntry	v2
+missing	put	/team/{}/user/{}	Users	Edit User On Workspace	EditUserOnWorkspace	v2
+missing	put	/view/{}	Views	Update View	UpdateView	v2
+missing	put	/webhook/{}	Webhooks	Update Webhook	UpdateWebhook	v2

@@ -182,3 +182,38 @@ type TimeEntriesListResponse struct {
 type MembersListResponse struct {
 	Members []Member `json:"members"`
 }
+
+// --- Workspace types ---
+
+// WorkspacesResponse is the response for listing authorized workspaces.
+type WorkspacesResponse struct {
+	Teams []Workspace `json:"teams"`
+}
+
+// Workspace represents a ClickUp workspace (team).
+type Workspace struct {
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	Color   string   `json:"color,omitempty"`
+	Members []Member `json:"members,omitempty"`
+}
+
+// WorkspacePlanResponse is the response for getting workspace plan.
+type WorkspacePlanResponse struct {
+	TeamID   string `json:"team_id"`
+	PlanID   int    `json:"plan_id"`
+	PlanName string `json:"plan_name"`
+}
+
+// WorkspaceSeatsResponse is the response for getting workspace seats.
+type WorkspaceSeatsResponse struct {
+	Members SeatInfo `json:"members"`
+	Guests  SeatInfo `json:"guests"`
+}
+
+// SeatInfo contains seat information for members or guests.
+type SeatInfo struct {
+	FilledSeats int `json:"filled_member_seats"`
+	TotalSeats  int `json:"total_member_seats"`
+	EmptySeats  int `json:"empty_member_seats"`
+}

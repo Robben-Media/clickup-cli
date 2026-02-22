@@ -91,6 +91,11 @@ func (c *Client) Time() *TimeService {
 	return &TimeService{client: c}
 }
 
+// Workspaces provides methods for the Workspaces API.
+func (c *Client) Workspaces() *WorkspacesService {
+	return &WorkspacesService{client: c}
+}
+
 // --- TasksService ---
 
 // TasksService handles task operations.
@@ -389,4 +394,55 @@ func (s *TimeService) Log(ctx context.Context, teamID, taskID string, durationMs
 	}
 
 	return &result.Data, nil
+}
+
+// --- WorkspacesService ---
+
+// WorkspacesService handles workspace operations.
+type WorkspacesService struct {
+	client *Client
+}
+
+// List returns all authorized workspaces (teams).
+func (s *WorkspacesService) List(ctx context.Context) (*WorkspacesResponse, error) {
+	var result WorkspacesResponse
+
+	path := "/v2/team"
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list workspaces: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Plan returns the workspace plan for a team.
+func (s *WorkspacesService) Plan(ctx context.Context, teamID string) (*WorkspacePlanResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	var result WorkspacePlanResponse
+
+	path := fmt.Sprintf("/v2/team/%s/plan", teamID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get workspace plan: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Seats returns the workspace seat usage for a team.
+func (s *WorkspacesService) Seats(ctx context.Context, teamID string) (*WorkspaceSeatsResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	var result WorkspaceSeatsResponse
+
+	path := fmt.Sprintf("/v2/team/%s/seats", teamID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get workspace seats: %w", err)
+	}
+
+	return &result, nil
 }
