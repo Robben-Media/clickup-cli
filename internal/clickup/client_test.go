@@ -1697,3 +1697,249 @@ func TestAuthToken_RequiresAllFields(t *testing.T) {
 		t.Fatal("expected error for missing code, got nil")
 	}
 }
+
+// --- SpacesService extended tests ---
+
+func TestSpacesGet_ReturnsDetails(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/space/space-1" {
+			t.Fatalf("expected path /v2/space/space-1, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(SpaceDetail{
+			ID:      "space-1",
+			Name:    "Engineering",
+			Private: false,
+			Statuses: []SpaceStatus{
+				{Status: "open", Color: "#d3d3d3", OrderIndex: 0},
+				{Status: "in progress", Color: "#4194f6", OrderIndex: 1},
+			},
+			MultipleAssignees: true,
+			Features: SpaceFeatures{
+				DueDates:     FeatureToggle{Enabled: true},
+				TimeTracking: FeatureToggle{Enabled: true},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Spaces().Get(context.Background(), "space-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "space-1" {
+		t.Fatalf("expected ID space-1, got %s", result.ID)
+	}
+
+	if result.Name != "Engineering" {
+		t.Fatalf("expected name Engineering, got %s", result.Name)
+	}
+
+	if len(result.Statuses) != 2 {
+		t.Fatalf("expected 2 statuses, got %d", len(result.Statuses))
+	}
+
+	if !result.Features.DueDates.Enabled {
+		t.Fatal("expected due_dates feature to be enabled")
+	}
+}
+
+func TestSpacesCreate_SendsNameAndOptions(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/space" {
+			t.Fatalf("expected path /v2/team/team-1/space, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["name"] != "New Space" {
+			t.Fatalf("expected name New Space, got %s", body["name"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(SpaceDetail{
+			ID:      "space-new",
+			Name:    "New Space",
+			Private: false,
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateSpaceRequest{Name: "New Space"}
+
+	result, err := client.Spaces().Create(context.Background(), "team-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "space-new" {
+		t.Fatalf("expected ID space-new, got %s", result.ID)
+	}
+}
+
+func TestSpacesUpdate_SendsFields(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/space/space-1" {
+			t.Fatalf("expected path /v2/space/space-1, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["name"] != "Updated Name" {
+			t.Fatalf("expected name Updated Name, got %s", body["name"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(SpaceDetail{
+			ID:      "space-1",
+			Name:    "Updated Name",
+			Private: true,
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := UpdateSpaceRequest{Name: "Updated Name"}
+
+	result, err := client.Spaces().Update(context.Background(), "space-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "Updated Name" {
+		t.Fatalf("expected name Updated Name, got %s", result.Name)
+	}
+}
+
+func TestSpacesDelete_SendsCorrectRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/space/space-1" {
+			t.Fatalf("expected path /v2/space/space-1, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Spaces().Delete(context.Background(), "space-1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestSpacesCreate_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Spaces().Create(context.Background(), "", CreateSpaceRequest{Name: "Test"})
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestSpacesCreate_RequiresName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Spaces().Create(context.Background(), "team-1", CreateSpaceRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing name, got nil")
+	}
+}
+
+func TestSpacesGet_RequiresSpaceID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Spaces().Get(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing space ID, got nil")
+	}
+}
+
+func TestSpacesUpdate_RequiresSpaceID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Spaces().Update(context.Background(), "", UpdateSpaceRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing space ID, got nil")
+	}
+}
+
+func TestSpacesDelete_RequiresSpaceID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Spaces().Delete(context.Background(), ""); err == nil {
+		t.Fatal("expected error for missing space ID, got nil")
+	}
+}

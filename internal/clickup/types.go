@@ -44,6 +44,52 @@ type Space struct {
 	Name string `json:"name"`
 }
 
+// SpaceDetail represents a full space object with statuses and features.
+type SpaceDetail struct {
+	ID                string        `json:"id"`
+	Name              string        `json:"name"`
+	Private           bool          `json:"private"`
+	Color             string        `json:"color,omitempty"`
+	Statuses          []SpaceStatus `json:"statuses,omitempty"`
+	MultipleAssignees bool          `json:"multiple_assignees"`
+	Features          SpaceFeatures `json:"features,omitempty"`
+}
+
+// SpaceStatus represents a status in a space.
+type SpaceStatus struct {
+	Status     string `json:"status"`
+	Color      string `json:"color"`
+	OrderIndex int    `json:"orderindex"`
+}
+
+// SpaceFeatures contains feature toggles for a space.
+type SpaceFeatures struct {
+	DueDates     FeatureToggle `json:"due_dates"`
+	TimeTracking FeatureToggle `json:"time_tracking"`
+	Tags         FeatureToggle `json:"tags"`
+	Checklists   FeatureToggle `json:"checklists"`
+}
+
+// FeatureToggle represents a feature enabled/disabled state.
+type FeatureToggle struct {
+	Enabled bool `json:"enabled"`
+}
+
+// CreateSpaceRequest is the request body for creating a space.
+type CreateSpaceRequest struct {
+	Name              string         `json:"name"`
+	MultipleAssignees bool           `json:"multiple_assignees,omitempty"`
+	Features          *SpaceFeatures `json:"features,omitempty"`
+}
+
+// UpdateSpaceRequest is the request body for updating a space.
+type UpdateSpaceRequest struct {
+	Name              string `json:"name,omitempty"`
+	Color             string `json:"color,omitempty"`
+	Private           *bool  `json:"private,omitempty"`
+	MultipleAssignees *bool  `json:"multiple_assignees,omitempty"`
+}
+
 // List represents a ClickUp list.
 type List struct {
 	ID   string `json:"id"`
