@@ -362,7 +362,10 @@ func TestWorkspacesSeats_ReturnsSeatInfo(t *testing.T) {
 func TestWorkspacesPlan_RequiresTeamID(t *testing.T) {
 	t.Parallel()
 
-	client := newTestClient(nil)
+	// Create client without server since this test doesn't make HTTP requests
+	client := &Client{
+		Client: api.NewClient("test-api-key"),
+	}
 
 	_, err := client.Workspaces().Plan(context.Background(), "")
 	if err == nil {
@@ -377,7 +380,10 @@ func TestWorkspacesPlan_RequiresTeamID(t *testing.T) {
 func TestWorkspacesSeats_RequiresTeamID(t *testing.T) {
 	t.Parallel()
 
-	client := newTestClient(nil)
+	// Create client without server since this test doesn't make HTTP requests
+	client := &Client{
+		Client: api.NewClient("test-api-key"),
+	}
 
 	_, err := client.Workspaces().Seats(context.Background(), "")
 	if err == nil {
