@@ -275,3 +275,16 @@ type EditGuestRequest struct {
 type AddGuestToResourceRequest struct {
 	PermissionLevel string `json:"permission_level"` // "read", "comment", "edit", "create"
 }
+
+// --- Task Template types ---
+
+// TaskTemplate represents a ClickUp task template.
+type TaskTemplate struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// TaskTemplatesResponse is the response for listing task templates.
+type TaskTemplatesResponse struct {
+	Templates []TaskTemplate `json:"templates"`
+}

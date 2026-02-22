@@ -112,6 +112,11 @@ func (c *Client) SharedHierarchy() *SharedHierarchyService {
 	return &SharedHierarchyService{client: c}
 }
 
+// Templates provides methods for the Templates API.
+func (c *Client) Templates() *TemplatesService {
+	return &TemplatesService{client: c}
+}
+
 // --- SharedHierarchyService ---
 
 // SharedHierarchyService handles shared hierarchy operations.
@@ -130,6 +135,29 @@ func (s *SharedHierarchyService) List(ctx context.Context, teamID string) (*Shar
 	var result SharedHierarchyResponse
 	if err := s.client.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("list shared hierarchy: %w", err)
+	}
+
+	return &result, nil
+}
+
+// --- TemplatesService ---
+
+// TemplatesService handles task template operations.
+type TemplatesService struct {
+	client *Client
+}
+
+// List returns all task templates for a team.
+func (s *TemplatesService) List(ctx context.Context, teamID string, page int) (*TaskTemplatesResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/taskTemplate?page=%d", teamID, page)
+
+	var result TaskTemplatesResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list templates: %w", err)
 	}
 
 	return &result, nil

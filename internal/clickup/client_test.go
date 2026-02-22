@@ -949,3 +949,90 @@ func TestSharedHierarchyList_RequiresTeamID(t *testing.T) {
 		t.Fatal("expected error for missing team ID, got nil")
 	}
 }
+
+// Templates Service Tests
+
+func TestTemplatesList_ReturnsTemplates(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/taskTemplate" {
+			t.Fatalf("expected path /v2/team/team-1/taskTemplate, got %s", r.URL.Path)
+		}
+
+		if r.URL.Query().Get("page") != "0" {
+			t.Fatalf("expected page=0, got %s", r.URL.Query().Get("page"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TaskTemplatesResponse{
+			Templates: []TaskTemplate{
+				{ID: "tpl-1", Name: "Weekly Report"},
+				{ID: "tpl-2", Name: "Bug Report"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Templates().List(context.Background(), "team-1", 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Templates) != 2 {
+		t.Fatalf("expected 2 templates, got %d", len(result.Templates))
+	}
+
+	if result.Templates[0].Name != "Weekly Report" {
+		t.Fatalf("expected first template name Weekly Report, got %s", result.Templates[0].Name)
+	}
+}
+
+func TestTemplatesList_WithPage(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("page") != "2" {
+			t.Fatalf("expected page=2, got %s", r.URL.Query().Get("page"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TaskTemplatesResponse{
+			Templates: []TaskTemplate{},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Templates().List(context.Background(), "team-1", 2)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Templates) != 0 {
+		t.Fatalf("expected 0 templates, got %d", len(result.Templates))
+	}
+}
+
+func TestTemplatesList_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Templates().List(context.Background(), "", 0)
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
