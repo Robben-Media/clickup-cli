@@ -11,26 +11,54 @@ import (
 )
 
 var (
-	errIDRequired   = errors.New("id is required")
-	errNameRequired = errors.New("name is required")
-	errTextRequired = errors.New("comment text is required")
+	errIDRequired          = errors.New("id is required")
+	errNameRequired        = errors.New("name is required")
+	errTextRequired        = errors.New("comment text is required")
+	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
 )
 
-const defaultBaseURL = "https://api.clickup.com/api/v2"
+const defaultBaseURL = "https://api.clickup.com/api"
 
 // Client wraps the API client with ClickUp-specific methods.
 type Client struct {
 	*api.Client
+	workspaceID string
+}
+
+// ClientOption is a functional option for configuring the Client.
+type ClientOption func(*Client)
+
+// WithWorkspaceID sets the workspace ID for v3 API calls.
+func WithWorkspaceID(workspaceID string) ClientOption {
+	return func(c *Client) {
+		c.workspaceID = workspaceID
+	}
 }
 
 // NewClient creates a new ClickUp API client.
-func NewClient(apiKey string) *Client {
-	return &Client{
+func NewClient(apiKey string, opts ...ClientOption) *Client {
+	c := &Client{
 		Client: api.NewClient(apiKey,
 			api.WithBaseURL(defaultBaseURL),
 			api.WithUserAgent("clickup-cli/1.0"),
 		),
 	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c
+}
+
+// v3Path builds a v3 API path with the workspace ID prefix.
+// Returns an error if workspace ID is not configured.
+func (c *Client) v3Path(path string) (string, error) {
+	if c.workspaceID == "" {
+		return "", errWorkspaceIDRequired
+	}
+
+	return fmt.Sprintf("/v3/workspaces/%s%s", c.workspaceID, path), nil
 }
 
 // Tasks provides methods for the Tasks API.
@@ -76,7 +104,7 @@ func (s *TasksService) List(ctx context.Context, listID string, status, assignee
 		return nil, errIDRequired
 	}
 
-	path := fmt.Sprintf("/list/%s/task?include_closed=true", listID)
+	path := fmt.Sprintf("/v2/list/%s/task?include_closed=true", listID)
 
 	if status != "" {
 		path += fmt.Sprintf("&statuses[]=%s", url.QueryEscape(status))
@@ -102,7 +130,7 @@ func (s *TasksService) Get(ctx context.Context, taskID string) (*Task, error) {
 
 	var result Task
 
-	path := fmt.Sprintf("/task/%s", taskID)
+	path := fmt.Sprintf("/v2/task/%s", taskID)
 	if err := s.client.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("get task: %w", err)
 	}
@@ -122,7 +150,7 @@ func (s *TasksService) Create(ctx context.Context, listID string, req CreateTask
 
 	var result Task
 
-	path := fmt.Sprintf("/list/%s/task", listID)
+	path := fmt.Sprintf("/v2/list/%s/task", listID)
 	if err := s.client.Post(ctx, path, req, &result); err != nil {
 		return nil, fmt.Errorf("create task: %w", err)
 	}
@@ -138,7 +166,7 @@ func (s *TasksService) Update(ctx context.Context, taskID string, req UpdateTask
 
 	var result Task
 
-	path := fmt.Sprintf("/task/%s", taskID)
+	path := fmt.Sprintf("/v2/task/%s", taskID)
 	if err := s.client.Put(ctx, path, req, &result); err != nil {
 		return nil, fmt.Errorf("update task: %w", err)
 	}
@@ -152,7 +180,7 @@ func (s *TasksService) Delete(ctx context.Context, taskID string) error {
 		return errIDRequired
 	}
 
-	path := fmt.Sprintf("/task/%s", taskID)
+	path := fmt.Sprintf("/v2/task/%s", taskID)
 	if err := s.client.Delete(ctx, path); err != nil {
 		return fmt.Errorf("delete task: %w", err)
 	}
@@ -173,7 +201,7 @@ func (s *SpacesService) List(ctx context.Context, teamID string) (*SpacesListRes
 		return nil, errIDRequired
 	}
 
-	path := fmt.Sprintf("/team/%s/space", teamID)
+	path := fmt.Sprintf("/v2/team/%s/space", teamID)
 
 	var result SpacesListResponse
 	if err := s.client.Get(ctx, path, &result); err != nil {
@@ -196,7 +224,7 @@ func (s *ListsService) ListByFolder(ctx context.Context, folderID string) (*List
 		return nil, errIDRequired
 	}
 
-	path := fmt.Sprintf("/folder/%s/list", folderID)
+	path := fmt.Sprintf("/v2/folder/%s/list", folderID)
 
 	var result ListsListResponse
 	if err := s.client.Get(ctx, path, &result); err != nil {
@@ -212,7 +240,7 @@ func (s *ListsService) ListFolderless(ctx context.Context, spaceID string) (*Fol
 		return nil, errIDRequired
 	}
 
-	path := fmt.Sprintf("/space/%s/list", spaceID)
+	path := fmt.Sprintf("/v2/space/%s/list", spaceID)
 
 	var result FolderlessListsResponse
 	if err := s.client.Get(ctx, path, &result); err != nil {
@@ -228,7 +256,7 @@ func (s *ListsService) ListFolders(ctx context.Context, spaceID string) (*Folder
 		return nil, errIDRequired
 	}
 
-	path := fmt.Sprintf("/space/%s/folder", spaceID)
+	path := fmt.Sprintf("/v2/space/%s/folder", spaceID)
 
 	var result FoldersListResponse
 	if err := s.client.Get(ctx, path, &result); err != nil {
@@ -252,7 +280,7 @@ func (s *MembersService) List(ctx context.Context, teamID string) (*MembersListR
 	}
 
 	// The ClickUp v2 API returns members as part of the team endpoint
-	path := fmt.Sprintf("/team/%s", teamID)
+	path := fmt.Sprintf("/v2/team/%s", teamID)
 
 	// The /team/{team_id} endpoint returns a team object with members
 	var result struct {
@@ -281,7 +309,7 @@ func (s *CommentsService) List(ctx context.Context, taskID string) (*CommentsLis
 		return nil, errIDRequired
 	}
 
-	path := fmt.Sprintf("/task/%s/comment", taskID)
+	path := fmt.Sprintf("/v2/task/%s/comment", taskID)
 
 	var result CommentsListResponse
 	if err := s.client.Get(ctx, path, &result); err != nil {
@@ -308,7 +336,7 @@ func (s *CommentsService) Add(ctx context.Context, taskID string, text string) (
 		ID json.Number `json:"id"`
 	}
 
-	path := fmt.Sprintf("/task/%s/comment", taskID)
+	path := fmt.Sprintf("/v2/task/%s/comment", taskID)
 	if err := s.client.Post(ctx, path, req, &result); err != nil {
 		return nil, fmt.Errorf("add comment: %w", err)
 	}
@@ -329,7 +357,7 @@ func (s *TimeService) List(ctx context.Context, teamID, taskID string) (*TimeEnt
 		return nil, errIDRequired
 	}
 
-	path := fmt.Sprintf("/team/%s/time_entries?task_id=%s", teamID, url.QueryEscape(taskID))
+	path := fmt.Sprintf("/v2/team/%s/time_entries?task_id=%s", teamID, url.QueryEscape(taskID))
 
 	var result TimeEntriesListResponse
 	if err := s.client.Get(ctx, path, &result); err != nil {
@@ -355,7 +383,7 @@ func (s *TimeService) Log(ctx context.Context, teamID, taskID string, durationMs
 		Data TimeEntry `json:"data"`
 	}
 
-	path := fmt.Sprintf("/team/%s/time_entries", teamID)
+	path := fmt.Sprintf("/v2/team/%s/time_entries", teamID)
 	if err := s.client.Post(ctx, path, req, &result); err != nil {
 		return nil, fmt.Errorf("log time: %w", err)
 	}

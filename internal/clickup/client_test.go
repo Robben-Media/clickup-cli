@@ -3,6 +3,7 @@ package clickup
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -19,12 +20,48 @@ func newTestClient(server *httptest.Server) *Client {
 	}
 }
 
+func TestV3Path_BuildsCorrectPath(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{
+		Client:      api.NewClient("test-key"),
+		workspaceID: "workspace-123",
+	}
+
+	path, err := client.v3Path("/chat/channels")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := "/v3/workspaces/workspace-123/chat/channels"
+	if path != want {
+		t.Fatalf("expected path %q, got %q", want, path)
+	}
+}
+
+func TestV3Path_MissingWorkspaceID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{
+		Client: api.NewClient("test-key"),
+	}
+
+	_, err := client.v3Path("/chat/channels")
+	if err == nil {
+		t.Fatal("expected error for missing workspace ID, got nil")
+	}
+
+	if !errors.Is(err, errWorkspaceIDRequired) {
+		t.Fatalf("expected errWorkspaceIDRequired, got %v", err)
+	}
+}
+
 func TestTasksList_EncodesFilters(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/list/list-1/task" {
-			t.Fatalf("expected path /list/list-1/task, got %s", r.URL.Path)
+		if r.URL.Path != "/v2/list/list-1/task" {
+			t.Fatalf("expected path /v2/list/list-1/task, got %s", r.URL.Path)
 		}
 
 		if r.URL.Query().Get("include_closed") != "true" {
@@ -62,8 +99,8 @@ func TestMembersList_ExtractsNestedMembers(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/team/team-1" {
-			t.Fatalf("expected path /team/team-1, got %s", r.URL.Path)
+		if r.URL.Path != "/v2/team/team-1" {
+			t.Fatalf("expected path /v2/team/team-1, got %s", r.URL.Path)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -101,8 +138,8 @@ func TestCommentsAdd_ReturnsIDAndText(t *testing.T) {
 			t.Fatalf("expected POST, got %s", r.Method)
 		}
 
-		if r.URL.Path != "/task/task-1/comment" {
-			t.Fatalf("expected path /task/task-1/comment, got %s", r.URL.Path)
+		if r.URL.Path != "/v2/task/task-1/comment" {
+			t.Fatalf("expected path /v2/task/task-1/comment, got %s", r.URL.Path)
 		}
 
 		var req CreateCommentRequest
@@ -141,8 +178,8 @@ func TestTimeList_EscapesTaskID(t *testing.T) {
 	taskID := "task/with?chars"
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/team/team-1/time_entries" {
-			t.Fatalf("expected path /team/team-1/time_entries, got %s", r.URL.Path)
+		if r.URL.Path != "/v2/team/team-1/time_entries" {
+			t.Fatalf("expected path /v2/team/team-1/time_entries, got %s", r.URL.Path)
 		}
 
 		if r.URL.Query().Get("task_id") != taskID {
@@ -176,8 +213,8 @@ func TestTasksUpdate_SendsAssigneesAddRem(t *testing.T) {
 			t.Fatalf("expected PUT, got %s", r.Method)
 		}
 
-		if r.URL.Path != "/task/task-1" {
-			t.Fatalf("expected path /task/task-1, got %s", r.URL.Path)
+		if r.URL.Path != "/v2/task/task-1" {
+			t.Fatalf("expected path /v2/task/task-1, got %s", r.URL.Path)
 		}
 
 		var body map[string]any
