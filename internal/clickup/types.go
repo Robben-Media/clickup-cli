@@ -214,3 +214,15 @@ type UpdateUserGroupRequest struct {
 type UserGroupsResponse struct {
 	Groups []UserGroup `json:"groups"`
 }
+
+// CustomRole represents a ClickUp custom role.
+type CustomRole struct {
+	ID          int      `json:"id"`
+	Name        string   `json:"name"`
+	Permissions []string `json:"permissions,omitempty"`
+}
+
+// CustomRolesResponse is the response for listing custom roles.
+type CustomRolesResponse struct {
+	CustomRoles []CustomRole `json:"custom_roles"`
+}

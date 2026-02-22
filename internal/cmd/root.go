@@ -36,6 +36,7 @@ type CLI struct {
 	Comments   CommentsCmd      `cmd:"" help:"Comment operations"`
 	Time       TimeCmd          `cmd:"" help:"Time tracking"`
 	Groups     GroupsCmd        `cmd:"" help:"User group operations"`
+	Roles      RolesCmd         `cmd:"" help:"Custom role operations"`
 	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

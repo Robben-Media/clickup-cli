@@ -452,3 +452,61 @@ func TestUserGroupsCreate_RequiresName(t *testing.T) {
 		t.Fatal("expected error for missing name, got nil")
 	}
 }
+
+func TestRolesList_ReturnsCustomRoles(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/customroles" {
+			t.Fatalf("expected path /v2/team/team-1/customroles, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(CustomRolesResponse{
+			CustomRoles: []CustomRole{
+				{ID: 1, Name: "Project Manager", Permissions: []string{"task_create", "task_delete"}},
+				{ID: 2, Name: "Developer", Permissions: []string{"task_create", "task_edit"}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Roles().List(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.CustomRoles) != 2 {
+		t.Fatalf("expected 2 custom roles, got %d", len(result.CustomRoles))
+	}
+
+	if result.CustomRoles[0].Name != "Project Manager" {
+		t.Fatalf("expected name Project Manager, got %s", result.CustomRoles[0].Name)
+	}
+
+	if len(result.CustomRoles[0].Permissions) != 2 {
+		t.Fatalf("expected 2 permissions, got %d", len(result.CustomRoles[0].Permissions))
+	}
+}
+
+func TestRolesList_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Roles().List(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}

@@ -97,6 +97,11 @@ func (c *Client) UserGroups() *UserGroupsService {
 	return &UserGroupsService{client: c}
 }
 
+// Roles provides methods for the Roles API.
+func (c *Client) Roles() *RolesService {
+	return &RolesService{client: c}
+}
+
 // --- TasksService ---
 
 // TasksService handles task operations.
@@ -464,4 +469,27 @@ func (s *UserGroupsService) Delete(ctx context.Context, groupID string) error {
 	}
 
 	return nil
+}
+
+// --- RolesService ---
+
+// RolesService handles custom role operations.
+type RolesService struct {
+	client *Client
+}
+
+// List returns all custom roles for a team.
+func (s *RolesService) List(ctx context.Context, teamID string) (*CustomRolesResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/customroles", teamID)
+
+	var result CustomRolesResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list custom roles: %w", err)
+	}
+
+	return &result, nil
 }
