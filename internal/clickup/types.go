@@ -288,3 +288,18 @@ type TaskTemplate struct {
 type TaskTemplatesResponse struct {
 	Templates []TaskTemplate `json:"templates"`
 }
+
+// --- Custom Task Type types ---
+
+// CustomTaskType represents a ClickUp custom task type.
+type CustomTaskType struct {
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	NamePlural  string `json:"name_plural"`
+	Description string `json:"description,omitempty"`
+}
+
+// CustomTaskTypesResponse is the response for listing custom task types.
+type CustomTaskTypesResponse struct {
+	CustomItems []CustomTaskType `json:"custom_items"`
+}

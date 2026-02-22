@@ -117,6 +117,11 @@ func (c *Client) Templates() *TemplatesService {
 	return &TemplatesService{client: c}
 }
 
+// CustomTaskTypes provides methods for the Custom Task Types API.
+func (c *Client) CustomTaskTypes() *CustomTaskTypesService {
+	return &CustomTaskTypesService{client: c}
+}
+
 // --- SharedHierarchyService ---
 
 // SharedHierarchyService handles shared hierarchy operations.
@@ -158,6 +163,29 @@ func (s *TemplatesService) List(ctx context.Context, teamID string, page int) (*
 	var result TaskTemplatesResponse
 	if err := s.client.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("list templates: %w", err)
+	}
+
+	return &result, nil
+}
+
+// --- CustomTaskTypesService ---
+
+// CustomTaskTypesService handles custom task type operations.
+type CustomTaskTypesService struct {
+	client *Client
+}
+
+// List returns all custom task types for a team.
+func (s *CustomTaskTypesService) List(ctx context.Context, teamID string) (*CustomTaskTypesResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/custom_item", teamID)
+
+	var result CustomTaskTypesResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list custom task types: %w", err)
 	}
 
 	return &result, nil

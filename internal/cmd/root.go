@@ -40,6 +40,7 @@ type CLI struct {
 	Guests     GuestsCmd        `cmd:"" help:"Guest operations"`
 	Shared     SharedCmd        `cmd:"" help:"Shared hierarchy operations"`
 	Templates  TemplatesCmd     `cmd:"" help:"Task template operations"`
+	TaskTypes  TaskTypesCmd     `cmd:"" help:"Custom task type operations"`
 	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

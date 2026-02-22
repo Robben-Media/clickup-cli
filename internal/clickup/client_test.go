@@ -1036,3 +1036,59 @@ func TestTemplatesList_RequiresTeamID(t *testing.T) {
 		t.Fatal("expected error for missing team ID, got nil")
 	}
 }
+
+// --- CustomTaskTypesService tests ---
+
+func TestCustomTaskTypesList_ReturnsTypes(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/custom_item" {
+			t.Fatalf("expected path /v2/team/team-1/custom_item, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(CustomTaskTypesResponse{
+			CustomItems: []CustomTaskType{
+				{ID: 1, Name: "Task", NamePlural: "Tasks", Description: "Default task type"},
+				{ID: 2, Name: "Bug", NamePlural: "Bugs", Description: "Bug reports"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.CustomTaskTypes().List(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.CustomItems) != 2 {
+		t.Fatalf("expected 2 custom task types, got %d", len(result.CustomItems))
+	}
+
+	if result.CustomItems[0].Name != "Task" {
+		t.Fatalf("expected first type name Task, got %s", result.CustomItems[0].Name)
+	}
+}
+
+func TestCustomTaskTypesList_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.CustomTaskTypes().List(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
