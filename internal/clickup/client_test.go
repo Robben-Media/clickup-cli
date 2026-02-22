@@ -465,3 +465,100 @@ func TestUsersRemove_RequiresIDs(t *testing.T) {
 		t.Fatal("expected error for missing user ID, got nil")
 	}
 }
+
+// --- MembersService extended tests ---
+
+func TestMembersListMembers_ReturnsFlatUsers(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		wantPath := "/v2/list/list-1/member"
+		if r.URL.Path != wantPath {
+			t.Fatalf("expected path %s, got %s", wantPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(MemberUsersResponse{
+			Members: []MemberUser{
+				{ID: 1, Username: "alice", Email: "alice@example.com"},
+				{ID: 2, Username: "bob", Email: "bob@example.com"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Members().ListMembers(context.Background(), "list-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Members) != 2 {
+		t.Fatalf("expected 2 members, got %d", len(result.Members))
+	}
+
+	if result.Members[0].Username != "alice" {
+		t.Fatalf("expected username alice, got %s", result.Members[0].Username)
+	}
+}
+
+func TestMembersListMembers_RequiresListID(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewClient("test-key").Members().ListMembers(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing list ID, got nil")
+	}
+}
+
+func TestMembersTaskMembers_ReturnsFlatUsers(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		wantPath := "/v2/task/task-1/member"
+		if r.URL.Path != wantPath {
+			t.Fatalf("expected path %s, got %s", wantPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(MemberUsersResponse{
+			Members: []MemberUser{
+				{ID: 1, Username: "alice", Email: "alice@example.com"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Members().TaskMembers(context.Background(), "task-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Members) != 1 {
+		t.Fatalf("expected 1 member, got %d", len(result.Members))
+	}
+
+	if result.Members[0].Username != "alice" {
+		t.Fatalf("expected username alice, got %s", result.Members[0].Username)
+	}
+}
+
+func TestMembersTaskMembers_RequiresTaskID(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewClient("test-key").Members().TaskMembers(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+}

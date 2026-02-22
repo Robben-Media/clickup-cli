@@ -209,3 +209,18 @@ type EditUserRequest struct {
 	Username string `json:"username,omitempty"`
 	Admin    bool   `json:"admin,omitempty"`
 }
+
+// --- Member list/task types ---
+
+// MemberUser represents a user in list/task member responses.
+// Unlike workspace members, these are flat user objects without wrapper.
+type MemberUser struct {
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email,omitempty"`
+}
+
+// MemberUsersResponse is the response for list/task member endpoints.
+type MemberUsersResponse struct {
+	Members []MemberUser `json:"members"`
+}

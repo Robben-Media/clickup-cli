@@ -302,6 +302,38 @@ func (s *MembersService) List(ctx context.Context, teamID string) (*MembersListR
 	return &MembersListResponse{Members: result.Team.Members}, nil
 }
 
+// ListMembers returns all members with access to a list.
+func (s *MembersService) ListMembers(ctx context.Context, listID string) (*MemberUsersResponse, error) {
+	if listID == "" {
+		return nil, errIDRequired
+	}
+
+	var result MemberUsersResponse
+
+	path := fmt.Sprintf("/v2/list/%s/member", listID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list members: %w", err)
+	}
+
+	return &result, nil
+}
+
+// TaskMembers returns all members involved with a task.
+func (s *MembersService) TaskMembers(ctx context.Context, taskID string) (*MemberUsersResponse, error) {
+	if taskID == "" {
+		return nil, errIDRequired
+	}
+
+	var result MemberUsersResponse
+
+	path := fmt.Sprintf("/v2/task/%s/member", taskID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("task members: %w", err)
+	}
+
+	return &result, nil
+}
+
 // --- CommentsService ---
 
 // CommentsService handles comment operations.
