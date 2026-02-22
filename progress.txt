@@ -107,3 +107,49 @@ All 3 foundation architecture tasks are complete:
 Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 2 (Workspaces & Authorization)
 
 ---
+
+## Task 6 - 2026-02-22
+### Completed: Extend Spaces Service (Get, Create, Update, Delete)
+
+**What was implemented:**
+- Added `SpaceDetail`, `SpaceStatus`, `SpaceFeatures`, `FeatureToggle` types to types.go
+- Added `CreateSpaceRequest` and `UpdateSpaceRequest` types for API requests
+- Extended `SpacesService` with:
+  - `Get(ctx, spaceID)` - get space details with statuses and features
+  - `Create(ctx, teamID, req)` - create a new space
+  - `Update(ctx, spaceID, req)` - update space name, color, private, multiple assignees
+  - `Delete(ctx, spaceID)` - delete a space
+- Added CLI commands:
+  - `spaces get <space_id>` - displays ID, name, private, statuses, features
+  - `spaces create <team_id> <name> [--private] [--color <hex>] [--multiple-assignees]`
+  - `spaces update <space_id> [--name "..."] [--color <hex>] [--private] [--multiple-assignees]`
+  - `spaces delete <space_id>`
+- Added comprehensive tests:
+  - `TestSpacesGet_ReturnsSpaceWithStatusesAndFeatures` - verifies get with full details
+  - `TestSpacesGet_RequiresSpaceID` - validates space ID requirement
+  - `TestSpacesCreate_ReturnsCreatedSpace` - verifies create with name
+  - `TestSpacesCreate_RequiresTeamID` - validates team ID requirement
+  - `TestSpacesCreate_RequiresName` - validates name requirement
+  - `TestSpacesUpdate_ReturnsUpdatedSpace` - verifies update with name and private
+  - `TestSpacesUpdate_RequiresSpaceID` - validates space ID requirement
+  - `TestSpacesDelete_SendsDeleteRequest` - verifies delete request
+  - `TestSpacesDelete_RequiresSpaceID` - validates space ID requirement
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (extended SpacesService with Get, Create, Update, Delete)
+- `internal/clickup/types.go` — modified (added SpaceDetail, SpaceStatus, SpaceFeatures, FeatureToggle, CreateSpaceRequest, UpdateSpaceRequest)
+- `internal/cmd/spaces.go` — modified (added spaces get, create, update, delete commands)
+- `internal/clickup/client_test.go` — modified (added tests for all new methods)
+
+**Branch:** `phase/3-core-crud`
+**Commit:** `ead0891`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/11
+
+**Learnings for future iterations:**
+- The `wsl_v5` linter requires blank lines before variable declarations after other statements
+- Validation tests that don't make HTTP requests should create client directly with `&Client{Client: api.NewClient("test-key")}` instead of `newTestClient(nil)` to avoid nil pointer dereferences
+- All three output formats (JSON, plain TSV, human-readable) must be supported for each command
+
+**Next:** Task 7 - Create Folders Service (Full CRUD) - Phase 3 Core CRUD
+
+---
