@@ -485,7 +485,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/9-p2-completeness` | PR → fix/plain-output
 
 ### 24. Create User Groups Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/user-groups.md
 - **Description**:

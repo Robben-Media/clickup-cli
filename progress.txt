@@ -108,91 +108,33 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 
 ---
 
-## Task 4 - 2026-02-22
-### Completed: Implement Workspaces Service
+## Task 24 - 2026-02-22
+### Completed: Create User Groups Service
 
 **What was implemented:**
-- Created `WorkspacesService` with List, Plan, Seats methods
-- Implemented `GET /v2/team` (list workspaces) - returns all authorized workspaces
-- Implemented `GET /v2/team/{team_id}/plan` (get plan) - returns workspace plan details
-- Implemented `GET /v2/team/{team_id}/seats` (get seats) - returns workspace seat usage
-- Added CLI commands:
-  - `workspaces list` - displays all workspaces with ID, name, and member count
-  - `workspaces plan --team <team_id>` - displays workspace plan (Team ID, Plan ID, Plan Name)
-  - `workspaces seats --team <team_id>` - displays member and guest seat usage (filled, total, empty)
-- Added types:
-  - `WorkspacesResponse` - response wrapper for workspace list
-  - `Workspace` - individual workspace with ID, name, color, members
-  - `WorkspacePlanResponse` - plan information
-  - `WorkspaceSeatsResponse` - seat usage information
-  - `SeatInfo` - seat details (filled, total, empty)
-- Added comprehensive tests:
-  - `TestWorkspacesList_ReturnsTeams` - verifies list functionality
-  - `TestWorkspacesPlan_ReturnsPlanInfo` - verifies plan retrieval
-  - `TestWorkspacesSeats_ReturnsSeatInfo` - verifies seats retrieval
-  - `TestWorkspacesPlan_RequiresTeamID` - validates team ID requirement
-  - `TestWorkspacesSeats_RequiresTeamID` - validates team ID requirement
+- Created `UserGroupsService` with List, Create, Update, Delete methods
+- Implemented `GET /v2/group` (list all groups)
+- Implemented `POST /v2/team/{team_id}/group` (create group)
+- Implemented `PUT /v2/group/{group_id}` (update group)
+- Implemented `DELETE /v2/group/{group_id}` (delete group)
+- Added UserGroup types: UserGroup, CreateUserGroupRequest, UpdateUserGroupRequest, UserGroupMembersUpdate, UserGroupsResponse
+- Added CLI commands: `groups list`, `groups create`, `groups update`, `groups delete`
+- Support add/remove members pattern for group updates (same as task assignees pattern)
+- Added 6 comprehensive tests for all service methods
 
 **Files changed:**
-- `internal/clickup/client.go` — modified (added WorkspacesService and accessor)
-- `internal/clickup/types.go` — modified (added Workspace types)
-- `internal/cmd/workspaces.go` — created (CLI commands for list, plan, seats)
-- `internal/cmd/root.go` — modified (registered Workspaces command)
-- `internal/clickup/client_test.go` — modified (added tests for all workspace methods)
+- `internal/clickup/client.go` — added UserGroups() accessor and UserGroupsService with all methods
+- `internal/clickup/types.go` — added all UserGroup types
+- `internal/clickup/client_test.go` — added tests for UserGroups service
+- `internal/cmd/groups.go` — created with all CLI commands
+- `internal/cmd/root.go` — added GroupsCmd to CLI struct
 
-**Branch:** `phase/2-workspaces-auth`
-**Commits:**
-- `50aaaa2` - feat: implement Workspaces Service (task 4)
-- `d098fed` - fix: preallocate rows slice in workspaces seats command
-- `baf6d30` - fix: avoid nil pointer in workspace validation tests
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `5683ef5`
 
-**Learnings for future iterations:**
-- The `prealloc` linter suggests preallocating slices when size is known - use `make([][]string, 0, 2)` instead of `var rows [][]string`
-- When writing validation tests that don't make HTTP requests, create clients without server to avoid nil pointer dereferences
-- All three output formats (JSON, plain TSV, human-readable) must be supported for each command
-- Plain output uses tab-separated values with headers, while human output uses formatted printing to stdout/stderr
-
-**Next:** Task 5 - Implement Authorization Service (auth whoami, auth token)
-
----
-
-## Task 5 - 2026-02-22
-### Completed: Implement Authorization Service
-
-**What was implemented:**
-- Created `AuthService` with Whoami and Token methods
-- Implemented `GET /v2/user` (get authorized user) - returns user ID, username, email, color, profile picture
-- Implemented `POST /v2/oauth/token` (OAuth token exchange) - exchanges authorization code for access token without Authorization header
-- Added `PostNoAuth()` method to `api.Client` for unauthenticated requests (OAuth token endpoint doesn't require auth)
-- Added CLI commands:
-  - `auth whoami` - displays current authenticated user (ID, username, email)
-  - `auth token --client-id <id> --client-secret <secret> --code <code>` - exchanges OAuth code for access token
-- Added types:
-  - `AuthorizedUserResponse` - wrapper for user response
-  - `AuthUser` - user details (ID, username, email, color, profile picture)
-  - `OAuthTokenRequest` - OAuth token exchange request (client_id, client_secret, code)
-  - `OAuthTokenResponse` - OAuth token response (access_token, token_type)
-- Added comprehensive tests:
-  - `TestAuthServiceWhoami_ReturnsUser` - verifies whoami returns user with auth header
-  - `TestAuthServiceToken_ReturnsToken` - verifies token exchange without auth header
-  - `TestAuthServiceToken_RequiresAllFields` - validates all OAuth fields required
-
-**Files changed:**
-- `internal/api/client.go` — modified (added PostNoAuth method)
-- `internal/clickup/client.go` — modified (added AuthService accessor and methods)
-- `internal/clickup/types.go` — modified (added Auth types)
-- `internal/cmd/auth.go` — modified (added Whoami and Token commands)
-- `internal/clickup/client_test.go` — modified (added tests for AuthService)
-
-**Branch:** `phase/2-workspaces-auth`
-**Commit:** `4e8034c`
-
-**Learnings for future iterations:**
-- The Droid Shield secret scanner is very sensitive - use mock values like `mock_value_xyz` instead of `secret-123`
-- OAuth endpoints typically don't require Authorization headers - need separate unauthenticated client method
-- The err113 linter requires static errors, not `errors.New()` inline
-- The tagliatelle linter checks JSON field naming - use `//nolint:tagliatelle` comment for API-specified camelCase fields
-
-**Next:** Task 6 - Extend Spaces Service (Get, Create, Update, Delete) - Phase 3 Core CRUD
+**Learnings:**
+- Variable shadowing (`err`) inside if blocks triggers govet shadow check - use different variable names like `parseErr`
+- Group IDs are strings (UUIDs) unlike user IDs which are integers
+- Update members uses add/rem pattern (same as task assignees)
 
 ---
