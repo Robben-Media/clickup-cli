@@ -209,3 +209,33 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 - Guests have resource counts (tasks_count, lists_count, folders_count) for tracking access
 
 ---
+---
+
+## Task 27 - 2026-02-22
+### Completed: Create Shared Hierarchy Service
+
+**What was implemented:**
+- Created `SharedHierarchyService` with List method
+- Implemented `GET /v2/team/{team_id}/shared` (list shared hierarchy)
+- Added SharedHierarchy types: SharedHierarchyResponse, SharedResources
+- Reused existing TaskRef, ListRef, and FolderRef types
+- Added CLI command: `shared list`
+- Added 2 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added SharedHierarchy() accessor and SharedHierarchyService with List method
+- `internal/clickup/types.go` — added SharedHierarchyResponse and SharedResources types
+- `internal/clickup/client_test.go` — added tests for SharedHierarchy service
+- `internal/cmd/shared.go` — created with CLI command
+- `internal/cmd/root.go` — added SharedCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `ef87dfe`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Shared hierarchy reuses existing TaskRef, ListRef, FolderRef types (defined earlier in types.go)
+- The response structure has a `shared` object containing arrays of tasks, lists, and folders
+- Plain output format combines all three resource types with a TYPE column for differentiation
+- Human-readable output groups resources by type for clarity
+
