@@ -16,6 +16,7 @@ var (
 	errTextRequired        = errors.New("comment text is required")
 	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
 	errEmailRequired       = errors.New("email is required")
+	errOAuthFieldsRequired = errors.New("client_id, client_secret, and code are required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -140,6 +141,48 @@ func (c *Client) ACLs() *ACLsService {
 // Workspaces provides methods for the Workspaces API.
 func (c *Client) Workspaces() *WorkspacesService {
 	return &WorkspacesService{client: c}
+}
+
+// Auth provides methods for the Authorization API.
+func (c *Client) Auth() *AuthService {
+	return &AuthService{client: c}
+}
+
+// --- AuthService ---
+
+// AuthService handles authorization operations.
+type AuthService struct {
+	client *Client
+}
+
+// Whoami returns the authorized user.
+func (s *AuthService) Whoami(ctx context.Context) (*AuthorizedUserResponse, error) {
+	path := "/v2/user"
+
+	var result AuthorizedUserResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get authorized user: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Token exchanges an OAuth authorization code for an access token.
+// Note: This endpoint doesn't require the Authorization header.
+func (s *AuthService) Token(ctx context.Context, req OAuthTokenRequest) (*OAuthTokenResponse, error) {
+	if req.ClientID == "" || req.ClientSecret == "" || req.Code == "" {
+		return nil, errOAuthFieldsRequired
+	}
+
+	// Use the API client's base URL but make a public request (no auth)
+	path := "/v2/oauth/token"
+
+	var result OAuthTokenResponse
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("exchange oauth token: %w", err)
+	}
+
+	return &result, nil
 }
 
 // --- WorkspacesService ---

@@ -1553,3 +1553,147 @@ func TestWorkspacesSeats_RequiresTeamID(t *testing.T) {
 		t.Fatal("expected error for missing team ID, got nil")
 	}
 }
+
+// --- AuthService tests ---
+
+func TestAuthWhoami_ReturnsUser(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/user" {
+			t.Fatalf("expected path /v2/user, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(AuthorizedUserResponse{
+			User: AuthUser{
+				ID:             1,
+				Username:       "jeremy",
+				Email:          "jeremy@example.com",
+				Color:          "#4194f6",
+				ProfilePicture: "https://example.com/avatar.png",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Auth().Whoami(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.User.ID != 1 {
+		t.Fatalf("expected user ID 1, got %d", result.User.ID)
+	}
+
+	if result.User.Username != "jeremy" {
+		t.Fatalf("expected username jeremy, got %s", result.User.Username)
+	}
+
+	if result.User.Email != "jeremy@example.com" {
+		t.Fatalf("expected email jeremy@example.com, got %s", result.User.Email)
+	}
+}
+
+func TestAuthToken_ExchangeCodeForToken(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/oauth/token" {
+			t.Fatalf("expected path /v2/oauth/token, got %s", r.URL.Path)
+		}
+
+		var body map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["client_id"] != "MYID" {
+			t.Fatalf("expected client_id MYID, got %s", body["client_id"])
+		}
+
+		if body["client_secret"] != "MYSECRET" {
+			t.Fatalf("expected client_secret MYSECRET, got %s", body["client_secret"])
+		}
+
+		if body["code"] != "MYCODE" {
+			t.Fatalf("expected code MYCODE, got %s", body["code"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(OAuthTokenResponse{
+			AccessToken: "MYTOKEN",
+			TokenType:   "Bearer",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := OAuthTokenRequest{
+		ClientID:     "MYID",
+		ClientSecret: "MYSECRET",
+		Code:         "MYCODE",
+	}
+
+	result, err := client.Auth().Token(context.Background(), req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.AccessToken != "MYTOKEN" {
+		t.Fatalf("expected access token MYTOKEN, got %s", result.AccessToken)
+	}
+
+	if result.TokenType != "Bearer" {
+		t.Fatalf("expected token type Bearer, got %s", result.TokenType)
+	}
+}
+
+func TestAuthToken_RequiresAllFields(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	// Missing ClientID
+	_, err := client.Auth().Token(context.Background(), OAuthTokenRequest{
+		ClientSecret: "secret",
+		Code:         "code",
+	})
+	if err == nil {
+		t.Fatal("expected error for missing client_id, got nil")
+	}
+
+	// Missing ClientSecret
+	_, err = client.Auth().Token(context.Background(), OAuthTokenRequest{
+		ClientID: "id",
+		Code:     "code",
+	})
+	if err == nil {
+		t.Fatal("expected error for missing client_secret, got nil")
+	}
+
+	// Missing Code
+	_, err = client.Auth().Token(context.Background(), OAuthTokenRequest{
+		ClientID:     "id",
+		ClientSecret: "secret",
+	})
+	if err == nil {
+		t.Fatal("expected error for missing code, got nil")
+	}
+}

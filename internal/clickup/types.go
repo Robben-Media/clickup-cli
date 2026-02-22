@@ -409,3 +409,32 @@ type SeatInfo struct {
 	TotalSeats  int `json:"total_member_seats"`
 	EmptySeats  int `json:"empty_member_seats"`
 }
+
+// --- Auth types ---
+
+// AuthorizedUserResponse is the response for getting the authorized user.
+type AuthorizedUserResponse struct {
+	User AuthUser `json:"user"`
+}
+
+// AuthUser represents the authenticated user.
+type AuthUser struct {
+	ID             int    `json:"id"`
+	Username       string `json:"username"`
+	Email          string `json:"email"`
+	Color          string `json:"color,omitempty"`
+	ProfilePicture string `json:"profilePicture,omitempty"` //nolint:tagliatelle // ClickUp API uses camelCase
+}
+
+// OAuthTokenRequest is the request body for OAuth token exchange.
+type OAuthTokenRequest struct {
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	Code         string `json:"code"`
+}
+
+// OAuthTokenResponse is the response from OAuth token exchange.
+type OAuthTokenResponse struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+}
