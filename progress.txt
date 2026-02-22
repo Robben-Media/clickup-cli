@@ -69,3 +69,41 @@
 - Workspace ID is optional for v2 endpoints - only v3 endpoints require it (error handled in v3Path helper from Task 1)
 
 ---
+
+## Task 3 - 2026-02-21
+### Completed: Add Contract Tests for v3 Infrastructure
+
+**What was implemented:**
+- Contract tests for v3 infrastructure were already implemented as part of Tasks 1 and 2
+- Tests verify:
+  - `TestBaseURLConstruction` - base URL construction for v2 paths
+  - `TestV3Path_BuildsCorrectPath` - v3Path helper builds correct workspace-prefixed paths
+  - `TestV3Path_MissingWorkspaceID` - error handling for missing workspace ID
+  - `TestPatch_SendsJSONBody` - PATCH method sends correct HTTP method and JSON body
+  - `TestPatch_PropagatesAPIError` - PATCH error handling matches existing patterns
+  - `TestPostMultipart_SendsFile` - multipart file upload with correct content type
+  - `TestPostMultipart_SetsAuthHeader` - auth header set on multipart requests
+  - `TestPostMultipart_PropagatesAPIError` - multipart error handling
+
+**Files changed:**
+- No new files - tests were already in place from Tasks 1 and 2
+
+**Branch:** `phase/1-foundation`
+**PR URL:** (pending - Phase 1 complete, ready for PR creation)
+
+**Learnings for future iterations:**
+- When implementing infrastructure changes, include tests as part of the same task for atomic verification
+- The spec recommended separate test task, but implementing tests alongside infrastructure is more efficient
+
+---
+
+## Phase 1 Complete
+
+All 3 foundation architecture tasks are complete:
+1. ✅ Migrate to Dynamic v2/v3 Base URL
+2. ✅ Add Workspace ID Configuration
+3. ✅ Add Contract Tests for v3 Infrastructure
+
+Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 2 (Workspaces & Authorization)
+
+---

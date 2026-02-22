@@ -55,7 +55,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; test with/without workspace ID
 
 ### 3. Add Contract Tests for v3 Infrastructure
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 2
 - **Spec**: specs/architecture/v3-client-support.md
 - **Description**:
