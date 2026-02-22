@@ -127,7 +127,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; CRUD commands work
 
 ### 7. Create Folders Service (Full CRUD)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/folders.md
 - **Description**:

@@ -153,3 +153,61 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 **Next:** Task 7 - Create Folders Service (Full CRUD) - Phase 3 Core CRUD
 
 ---
+
+## Task 7 - 2026-02-22
+### Completed: Create Folders Service (Full CRUD)
+
+**What was implemented:**
+- Created new `FoldersService` as a separate service from `ListsService.ListFolders`
+- Added `FolderDetail`, `CreateFolderRequest`, `UpdateFolderRequest`, `CreateFolderFromTemplateRequest` types
+- Extended `FoldersService` with:
+  - `Get(ctx, folderID)` - get folder by ID with lists
+  - `Create(ctx, spaceID, req)` - create a new folder in a space
+  - `Update(ctx, folderID, req)` - update folder name
+  - `Delete(ctx, folderID)` - delete a folder
+  - `FromTemplate(ctx, spaceID, templateID, req)` - create folder from template
+- Implemented API endpoints:
+  - `GET /v2/folder/{folder_id}`
+  - `POST /v2/space/{space_id}/folder`
+  - `PUT /v2/folder/{folder_id}`
+  - `DELETE /v2/folder/{folder_id}`
+  - `POST /v2/space/{space_id}/folder_template/{template_id}`
+- Added CLI commands:
+  - `folders get <folder_id>` - displays ID, name, task count, lists
+  - `folders create <space_id> <name>`
+  - `folders update <folder_id> [--name "..."]`
+  - `folders delete <folder_id>`
+  - `folders from-template <space_id> <template_id> [--name "..."]`
+- Added comprehensive tests:
+  - `TestFoldersGet_ReturnsFolderWithLists` - verifies get with lists
+  - `TestFoldersGet_RequiresFolderID` - validates folder ID requirement
+  - `TestFoldersCreate_ReturnsCreatedFolder` - verifies create with name
+  - `TestFoldersCreate_RequiresSpaceID` - validates space ID requirement
+  - `TestFoldersCreate_RequiresName` - validates name requirement
+  - `TestFoldersUpdate_ReturnsUpdatedFolder` - verifies update
+  - `TestFoldersUpdate_RequiresFolderID` - validates folder ID requirement
+  - `TestFoldersDelete_SendsDeleteRequest` - verifies delete request
+  - `TestFoldersDelete_RequiresFolderID` - validates folder ID requirement
+  - `TestFoldersFromTemplate_ReturnsCreatedFolder` - verifies template creation
+  - `TestFoldersFromTemplate_RequiresSpaceID` - validates space ID requirement
+  - `TestFoldersFromTemplate_RequiresTemplateID` - validates template ID requirement
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (added FoldersService with Get, Create, Update, Delete, FromTemplate)
+- `internal/clickup/types.go` — modified (added FolderDetail, CreateFolderRequest, UpdateFolderRequest, CreateFolderFromTemplateRequest)
+- `internal/clickup/client_test.go` — modified (added tests for all FoldersService methods)
+- `internal/cmd/folders.go` — created (CLI commands for folders get, create, update, delete, from-template)
+- `internal/cmd/root.go` — modified (added FoldersCmd to CLI struct)
+
+**Branch:** `phase/3-core-crud`
+**Commit:** `e28efad`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/11
+
+**Learnings for future iterations:**
+- The FoldersService is separate from ListsService.ListFolders which lists folders in a space
+- Folder's task_count is returned as string from the API, not a number
+- Delete returns empty body with 200 status code
+
+**Next:** Task 8 - Extend Lists Service (Get, Create, Update, Delete) - Phase 3 Core CRUD
+
+---
