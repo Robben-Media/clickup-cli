@@ -122,6 +122,11 @@ func (c *Client) CustomTaskTypes() *CustomTaskTypesService {
 	return &CustomTaskTypesService{client: c}
 }
 
+// LegacyTime provides methods for the Legacy Time Tracking API.
+func (c *Client) LegacyTime() *LegacyTimeService {
+	return &LegacyTimeService{client: c}
+}
+
 // --- SharedHierarchyService ---
 
 // SharedHierarchyService handles shared hierarchy operations.
@@ -189,6 +194,86 @@ func (s *CustomTaskTypesService) List(ctx context.Context, teamID string) (*Cust
 	}
 
 	return &result, nil
+}
+
+// --- LegacyTimeService ---
+
+// LegacyTimeService handles legacy time tracking operations at the task level.
+type LegacyTimeService struct {
+	client *Client
+}
+
+// List returns all time intervals for a task.
+func (s *LegacyTimeService) List(ctx context.Context, taskID string, customTaskIDs bool, teamID string) (*LegacyTimeResponse, error) {
+	if taskID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/time", taskID)
+
+	params := url.Values{}
+	if customTaskIDs {
+		params.Set("custom_task_ids", "true")
+	}
+
+	if teamID != "" {
+		params.Set("team_id", teamID)
+	}
+
+	if len(params) > 0 {
+		path += "?" + params.Encode()
+	}
+
+	var result LegacyTimeResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list legacy time: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Track creates a time interval on a task.
+func (s *LegacyTimeService) Track(ctx context.Context, taskID string, req TrackTimeRequest) (*TrackTimeResponse, error) {
+	if taskID == "" {
+		return nil, errIDRequired
+	}
+
+	var result TrackTimeResponse
+
+	path := fmt.Sprintf("/v2/task/%s/time", taskID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("track legacy time: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Edit updates a time interval on a task.
+func (s *LegacyTimeService) Edit(ctx context.Context, taskID, intervalID string, req EditTimeRequest) error {
+	if taskID == "" || intervalID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/time/%s", taskID, intervalID)
+	if err := s.client.Put(ctx, path, req, nil); err != nil {
+		return fmt.Errorf("edit legacy time: %w", err)
+	}
+
+	return nil
+}
+
+// Delete removes a time interval from a task.
+func (s *LegacyTimeService) Delete(ctx context.Context, taskID, intervalID string) error {
+	if taskID == "" || intervalID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/time/%s", taskID, intervalID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete legacy time: %w", err)
+	}
+
+	return nil
 }
 
 // --- TasksService ---

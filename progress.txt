@@ -267,3 +267,31 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 - The endpoint path uses `taskTemplate` (camelCase) rather than `task_template` (snake_case)
 - Template IDs appear to be string-based (like groups)
 
+---
+
+## Task 29 - 2026-02-22
+### Completed: Create Custom Task Types Service
+
+**What was implemented:**
+- Created `CustomTaskTypesService` with List method
+- Implemented `GET /v2/team/{team_id}/custom_item` (list custom task types)
+- Added CustomTaskType types: CustomTaskType, CustomTaskTypesResponse
+- Added CLI command: `task-types list`
+- Added 2 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added CustomTaskTypes() accessor and CustomTaskTypesService with List method
+- `internal/clickup/types.go` — added CustomTaskType and CustomTaskTypesResponse types
+- `internal/clickup/client_test.go` — added tests for CustomTaskTypes service
+- `internal/cmd/tasktypes.go` — created with CLI command
+- `internal/cmd/root.go` — added TaskTypesCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `b9c1e9a`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Custom task type IDs are integers (not UUIDs)
+- The response key is `custom_items`, not `custom_task_types`
+- Command name uses `task-types` for consistency with existing CLI naming patterns
+

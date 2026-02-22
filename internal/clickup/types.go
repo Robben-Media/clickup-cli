@@ -303,3 +303,39 @@ type CustomTaskType struct {
 type CustomTaskTypesResponse struct {
 	CustomItems []CustomTaskType `json:"custom_items"`
 }
+
+// --- Legacy Time Tracking types ---
+
+// LegacyTimeInterval represents a time interval in the legacy time tracking system.
+type LegacyTimeInterval struct {
+	ID        string `json:"id"`
+	Start     int64  `json:"start"`
+	End       int64  `json:"end"`
+	Time      int64  `json:"time"`
+	Source    string `json:"source,omitempty"`
+	DateAdded string `json:"date_added,omitempty"`
+}
+
+// LegacyTimeResponse is the response for listing legacy time intervals.
+type LegacyTimeResponse struct {
+	Data []LegacyTimeInterval `json:"data"`
+}
+
+// TrackTimeRequest is the request body for tracking time.
+type TrackTimeRequest struct {
+	Start int64 `json:"start,omitempty"`
+	End   int64 `json:"end,omitempty"`
+	Time  int64 `json:"time"`
+}
+
+// EditTimeRequest is the request body for editing time.
+type EditTimeRequest struct {
+	Start int64 `json:"start,omitempty"`
+	End   int64 `json:"end,omitempty"`
+	Time  int64 `json:"time,omitempty"`
+}
+
+// TrackTimeResponse is the response for tracking time.
+type TrackTimeResponse struct {
+	ID string `json:"id"`
+}

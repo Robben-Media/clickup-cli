@@ -41,6 +41,7 @@ type CLI struct {
 	Shared     SharedCmd        `cmd:"" help:"Shared hierarchy operations"`
 	Templates  TemplatesCmd     `cmd:"" help:"Task template operations"`
 	TaskTypes  TaskTypesCmd     `cmd:"" help:"Custom task type operations"`
+	TimeLegacy TimeLegacyCmd    `cmd:"" help:"Legacy time tracking operations"`
 	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

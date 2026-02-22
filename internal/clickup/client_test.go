@@ -1092,3 +1092,181 @@ func TestCustomTaskTypesList_RequiresTeamID(t *testing.T) {
 		t.Fatal("expected error for missing team ID, got nil")
 	}
 }
+
+// --- LegacyTimeService tests ---
+
+func TestLegacyTimeList_ReturnsIntervals(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/time" {
+			t.Fatalf("expected path /v2/task/task-1/time, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(LegacyTimeResponse{
+			Data: []LegacyTimeInterval{
+				{ID: "567", Start: 1567780450202, End: 1508369194377, Time: 8640000, Source: "clickup"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.LegacyTime().List(context.Background(), "task-1", false, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Data) != 1 {
+		t.Fatalf("expected 1 interval, got %d", len(result.Data))
+	}
+
+	if result.Data[0].ID != "567" {
+		t.Fatalf("expected interval ID 567, got %s", result.Data[0].ID)
+	}
+}
+
+func TestLegacyTimeList_WithQueryParams(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("custom_task_ids") != "true" {
+			t.Fatalf("expected custom_task_ids=true, got %s", r.URL.Query().Get("custom_task_ids"))
+		}
+
+		if r.URL.Query().Get("team_id") != "team-123" {
+			t.Fatalf("expected team_id=team-123, got %s", r.URL.Query().Get("team_id"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(LegacyTimeResponse{Data: []LegacyTimeInterval{}})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.LegacyTime().List(context.Background(), "task-1", true, "team-123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLegacyTimeList_RequiresTaskID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.LegacyTime().List(context.Background(), "", false, "")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+}
+
+func TestLegacyTimeTrack_CreatesInterval(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/time" {
+			t.Fatalf("expected path /v2/task/task-1/time, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TrackTimeResponse{ID: "567"})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := TrackTimeRequest{Time: 8640000}
+
+	result, err := client.LegacyTime().Track(context.Background(), "task-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "567" {
+		t.Fatalf("expected interval ID 567, got %s", result.ID)
+	}
+}
+
+func TestLegacyTimeEdit_UpdatesInterval(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/time/567" {
+			t.Fatalf("expected path /v2/task/task-1/time/567, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := EditTimeRequest{Time: 3600000}
+
+	if err := client.LegacyTime().Edit(context.Background(), "task-1", "567", req); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLegacyTimeDelete_RemovesInterval(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/time/567" {
+			t.Fatalf("expected path /v2/task/task-1/time/567, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.LegacyTime().Delete(context.Background(), "task-1", "567"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestLegacyTimeEdit_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.LegacyTime().Edit(context.Background(), "", "567", EditTimeRequest{}); err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+
+	if err := client.LegacyTime().Edit(context.Background(), "task-1", "", EditTimeRequest{}); err == nil {
+		t.Fatal("expected error for missing interval ID, got nil")
+	}
+}
