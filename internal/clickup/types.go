@@ -96,11 +96,40 @@ type List struct {
 	Name string `json:"name"`
 }
 
-// Folder represents a ClickUp folder.
+// Folder represents a ClickUp folder (lightweight, from list endpoint).
 type Folder struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
 	Lists []List `json:"lists,omitempty"`
+}
+
+// FolderDetail represents a full folder with all properties.
+type FolderDetail struct {
+	ID               string   `json:"id"`
+	Name             string   `json:"name"`
+	OrderIndex       int      `json:"orderindex"`
+	OverrideStatuses bool     `json:"override_statuses"`
+	Hidden           bool     `json:"hidden"`
+	Space            SpaceRef `json:"space"`
+	TaskCount        string   `json:"task_count"`
+	Lists            []List   `json:"lists,omitempty"`
+	Archived         bool     `json:"archived"`
+	PermissionLevel  string   `json:"permission_level,omitempty"`
+}
+
+// CreateFolderRequest is the request body for creating a folder.
+type CreateFolderRequest struct {
+	Name string `json:"name"`
+}
+
+// UpdateFolderRequest is the request body for updating a folder.
+type UpdateFolderRequest struct {
+	Name string `json:"name,omitempty"`
+}
+
+// CreateFolderFromTemplateRequest is the request body for creating a folder from template.
+type CreateFolderFromTemplateRequest struct {
+	Name string `json:"name,omitempty"`
 }
 
 // Comment represents a ClickUp comment.

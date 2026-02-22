@@ -485,3 +485,299 @@ func TestSpacesDelete_RequiresSpaceID(t *testing.T) {
 		t.Fatalf("expected errIDRequired, got %v", err)
 	}
 }
+
+func TestFoldersGet_ReturnsFolderWithLists(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/folder/folder-1" {
+			t.Fatalf("expected path /v2/folder/folder-1, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(FolderDetail{
+			ID:        "folder-1",
+			Name:      "Sprint Backlog",
+			TaskCount: "12",
+			Space:     SpaceRef{ID: "space-1"},
+			Lists: []List{
+				{ID: "list-1", Name: "Sprint 1"},
+				{ID: "list-2", Name: "Sprint 2"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Folders().Get(context.Background(), "folder-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "folder-1" {
+		t.Fatalf("expected ID folder-1, got %s", result.ID)
+	}
+
+	if len(result.Lists) != 2 {
+		t.Fatalf("expected 2 lists, got %d", len(result.Lists))
+	}
+}
+
+func TestFoldersGet_RequiresFolderID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Folders().Get(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing folder ID, got nil")
+	}
+
+	if !errors.Is(err, errIDRequired) {
+		t.Fatalf("expected errIDRequired, got %v", err)
+	}
+}
+
+func TestFoldersCreate_ReturnsCreatedFolder(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/space/space-1/folder" {
+			t.Fatalf("expected path /v2/space/space-1/folder, got %s", r.URL.Path)
+		}
+
+		var req CreateFolderRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.Name != "New Folder" {
+			t.Fatalf("expected name New Folder, got %s", req.Name)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(FolderDetail{
+			ID:        "folder-new",
+			Name:      "New Folder",
+			Space:     SpaceRef{ID: "space-1"},
+			TaskCount: "0",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Folders().Create(context.Background(), "space-1", CreateFolderRequest{Name: "New Folder"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "folder-new" {
+		t.Fatalf("expected ID folder-new, got %s", result.ID)
+	}
+}
+
+func TestFoldersCreate_RequiresSpaceID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Folders().Create(context.Background(), "", CreateFolderRequest{Name: "Test"})
+	if err == nil {
+		t.Fatal("expected error for missing space ID, got nil")
+	}
+
+	if !errors.Is(err, errIDRequired) {
+		t.Fatalf("expected errIDRequired, got %v", err)
+	}
+}
+
+func TestFoldersCreate_RequiresName(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Folders().Create(context.Background(), "space-1", CreateFolderRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing name, got nil")
+	}
+
+	if !errors.Is(err, errNameRequired) {
+		t.Fatalf("expected errNameRequired, got %v", err)
+	}
+}
+
+func TestFoldersUpdate_ReturnsUpdatedFolder(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/folder/folder-1" {
+			t.Fatalf("expected path /v2/folder/folder-1, got %s", r.URL.Path)
+		}
+
+		var req UpdateFolderRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.Name != "Updated Name" {
+			t.Fatalf("expected name Updated Name, got %s", req.Name)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(FolderDetail{
+			ID:        "folder-1",
+			Name:      "Updated Name",
+			Space:     SpaceRef{ID: "space-1"},
+			TaskCount: "5",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Folders().Update(context.Background(), "folder-1", UpdateFolderRequest{Name: "Updated Name"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "Updated Name" {
+		t.Fatalf("expected name Updated Name, got %s", result.Name)
+	}
+}
+
+func TestFoldersUpdate_RequiresFolderID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Folders().Update(context.Background(), "", UpdateFolderRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing folder ID, got nil")
+	}
+
+	if !errors.Is(err, errIDRequired) {
+		t.Fatalf("expected errIDRequired, got %v", err)
+	}
+}
+
+func TestFoldersDelete_SendsDeleteRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/folder/folder-1" {
+			t.Fatalf("expected path /v2/folder/folder-1, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Folders().Delete(context.Background(), "folder-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestFoldersDelete_RequiresFolderID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	err := client.Folders().Delete(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing folder ID, got nil")
+	}
+
+	if !errors.Is(err, errIDRequired) {
+		t.Fatalf("expected errIDRequired, got %v", err)
+	}
+}
+
+func TestFoldersFromTemplate_ReturnsCreatedFolder(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/space/space-1/folder_template/template-1" {
+			t.Fatalf("expected path /v2/space/space-1/folder_template/template-1, got %s", r.URL.Path)
+		}
+
+		var req CreateFolderFromTemplateRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(FolderDetail{
+			ID:        "folder-new",
+			Name:      "Project Alpha",
+			Space:     SpaceRef{ID: "space-1"},
+			TaskCount: "0",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Folders().FromTemplate(context.Background(), "space-1", "template-1", CreateFolderFromTemplateRequest{Name: "Project Alpha"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "folder-new" {
+		t.Fatalf("expected ID folder-new, got %s", result.ID)
+	}
+}
+
+func TestFoldersFromTemplate_RequiresSpaceID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Folders().FromTemplate(context.Background(), "", "template-1", CreateFolderFromTemplateRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing space ID, got nil")
+	}
+
+	if !errors.Is(err, errIDRequired) {
+		t.Fatalf("expected errIDRequired, got %v", err)
+	}
+}
+
+func TestFoldersFromTemplate_RequiresTemplateID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	_, err := client.Folders().FromTemplate(context.Background(), "space-1", "", CreateFolderFromTemplateRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing template ID, got nil")
+	}
+
+	if !errors.Is(err, errIDRequired) {
+		t.Fatalf("expected errIDRequired, got %v", err)
+	}
+}
