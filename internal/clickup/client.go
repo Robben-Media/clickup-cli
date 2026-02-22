@@ -17,6 +17,7 @@ var (
 	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
 	errDependsOnRequired   = errors.New("either depends_on or dependency_of is required")
 	errLinkTaskIDRequired  = errors.New("linked task ID is required")
+	errFieldIDRequired     = errors.New("field ID is required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -106,6 +107,11 @@ func (c *Client) Checklists() *ChecklistsService {
 // Relationships provides methods for the Relationships API.
 func (c *Client) Relationships() *RelationshipsService {
 	return &RelationshipsService{client: c}
+}
+
+// CustomFields provides methods for the Custom Fields API.
+func (c *Client) CustomFields() *CustomFieldsService {
+	return &CustomFieldsService{client: c}
 }
 
 // --- TasksService ---
@@ -734,6 +740,115 @@ func (s *RelationshipsService) Unlink(ctx context.Context, taskID, linkTaskID st
 	path := fmt.Sprintf("/v2/task/%s/link/%s", taskID, linkTaskID)
 	if err := s.client.Delete(ctx, path); err != nil {
 		return fmt.Errorf("remove link: %w", err)
+	}
+
+	return nil
+}
+
+// --- CustomFieldsService ---
+
+// CustomFieldsService handles custom field operations.
+type CustomFieldsService struct {
+	client *Client
+}
+
+// ListByList returns custom fields accessible from a list.
+func (s *CustomFieldsService) ListByList(ctx context.Context, listID string) (*CustomFieldsResponse, error) {
+	if listID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/list/%s/field", listID)
+
+	var result CustomFieldsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list custom fields by list: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListByFolder returns custom fields accessible from a folder.
+func (s *CustomFieldsService) ListByFolder(ctx context.Context, folderID string) (*CustomFieldsResponse, error) {
+	if folderID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/folder/%s/field", folderID)
+
+	var result CustomFieldsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list custom fields by folder: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListBySpace returns custom fields accessible from a space.
+func (s *CustomFieldsService) ListBySpace(ctx context.Context, spaceID string) (*CustomFieldsResponse, error) {
+	if spaceID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/space/%s/field", spaceID)
+
+	var result CustomFieldsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list custom fields by space: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListByTeam returns custom fields accessible from a workspace.
+func (s *CustomFieldsService) ListByTeam(ctx context.Context, teamID string) (*CustomFieldsResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/field", teamID)
+
+	var result CustomFieldsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list custom fields by team: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Set sets a custom field value on a task.
+func (s *CustomFieldsService) Set(ctx context.Context, taskID, fieldID string, value interface{}) error {
+	if taskID == "" {
+		return errIDRequired
+	}
+
+	if fieldID == "" {
+		return errFieldIDRequired
+	}
+
+	req := SetCustomFieldRequest{Value: value}
+
+	path := fmt.Sprintf("/v2/task/%s/field/%s", taskID, fieldID)
+	if err := s.client.Post(ctx, path, req, nil); err != nil {
+		return fmt.Errorf("set custom field: %w", err)
+	}
+
+	return nil
+}
+
+// Remove removes a custom field value from a task.
+func (s *CustomFieldsService) Remove(ctx context.Context, taskID, fieldID string) error {
+	if taskID == "" {
+		return errIDRequired
+	}
+
+	if fieldID == "" {
+		return errFieldIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/field/%s", taskID, fieldID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("remove custom field: %w", err)
 	}
 
 	return nil

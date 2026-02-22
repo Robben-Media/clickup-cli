@@ -259,3 +259,24 @@ type AddDependencyRequest struct {
 	DependsOn    string `json:"depends_on,omitempty"`
 	DependencyOf string `json:"dependency_of,omitempty"`
 }
+
+// --- Custom Fields ---
+
+// CustomField represents a ClickUp custom field.
+type CustomField struct {
+	ID         string      `json:"id"`
+	Name       string      `json:"name"`
+	Type       string      `json:"type"`
+	TypeConfig interface{} `json:"type_config,omitempty"`
+	Required   bool        `json:"required"`
+}
+
+// CustomFieldsResponse is the response for listing custom fields.
+type CustomFieldsResponse struct {
+	Fields []CustomField `json:"fields"`
+}
+
+// SetCustomFieldRequest is the request body for setting a custom field value.
+type SetCustomFieldRequest struct {
+	Value interface{} `json:"value"`
+}
