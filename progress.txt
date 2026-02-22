@@ -245,3 +245,52 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 **Next:** Task 15 - Create Custom Fields Service - Phase 5 Task Extensions
 
 ---
+
+## Task 15 - 2026-02-22
+### Completed: Create Custom Fields Service
+
+**What was implemented:**
+- Created `CustomFieldsService` with ListByList, ListByFolder, ListBySpace, ListByTeam, Set, Remove methods
+- Implemented `GET /v2/list/{list_id}/field` - list fields accessible from list
+- Implemented `GET /v2/folder/{folder_id}/field` - list fields accessible from folder
+- Implemented `GET /v2/space/{space_id}/field` - list fields accessible from space
+- Implemented `GET /v2/team/{team_id}/field` - list fields accessible from workspace
+- Implemented `POST /v2/task/{task_id}/field/{field_id}` - set custom field value
+- Implemented `DELETE /v2/task/{task_id}/field/{field_id}` - remove custom field value
+- Added types: `CustomField`, `CustomFieldsResponse`, `SetCustomFieldRequest`
+- Added static error: `errFieldIDRequired`
+- Added CLI commands:
+  - `fields list --list <id>` or `--folder <id>` or `--space <id>` or `--team <id>` - list custom fields
+  - `fields set --task <task_id> --field <field_id> --value <value>` - set field value
+  - `fields remove --task <task_id> --field <field_id>` - remove field value
+- Added comprehensive tests for all 6 service methods (14 test cases total)
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (added CustomFieldsService with 6 methods, static error)
+- `internal/clickup/types.go` — modified (added CustomField, CustomFieldsResponse, SetCustomFieldRequest)
+- `internal/clickup/client_test.go` — modified (added 14 tests)
+- `internal/cmd/fields.go` — created (CLI commands for all custom field operations)
+- `internal/cmd/root.go` — modified (added FieldsCmd to CLI struct)
+
+**Branch:** `phase/5-task-extensions`
+**Commit:** `32ca994`
+
+**Learnings for future iterations:**
+- Custom field values can be any type (string, number, object, array) - use `interface{}`
+- CLI accepts JSON strings for complex values, parsing them before sending to API
+- List commands require exactly one scope flag - validate in CLI layer
+- Response format is `{"fields": [...]}` envelope
+
+---
+
+## Phase 5 Complete
+
+All 4 task extension tasks are complete:
+1. ✅ Task 12: Create Tags Service
+2. ✅ Task 13: Create Checklists Service
+3. ✅ Task 14: Create Relationships Service
+4. ✅ Task 15: Create Custom Fields Service
+
+Phase 5 adds 22 endpoints for task-level operations.
+
+**Next:** Phase 6 - Views, Webhooks, Goals (P1) - Tasks 16-18

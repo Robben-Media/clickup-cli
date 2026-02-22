@@ -295,7 +295,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; dependency/link CRUD works
 
 ### 15. Create Custom Fields Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/custom-fields.md
 - **Description**:
