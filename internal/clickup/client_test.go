@@ -1400,3 +1400,156 @@ func TestACLsUpdate_RequiresObjectTypeAndID(t *testing.T) {
 		t.Fatal("expected error for missing object ID, got nil")
 	}
 }
+
+// --- WorkspacesService tests ---
+
+func TestWorkspacesList_ReturnsWorkspaces(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team" {
+			t.Fatalf("expected path /v2/team, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(WorkspacesResponse{
+			Teams: []Workspace{
+				{ID: "team-1", Name: "Robben Media", Color: "#4194f6", Members: []Member{{User: User{ID: 1, Username: "alice"}}}},
+				{ID: "team-2", Name: "Client Workspace", Color: "#e74c3c", Members: []Member{{User: User{ID: 2, Username: "bob"}}}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Workspaces().List(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Teams) != 2 {
+		t.Fatalf("expected 2 workspaces, got %d", len(result.Teams))
+	}
+
+	if result.Teams[0].Name != "Robben Media" {
+		t.Fatalf("expected first workspace name Robben Media, got %s", result.Teams[0].Name)
+	}
+}
+
+func TestWorkspacesPlan_ReturnsPlan(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/plan" {
+			t.Fatalf("expected path /v2/team/team-1/plan, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(WorkspacePlanResponse{
+			TeamID:   "team-1",
+			PlanID:   3,
+			PlanName: "Business",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Workspaces().Plan(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.TeamID != "team-1" {
+		t.Fatalf("expected team ID team-1, got %s", result.TeamID)
+	}
+
+	if result.PlanName != "Business" {
+		t.Fatalf("expected plan name Business, got %s", result.PlanName)
+	}
+
+	if result.PlanID != 3 {
+		t.Fatalf("expected plan ID 3, got %d", result.PlanID)
+	}
+}
+
+func TestWorkspacesSeats_ReturnsSeats(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/seats" {
+			t.Fatalf("expected path /v2/team/team-1/seats, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(WorkspaceSeatsResponse{
+			Members: SeatInfo{FilledSeats: 5, TotalSeats: 10, EmptySeats: 5},
+			Guests:  SeatInfo{FilledSeats: 2, TotalSeats: 5, EmptySeats: 3},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Workspaces().Seats(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Members.FilledSeats != 5 {
+		t.Fatalf("expected members filled seats 5, got %d", result.Members.FilledSeats)
+	}
+
+	if result.Members.TotalSeats != 10 {
+		t.Fatalf("expected members total seats 10, got %d", result.Members.TotalSeats)
+	}
+
+	if result.Guests.FilledSeats != 2 {
+		t.Fatalf("expected guests filled seats 2, got %d", result.Guests.FilledSeats)
+	}
+}
+
+func TestWorkspacesPlan_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Workspaces().Plan(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestWorkspacesSeats_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Workspaces().Seats(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}

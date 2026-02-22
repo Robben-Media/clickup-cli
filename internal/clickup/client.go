@@ -137,6 +137,62 @@ func (c *Client) ACLs() *ACLsService {
 	return &ACLsService{client: c}
 }
 
+// Workspaces provides methods for the Workspaces API.
+func (c *Client) Workspaces() *WorkspacesService {
+	return &WorkspacesService{client: c}
+}
+
+// --- WorkspacesService ---
+
+// WorkspacesService handles workspace operations.
+type WorkspacesService struct {
+	client *Client
+}
+
+// List returns all workspaces the authorized user has access to.
+func (s *WorkspacesService) List(ctx context.Context) (*WorkspacesResponse, error) {
+	path := "/v2/team"
+
+	var result WorkspacesResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list workspaces: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Plan returns the workspace plan.
+func (s *WorkspacesService) Plan(ctx context.Context, teamID string) (*WorkspacePlanResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/plan", teamID)
+
+	var result WorkspacePlanResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get workspace plan: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Seats returns the workspace seat usage.
+func (s *WorkspacesService) Seats(ctx context.Context, teamID string) (*WorkspaceSeatsResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/seats", teamID)
+
+	var result WorkspaceSeatsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get workspace seats: %w", err)
+	}
+
+	return &result, nil
+}
+
 // --- SharedHierarchyService ---
 
 // SharedHierarchyService handles shared hierarchy operations.
