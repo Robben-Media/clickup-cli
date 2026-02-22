@@ -295,3 +295,36 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 - The response key is `custom_items`, not `custom_task_types`
 - Command name uses `task-types` for consistency with existing CLI naming patterns
 
+---
+
+## Task 30 - 2026-02-22
+### Completed: Create Legacy Time Service
+
+**What was implemented:**
+- Created `LegacyTimeService` with List, Track, Edit, Delete methods
+- Implemented task-level time tracking endpoints:
+  - `GET /v2/task/{task_id}/time` (list intervals)
+  - `POST /v2/task/{task_id}/time` (track time)
+  - `PUT /v2/task/{task_id}/time/{interval_id}` (edit interval)
+  - `DELETE /v2/task/{task_id}/time/{interval_id}` (delete interval)
+- Added LegacyTime types: LegacyTimeInterval, LegacyTimeResponse, TrackTimeRequest, EditTimeRequest, TrackTimeResponse
+- Added CLI commands: `time-legacy list`, `time-legacy track`, `time-legacy update`, `time-legacy delete`
+- Added 8 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added LegacyTime() accessor and LegacyTimeService with all methods
+- `internal/clickup/types.go` — added all LegacyTime types
+- `internal/clickup/client_test.go` — added tests for LegacyTime service
+- `internal/cmd/time_legacy.go` — created with all CLI commands
+- `internal/cmd/root.go` — added TimeLegacyCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `7e62804`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Legacy time tracking operates at task level (not workspace level like modern Time Tracking API)
+- The gocritic linter prefers `minutes %= 60` over `minutes = minutes % 60`
+- Interval IDs are strings (not integers)
+- List endpoint supports optional `custom_task_ids` and `team_id` query params
+

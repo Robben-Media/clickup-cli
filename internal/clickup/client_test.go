@@ -1270,3 +1270,64 @@ func TestLegacyTimeEdit_RequiresIDs(t *testing.T) {
 		t.Fatal("expected error for missing interval ID, got nil")
 	}
 }
+
+// --- AuditLogsService tests ---
+
+func TestAuditLogsQuery_ReturnsLogs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v3/workspaces/workspace-1/auditlogs" {
+			t.Fatalf("expected path /v3/workspaces/workspace-1/auditlogs, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(AuditLogsResponse{
+			AuditLogs: []AuditLogEntry{
+				{ID: "al_123", EventType: "task_created", UserID: "1", Timestamp: "1700000000000", ResourceType: "task", ResourceID: "abc123"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "workspace-1"
+
+	req := AuditLogQuery{Limit: 100}
+
+	result, err := client.AuditLogs().Query(context.Background(), req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.AuditLogs) != 1 {
+		t.Fatalf("expected 1 audit log, got %d", len(result.AuditLogs))
+	}
+
+	if result.AuditLogs[0].EventType != "task_created" {
+		t.Fatalf("expected event type task_created, got %s", result.AuditLogs[0].EventType)
+	}
+}
+
+func TestAuditLogsQuery_RequiresWorkspaceID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	// No workspaceID set
+
+	req := AuditLogQuery{Limit: 100}
+
+	_, err := client.AuditLogs().Query(context.Background(), req)
+	if err == nil {
+		t.Fatal("expected error for missing workspace ID, got nil")
+	}
+}

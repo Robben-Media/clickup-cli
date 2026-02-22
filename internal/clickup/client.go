@@ -127,6 +127,11 @@ func (c *Client) LegacyTime() *LegacyTimeService {
 	return &LegacyTimeService{client: c}
 }
 
+// AuditLogs provides methods for the Audit Logs API.
+func (c *Client) AuditLogs() *AuditLogsService {
+	return &AuditLogsService{client: c}
+}
+
 // --- SharedHierarchyService ---
 
 // SharedHierarchyService handles shared hierarchy operations.
@@ -274,6 +279,28 @@ func (s *LegacyTimeService) Delete(ctx context.Context, taskID, intervalID strin
 	}
 
 	return nil
+}
+
+// --- AuditLogsService ---
+
+// AuditLogsService handles audit log operations.
+type AuditLogsService struct {
+	client *Client
+}
+
+// Query returns audit logs for a workspace.
+func (s *AuditLogsService) Query(ctx context.Context, req AuditLogQuery) (*AuditLogsResponse, error) {
+	path, err := s.client.v3Path("/auditlogs")
+	if err != nil {
+		return nil, err
+	}
+
+	var result AuditLogsResponse
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("query audit logs: %w", err)
+	}
+
+	return &result, nil
 }
 
 // --- TasksService ---

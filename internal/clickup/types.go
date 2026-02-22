@@ -339,3 +339,30 @@ type EditTimeRequest struct {
 type TrackTimeResponse struct {
 	ID string `json:"id"`
 }
+
+// --- Audit Log types ---
+
+// AuditLogQuery is the request body for querying audit logs.
+type AuditLogQuery struct {
+	StartDate int64  `json:"start_date,omitempty"`
+	EndDate   int64  `json:"end_date,omitempty"`
+	EventType string `json:"event_type,omitempty"`
+	UserID    string `json:"user_id,omitempty"`
+	Limit     int    `json:"limit,omitempty"`
+}
+
+// AuditLogEntry represents a single audit log entry.
+type AuditLogEntry struct {
+	ID           string      `json:"id"`
+	EventType    string      `json:"event_type"`
+	UserID       string      `json:"user_id"`
+	Timestamp    json.Number `json:"timestamp"`
+	ResourceType string      `json:"resource_type"`
+	ResourceID   string      `json:"resource_id"`
+	Details      any         `json:"details,omitempty"`
+}
+
+// AuditLogsResponse is the response for querying audit logs.
+type AuditLogsResponse struct {
+	AuditLogs []AuditLogEntry `json:"audit_logs"`
+}
