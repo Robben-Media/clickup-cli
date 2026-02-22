@@ -35,6 +35,7 @@ type CLI struct {
 	Comments   CommentsCmd      `cmd:"" help:"Comment operations"`
 	Time       TimeCmd          `cmd:"" help:"Time tracking"`
 	Tags       TagsCmd          `cmd:"" help:"Tag operations"`
+	Checklists ChecklistsCmd    `cmd:"" help:"Checklist operations"`
 	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

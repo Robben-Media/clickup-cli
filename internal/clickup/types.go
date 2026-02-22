@@ -206,3 +206,48 @@ type CreateSpaceTagRequest struct {
 type EditSpaceTagRequest struct {
 	Tag SpaceTag `json:"tag"`
 }
+
+// --- Checklists ---
+
+// Checklist represents a ClickUp checklist.
+type Checklist struct {
+	ID         string          `json:"id"`
+	Name       string          `json:"name"`
+	OrderIndex int             `json:"orderindex"`
+	Items      []ChecklistItem `json:"items,omitempty"`
+}
+
+// ChecklistItem represents an item in a ClickUp checklist.
+type ChecklistItem struct {
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Resolved   bool   `json:"resolved"`
+	Assignee   *User  `json:"assignee,omitempty"`
+	Parent     string `json:"parent,omitempty"`
+	OrderIndex int    `json:"orderindex"`
+}
+
+// CreateChecklistRequest is the request body for creating a checklist.
+type CreateChecklistRequest struct {
+	Name string `json:"name"`
+}
+
+// EditChecklistRequest is the request body for editing a checklist.
+type EditChecklistRequest struct {
+	Name     string `json:"name,omitempty"`
+	Position int    `json:"position,omitempty"`
+}
+
+// CreateChecklistItemRequest is the request body for creating a checklist item.
+type CreateChecklistItemRequest struct {
+	Name     string `json:"name"`
+	Assignee int    `json:"assignee,omitempty"`
+}
+
+// EditChecklistItemRequest is the request body for editing a checklist item.
+type EditChecklistItemRequest struct {
+	Name     string `json:"name,omitempty"`
+	Resolved *bool  `json:"resolved,omitempty"`
+	Assignee int    `json:"assignee,omitempty"`
+	Parent   string `json:"parent,omitempty"`
+}
