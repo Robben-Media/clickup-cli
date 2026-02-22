@@ -405,3 +405,33 @@ All 9 P2 Completeness tasks are complete:
 
 Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
 
+
+## Task 4 - 2026-02-22
+### Completed: Implement Workspaces Service
+
+**What was implemented:**
+- Created `WorkspacesService` with List, Plan, Seats methods
+- Implemented `GET /v2/team` (list workspaces)
+- Implemented `GET /v2/team/{team_id}/plan` (get plan)
+- Implemented `GET /v2/team/{team_id}/seats` (get seats)
+- Added Workspace types: Workspace, WorkspacesResponse, WorkspacePlanResponse, WorkspaceSeatsResponse, SeatInfo
+- Added CLI commands: `workspaces list`, `workspaces plan`, `workspaces seats`
+- Added 5 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added Workspaces() accessor and WorkspacesService with all methods
+- `internal/clickup/types.go` — added all Workspace types
+- `internal/clickup/client_test.go` — added tests for Workspaces service
+- `internal/cmd/workspaces.go` — created with all CLI commands
+- `internal/cmd/root.go` — added WorkspacesCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `694bfea`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- The prealloc linter requires slices with known capacity to be preallocated using `make([]T, 0, cap)`
+- This is a v2 API endpoint - workspace ID is NOT required (unlike v3 endpoints)
+- The workspaces list endpoint is the entry point for workspace discovery
+
+---
