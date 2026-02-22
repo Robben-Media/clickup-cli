@@ -182,3 +182,41 @@ type TimeEntriesListResponse struct {
 type MembersListResponse struct {
 	Members []Member `json:"members"`
 }
+
+// --- View types ---
+
+// View represents a ClickUp view.
+type View struct {
+	ID        string     `json:"id"`
+	Name      string     `json:"name"`
+	Type      string     `json:"type"`
+	Parent    ViewParent `json:"parent"`
+	Protected bool       `json:"protected"`
+}
+
+// ViewParent is the parent reference for a view.
+type ViewParent struct {
+	ID   string `json:"id"`
+	Type int    `json:"type"` // 7=space, 5=folder, 6=list, etc.
+}
+
+// ViewsResponse is the response for listing views.
+type ViewsResponse struct {
+	Views []View `json:"views"`
+}
+
+// ViewResponse is the response for a single view.
+type ViewResponse struct {
+	View View `json:"view"`
+}
+
+// CreateViewRequest is the request body for creating a view.
+type CreateViewRequest struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+// UpdateViewRequest is the request body for updating a view.
+type UpdateViewRequest struct {
+	Name string `json:"name,omitempty"`
+}

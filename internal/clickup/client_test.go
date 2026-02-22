@@ -251,3 +251,521 @@ func TestTasksUpdate_SendsAssigneesAddRem(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+// --- ViewsService Tests ---
+
+func TestViewsListByTeam_ReturnsViews(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/view" {
+			t.Fatalf("expected path /v2/team/team-1/view, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ViewsResponse{
+			Views: []View{
+				{ID: "view-1", Name: "Board View", Type: "board"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Views().ListByTeam(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Views) != 1 {
+		t.Fatalf("expected 1 view, got %d", len(result.Views))
+	}
+
+	if result.Views[0].Name != "Board View" {
+		t.Fatalf("expected name Board View, got %s", result.Views[0].Name)
+	}
+}
+
+func TestViewsListBySpace_ReturnsViews(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/space/space-1/view" {
+			t.Fatalf("expected path /v2/space/space-1/view, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ViewsResponse{
+			Views: []View{
+				{ID: "view-1", Name: "List View", Type: "list"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Views().ListBySpace(context.Background(), "space-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Views) != 1 {
+		t.Fatalf("expected 1 view, got %d", len(result.Views))
+	}
+}
+
+func TestViewsListByFolder_ReturnsViews(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/folder/folder-1/view" {
+			t.Fatalf("expected path /v2/folder/folder-1/view, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ViewsResponse{
+			Views: []View{
+				{ID: "view-1", Name: "Calendar View", Type: "calendar"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Views().ListByFolder(context.Background(), "folder-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Views) != 1 {
+		t.Fatalf("expected 1 view, got %d", len(result.Views))
+	}
+}
+
+func TestViewsListByList_ReturnsViews(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/list/list-1/view" {
+			t.Fatalf("expected path /v2/list/list-1/view, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ViewsResponse{
+			Views: []View{
+				{ID: "view-1", Name: "Gantt View", Type: "gantt"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Views().ListByList(context.Background(), "list-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Views) != 1 {
+		t.Fatalf("expected 1 view, got %d", len(result.Views))
+	}
+}
+
+func TestViewsListByTeam_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// This should never be called
+		t.Fatal("unexpected HTTP request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Views().ListByTeam(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty team ID, got nil")
+	}
+}
+
+func TestViewsGet_ReturnsView(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/view/view-1" {
+			t.Fatalf("expected path /v2/view/view-1, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ViewResponse{
+			View: View{
+				ID:        "view-1",
+				Name:      "My View",
+				Type:      "board",
+				Protected: false,
+				Parent:    ViewParent{ID: "space-1", Type: 7},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Views().Get(context.Background(), "view-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "My View" {
+		t.Fatalf("expected name My View, got %s", result.Name)
+	}
+}
+
+func TestViewsGet_RequiresViewID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// This should never be called
+		t.Fatal("unexpected HTTP request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Views().Get(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty view ID, got nil")
+	}
+}
+
+func TestViewsGetTasks_ReturnsTasks(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/view/view-1/task" {
+			t.Fatalf("expected path /v2/view/view-1/task, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TasksListResponse{
+			Tasks: []Task{
+				{ID: "task-1", Name: "Task 1", Status: TaskStatus{Status: "open"}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Views().GetTasks(context.Background(), "view-1", 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Tasks) != 1 {
+		t.Fatalf("expected 1 task, got %d", len(result.Tasks))
+	}
+}
+
+func TestViewsGetTasks_WithPagination(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/view/view-1/task" {
+			t.Fatalf("expected path /v2/view/view-1/task, got %s", r.URL.Path)
+		}
+
+		if r.URL.Query().Get("page") != "2" {
+			t.Fatalf("expected page=2, got %s", r.URL.Query().Get("page"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TasksListResponse{
+			Tasks: []Task{},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Views().GetTasks(context.Background(), "view-1", 2)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestViewsCreateByTeam_ReturnsView(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/view" {
+			t.Fatalf("expected path /v2/team/team-1/view, got %s", r.URL.Path)
+		}
+
+		var req CreateViewRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.Name != "New View" {
+			t.Fatalf("expected name New View, got %s", req.Name)
+		}
+
+		if req.Type != "board" {
+			t.Fatalf("expected type board, got %s", req.Type)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ViewResponse{
+			View: View{ID: "view-1", Name: "New View", Type: "board"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Views().CreateByTeam(context.Background(), "team-1", CreateViewRequest{
+		Name: "New View",
+		Type: "board",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "New View" {
+		t.Fatalf("expected name New View, got %s", result.Name)
+	}
+}
+
+func TestViewsCreateByTeam_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// This should never be called
+		t.Fatal("unexpected HTTP request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Views().CreateByTeam(context.Background(), "", CreateViewRequest{Name: "Test", Type: "board"})
+	if err == nil {
+		t.Fatal("expected error for empty team ID, got nil")
+	}
+}
+
+func TestViewsCreateByTeam_RequiresName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// This should never be called
+		t.Fatal("unexpected HTTP request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Views().CreateByTeam(context.Background(), "team-1", CreateViewRequest{Type: "board"})
+	if err == nil {
+		t.Fatal("expected error for empty name, got nil")
+	}
+}
+
+func TestViewsCreateBySpace_ReturnsView(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/space/space-1/view" {
+			t.Fatalf("expected path /v2/space/space-1/view, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ViewResponse{
+			View: View{ID: "view-1", Name: "New View", Type: "list"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Views().CreateBySpace(context.Background(), "space-1", CreateViewRequest{
+		Name: "New View",
+		Type: "list",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Type != "list" {
+		t.Fatalf("expected type list, got %s", result.Type)
+	}
+}
+
+func TestViewsCreateByFolder_ReturnsView(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/folder/folder-1/view" {
+			t.Fatalf("expected path /v2/folder/folder-1/view, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ViewResponse{
+			View: View{ID: "view-1", Name: "New View", Type: "gantt"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Views().CreateByFolder(context.Background(), "folder-1", CreateViewRequest{
+		Name: "New View",
+		Type: "gantt",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestViewsCreateByList_ReturnsView(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/list/list-1/view" {
+			t.Fatalf("expected path /v2/list/list-1/view, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ViewResponse{
+			View: View{ID: "view-1", Name: "New View", Type: "calendar"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Views().CreateByList(context.Background(), "list-1", CreateViewRequest{
+		Name: "New View",
+		Type: "calendar",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestViewsUpdate_ReturnsView(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/view/view-1" {
+			t.Fatalf("expected path /v2/view/view-1, got %s", r.URL.Path)
+		}
+
+		var req UpdateViewRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.Name != "Updated Name" {
+			t.Fatalf("expected name Updated Name, got %s", req.Name)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ViewResponse{
+			View: View{ID: "view-1", Name: "Updated Name", Type: "board"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Views().Update(context.Background(), "view-1", UpdateViewRequest{Name: "Updated Name"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "Updated Name" {
+		t.Fatalf("expected name Updated Name, got %s", result.Name)
+	}
+}
+
+func TestViewsUpdate_RequiresViewID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// This should never be called
+		t.Fatal("unexpected HTTP request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Views().Update(context.Background(), "", UpdateViewRequest{Name: "Test"})
+	if err == nil {
+		t.Fatal("expected error for empty view ID, got nil")
+	}
+}
+
+func TestViewsDelete_SendsDeleteRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/view/view-1" {
+			t.Fatalf("expected path /v2/view/view-1, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Views().Delete(context.Background(), "view-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestViewsDelete_RequiresViewID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// This should never be called
+		t.Fatal("unexpected HTTP request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Views().Delete(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty view ID, got nil")
+	}
+}
