@@ -207,3 +207,41 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 **Next:** Task 14 - Create Relationships Service - Phase 5 Task Extensions
 
 ---
+
+## Task 14 - 2026-02-22
+### Completed: Create Relationships Service
+
+**What was implemented:**
+- Created `RelationshipsService` with AddDependency, RemoveDependency, Link, Unlink methods
+- Implemented `POST /v2/task/{task_id}/dependency` - add task dependency (depends_on or dependency_of)
+- Implemented `DELETE /v2/task/{task_id}/dependency` - remove task dependency (query params)
+- Implemented `POST /v2/task/{task_id}/link/{link_task_id}` - add link between tasks
+- Implemented `DELETE /v2/task/{task_id}/link/{link_task_id}` - remove link between tasks
+- Added types: `AddDependencyRequest`
+- Added static errors: `errDependsOnRequired`, `errLinkTaskIDRequired`
+- Added CLI commands:
+  - `relationships add-dep <task_id> --depends-on <task>` or `--blocking <task>` - add dependency
+  - `relationships remove-dep <task_id> --depends-on <task>` or `--blocking <task>` - remove dependency
+  - `relationships link <task_id> <linked_task_id>` - link tasks
+  - `relationships unlink <task_id> <linked_task_id>` - unlink tasks
+- Added comprehensive tests for all 4 service methods (12 test cases total)
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (added RelationshipsService with 4 methods, static errors)
+- `internal/clickup/types.go` — modified (added AddDependencyRequest)
+- `internal/clickup/client_test.go` — modified (added 12 tests)
+- `internal/cmd/relationships.go` — created (CLI commands for all relationship operations)
+- `internal/cmd/root.go` — modified (added RelationshipsCmd to CLI struct)
+
+**Branch:** `phase/5-task-extensions`
+**Commit:** `ced2b44`
+
+**Learnings for future iterations:**
+- Use static errors at package level instead of inline `errors.New()` - linter (err113) requires this
+- Delete dependency uses query params, not request body
+- `--blocking` flag is clearer than `--dependency-of` for CLI users
+- Use wrapped static errors for better error handling
+
+**Next:** Task 15 - Create Custom Fields Service - Phase 5 Task Extensions
+
+---

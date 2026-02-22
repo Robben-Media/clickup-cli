@@ -278,7 +278,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; checklist CRUD works
 
 ### 14. Create Relationships Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/task-relationships.md
 - **Description**:
