@@ -357,3 +357,51 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 - Requires workspace ID (v3 endpoint) - returns error if not configured
 - Uses json.Number for timestamp field (can be large)
 
+---
+
+## Task 32 - 2026-02-22
+### Completed: Create ACLs Service (v3)
+
+**What was implemented:**
+- Created `ACLsService` with Update method
+- Implemented `PATCH /v3/workspaces/{workspace_id}/{object_type}/{object_id}/acls`
+- This is a v3 endpoint - uses v3Path() helper for path construction
+- Uses PATCH method (not PUT)
+- Added ACL types: UpdateACLRequest
+- Added CLI command: `acls update` with --type, --id, --private/--public, --sharing options
+- Added 3 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added ACLs() accessor and ACLsService with Update method
+- `internal/clickup/types.go` — added UpdateACLRequest type
+- `internal/clickup/client_test.go` — added tests for ACLs service
+- `internal/cmd/acls.go` — created with CLI command
+- `internal/cmd/root.go` — added ACLsCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `7f1252a`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- ACLs endpoint uses PATCH method (not PUT)
+- Object type is a path segment (space, folder, list)
+- Requires workspace ID (v3 endpoint)
+- CLI supports both --private and --public flags with mutual exclusivity check
+
+---
+
+## Phase 9 Complete
+
+All 9 P2 Completeness tasks are complete:
+1. ✅ Task 24: Create User Groups Service
+2. ✅ Task 25: Create Roles Service
+3. ✅ Task 26: Create Guests Service
+4. ✅ Task 27: Create Shared Hierarchy Service
+5. ✅ Task 28: Create Templates Service
+6. ✅ Task 29: Create Custom Task Types Service
+7. ✅ Task 30: Create Legacy Time Service
+8. ✅ Task 31: Create Audit Logs Service (v3)
+9. ✅ Task 32: Create ACLs Service (v3)
+
+Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
+
