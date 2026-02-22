@@ -107,3 +107,100 @@ All 3 foundation architecture tasks are complete:
 Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 2 (Workspaces & Authorization)
 
 ---
+
+## Task 16 - 2026-02-22
+### Completed: Create Views Service
+
+**What was implemented:**
+- Created `ViewsService` with 12 methods: ListByTeam, ListBySpace, ListByFolder, ListByList, Get, GetTasks, CreateByTeam, CreateBySpace, CreateByFolder, CreateByList, Update, Delete
+- Implemented all 12 v2 endpoints for view CRUD at all hierarchy levels
+- Added types: View, ViewParent, ViewsResponse, ViewResponse, CreateViewRequest, UpdateViewRequest
+- Added CLI commands: views list, views get, views tasks, views create, views update, views delete
+- Added comprehensive tests (20 test cases)
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (added ViewsService with 12 methods)
+- `internal/clickup/types.go` — modified (added View, ViewParent, request/response types)
+- `internal/clickup/client_test.go` — modified (added 20 tests)
+- `internal/cmd/views.go` — created (CLI commands for all view operations)
+- `internal/cmd/root.go` — modified (added ViewsCmd to CLI struct)
+
+**Branch:** `phase/6-views-webhooks-goals`
+**Commit:** `4c5d0e7`
+
+**Learnings for future iterations:**
+- Views can be created at 4 hierarchy levels (team, space, folder, list) - need 4 separate create methods
+- View response is wrapped in `{"view": {...}}` envelope
+- View tasks returns standard TasksListResponse, reusing existing type
+- CLI validation for scope flags (exactly one required) is in the command layer
+
+---
+
+## Task 17 - 2026-02-22
+### Completed: Create Webhooks Service
+
+**What was implemented:**
+- Created `WebhooksService` with 4 methods: List, Create, Update, Delete
+- Implemented all 4 v2 endpoints for webhook CRUD
+- Added types: Webhook, WebhooksResponse, CreateWebhookRequest, UpdateWebhookRequest
+- Added CLI commands: webhooks list, webhooks create, webhooks update, webhooks delete
+- Added comprehensive tests (10 test cases)
+- Added static errors: errEndpointRequired, errEventsRequired
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (added WebhooksService with 4 methods, static errors)
+- `internal/clickup/types.go` — modified (added Webhook, request/response types)
+- `internal/clickup/client_test.go` — modified (added 10 tests)
+- `internal/cmd/webhooks.go` — created (CLI commands for all webhook operations)
+- `internal/cmd/root.go` — modified (added WebhooksCmd to CLI struct)
+
+**Branch:** `phase/6-views-webhooks-goals`
+**Commit:** `3861ff8`
+
+**Learnings for future iterations:**
+- Webhooks can be scoped to space/folder/list/task via optional fields
+- Events are comma-separated in CLI, split into array for API
+- Linter (err113) requires static errors for all error returns
+
+---
+
+## Task 18 - 2026-02-22
+### Completed: Create Goals Service
+
+**What was implemented:**
+- Created `GoalsService` with 8 methods: List, Get, Create, Update, Delete, CreateKeyResult, EditKeyResult, DeleteKeyResult
+- Implemented all 8 v2 endpoints for goals and key results CRUD
+- Added types: Goal, KeyResult, GoalsResponse, GoalResponse, CreateGoalRequest, UpdateGoalRequest, CreateKeyResultRequest, EditKeyResultRequest
+- Added CLI commands: goals list, goals get, goals create, goals update, goals delete, goals add-key-result, goals update-key-result, goals delete-key-result
+- Added comprehensive tests (18 test cases)
+- Added static error: errKRTypeRequired
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (added GoalsService with 8 methods, static error)
+- `internal/clickup/types.go` — modified (added Goal, KeyResult, request/response types)
+- `internal/clickup/client_test.go` — modified (added 18 tests)
+- `internal/cmd/goals.go` — created (CLI commands for all goal operations)
+- `internal/cmd/root.go` — modified (added GoalsCmd to CLI struct)
+
+**Branch:** `phase/6-views-webhooks-goals`
+**Commit:** `5773bc6`
+
+**Learnings for future iterations:**
+- Key results have 5 types: number, currency, boolean, percentage, automatic
+- Goal response is wrapped in `{"goal": {...}}` envelope
+- Variable shadowing (govet) - use different variable names in nested scopes
+- Preallocate slices with `make([]T, 0, cap)` when size is known
+
+---
+
+## Phase 6 Complete
+
+All 3 Views/Webhooks/Goals tasks are complete:
+1. ✅ Task 16: Create Views Service (12 endpoints)
+2. ✅ Task 17: Create Webhooks Service (4 endpoints)
+3. ✅ Task 18: Create Goals Service (8 endpoints)
+
+Phase 6 adds 24 endpoints for views, webhooks, and goals/OKRs.
+
+**Next:** Phase 7 - Users, Members, Attachments (P1) - Tasks 19-21
+
