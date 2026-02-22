@@ -285,3 +285,69 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 **Next:** Task 9 - Extend Tasks Service (Search, Time-in-Status, Merge, Move) - Phase 3 Core CRUD
 
 ---
+
+## Task 9 - 2026-02-22
+### Completed: Extend Tasks Service (Search, Time-in-Status, Merge, Move)
+
+**What was implemented:**
+- Extended `TasksService` with:
+  - `Search(ctx, teamID, params)` - workspace-wide task search with filters
+  - `TimeInStatus(ctx, taskID)` - get time spent in each status for a single task
+  - `BulkTimeInStatus(ctx, taskIDs)` - get time in status for multiple tasks at once
+  - `Merge(ctx, targetTaskID, sourceTaskIDs)` - merge source tasks into target task
+  - `Move(ctx, taskID, listID)` - move task to a new list (v3 API)
+  - `FromTemplate(ctx, listID, templateID, req)` - create task from a template
+- Added types:
+  - `FilteredTeamTasksParams` - query parameters for task search with all filters
+  - `FilteredTeamTasksResponse` - response for search
+  - `TimeInStatusResponse` - response for single task time-in-status
+  - `StatusTime` - individual status time with duration
+  - `TimeValue` - time value with by_minute and since timestamp
+  - `BulkTimeInStatusResponse` - map of task IDs to their time-in-status data
+  - `MergeTasksRequest` - request body for merging tasks
+  - `CreateTaskFromTemplateRequest` - request for creating task from template
+- Added CLI commands:
+  - `tasks search --team <id> [--status] [--assignee] [--tag] [--include-closed] [...]` - search tasks
+  - `tasks time-in-status <task_id>` - get time in status for a task
+  - `tasks bulk-time-in-status <task_id>...` - get time in status for multiple tasks
+  - `tasks merge <target_task_id> <source_task_id>...` - merge tasks
+  - `tasks move <task_id> --list <list_id>` - move task to new list (v3)
+  - `tasks from-template <list_id> <template_id> [--name]` - create task from template
+- Added comprehensive tests:
+  - `TestTasksSearch_ReturnsFilteredTasks` - verifies search with filters
+  - `TestTasksSearch_RequiresTeamID` - validates team ID requirement
+  - `TestTasksTimeInStatus_ReturnsStatusTime` - verifies time-in-status parsing
+  - `TestTasksTimeInStatus_RequiresTaskID` - validates task ID requirement
+  - `TestTasksBulkTimeInStatus_ReturnsMultipleTasks` - verifies bulk response
+  - `TestTasksBulkTimeInStatus_RequiresTaskIDs` - validates task IDs requirement
+  - `TestTasksMerge_ReturnsMergedTask` - verifies merge request/response
+  - `TestTasksMerge_RequiresTargetTaskID` - validates target task ID requirement
+  - `TestTasksMerge_RequiresSourceTaskIDs` - validates source task IDs requirement
+  - `TestTasksMove_SendsV3Request` - verifies v3 path construction
+  - `TestTasksMove_RequiresTaskID` - validates task ID requirement
+  - `TestTasksMove_RequiresListID` - validates list ID requirement
+  - `TestTasksMove_RequiresWorkspaceID` - validates workspace ID requirement (v3)
+  - `TestTasksFromTemplate_ReturnsCreatedTask` - verifies template creation
+  - `TestTasksFromTemplate_RequiresListID` - validates list ID requirement
+  - `TestTasksFromTemplate_RequiresTemplateID` - validates template ID requirement
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (extended TasksService with Search, TimeInStatus, BulkTimeInStatus, Merge, Move, FromTemplate)
+- `internal/clickup/types.go` — modified (added FilteredTeamTasksParams, FilteredTeamTasksResponse, TimeInStatusResponse, StatusTime, TimeValue, BulkTimeInStatusResponse, MergeTasksRequest, CreateTaskFromTemplateRequest)
+- `internal/clickup/client_test.go` — modified (added tests for all TasksService methods)
+- `internal/cmd/tasks.go` — modified (added tasks search, time-in-status, bulk-time-in-status, merge, move, from-template commands)
+
+**Branch:** `phase/3-core-crud`
+**Commit:** `05d772a`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/11
+
+**Learnings for future iterations:**
+- The `err113` linter requires static errors instead of `errors.New()` in function bodies - define error variables at package level
+- Time-in-status API returns by_minute as int64 for duration calculation
+- Move task is a v3 endpoint requiring workspace ID - uses `v3Path()` helper
+- Search endpoint uses array query parameters like `statuses[]`, `assignees[]`, `tags[]`
+- Bulk time-in-status takes task_ids as repeated query parameters
+
+**Next:** Task 10 - Extend Comments Service (Full CRUD + Threaded + List/View) - Phase 3 Core CRUD
+
+---
