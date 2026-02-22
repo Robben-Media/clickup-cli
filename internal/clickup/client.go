@@ -211,6 +211,72 @@ func (s *SpacesService) List(ctx context.Context, teamID string) (*SpacesListRes
 	return &result, nil
 }
 
+// Get returns a space by ID with full details including statuses and features.
+func (s *SpacesService) Get(ctx context.Context, spaceID string) (*SpaceDetail, error) {
+	if spaceID == "" {
+		return nil, errIDRequired
+	}
+
+	var result SpaceDetail
+
+	path := fmt.Sprintf("/v2/space/%s", spaceID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get space: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Create creates a new space in a team.
+func (s *SpacesService) Create(ctx context.Context, teamID string, req CreateSpaceRequest) (*SpaceDetail, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	var result SpaceDetail
+
+	path := fmt.Sprintf("/v2/team/%s/space", teamID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create space: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Update updates a space.
+func (s *SpacesService) Update(ctx context.Context, spaceID string, req UpdateSpaceRequest) (*SpaceDetail, error) {
+	if spaceID == "" {
+		return nil, errIDRequired
+	}
+
+	var result SpaceDetail
+
+	path := fmt.Sprintf("/v2/space/%s", spaceID)
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update space: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Delete deletes a space.
+func (s *SpacesService) Delete(ctx context.Context, spaceID string) error {
+	if spaceID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/space/%s", spaceID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete space: %w", err)
+	}
+
+	return nil
+}
+
 // --- ListsService ---
 
 // ListsService handles list operations.
