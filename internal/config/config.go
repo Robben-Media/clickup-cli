@@ -102,7 +102,8 @@ func NormalizeEnvVarName(cliName string) string {
 
 // configData is the structure of config.json.
 type configData struct {
-	TeamID string `json:"team_id,omitempty"`
+	TeamID      string `json:"team_id,omitempty"`
+	WorkspaceID string `json:"workspace_id,omitempty"`
 }
 
 // GetTeamID reads the team ID from the config file.
@@ -129,6 +130,30 @@ func GetTeamID() (string, error) {
 	return cfg.TeamID, nil
 }
 
+// GetWorkspaceID reads the workspace ID from the config file.
+func GetWorkspaceID() (string, error) {
+	cfgPath, err := ConfigPath()
+	if err != nil {
+		return "", err
+	}
+
+	data, err := os.ReadFile(cfgPath) //nolint:gosec // path is from ConfigPath(), not user input
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+
+		return "", fmt.Errorf("read config file: %w", err)
+	}
+
+	var cfg configData
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return "", fmt.Errorf("parse config file: %w", err)
+	}
+
+	return cfg.WorkspaceID, nil
+}
+
 // SetTeamID writes the team ID to the config file.
 func SetTeamID(teamID string) error {
 	_, err := EnsureConfigDir()
@@ -150,6 +175,40 @@ func SetTeamID(teamID string) error {
 	}
 
 	cfg.TeamID = teamID
+
+	out, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal config: %w", err)
+	}
+
+	if err := os.WriteFile(cfgPath, out, 0o600); err != nil {
+		return fmt.Errorf("write config file: %w", err)
+	}
+
+	return nil
+}
+
+// SetWorkspaceID writes the workspace ID to the config file.
+func SetWorkspaceID(workspaceID string) error {
+	_, err := EnsureConfigDir()
+	if err != nil {
+		return err
+	}
+
+	cfgPath, err := ConfigPath()
+	if err != nil {
+		return err
+	}
+
+	// Read existing config or start fresh
+	var cfg configData
+
+	data, err := os.ReadFile(cfgPath) //nolint:gosec // path is from ConfigPath(), not user input
+	if err == nil {
+		_ = json.Unmarshal(data, &cfg)
+	}
+
+	cfg.WorkspaceID = workspaceID
 
 	out, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {

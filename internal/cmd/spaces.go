@@ -15,7 +15,7 @@ type SpacesCmd struct {
 type SpacesListCmd struct{}
 
 func (cmd *SpacesListCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient()
+	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
 	}

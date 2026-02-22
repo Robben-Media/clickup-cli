@@ -15,10 +15,11 @@ import (
 )
 
 type AuthCmd struct {
-	SetKey  AuthSetKeyCmd  `cmd:"" help:"Set API key (uses --stdin by default)"`
-	SetTeam AuthSetTeamCmd `cmd:"" help:"Set ClickUp Team ID"`
-	Status  AuthStatusCmd  `cmd:"" help:"Show authentication status"`
-	Remove  AuthRemoveCmd  `cmd:"" help:"Remove stored credentials"`
+	SetKey       AuthSetKeyCmd       `cmd:"" help:"Set API key (uses --stdin by default)"`
+	SetTeam      AuthSetTeamCmd      `cmd:"" help:"Set ClickUp Team ID"`
+	SetWorkspace AuthSetWorkspaceCmd `cmd:"" help:"Set ClickUp Workspace ID for v3 API"`
+	Status       AuthStatusCmd       `cmd:"" help:"Show authentication status"`
+	Remove       AuthRemoveCmd       `cmd:"" help:"Remove stored credentials"`
 }
 
 type AuthSetKeyCmd struct {
@@ -114,6 +115,35 @@ func (cmd *AuthSetTeamCmd) Run(ctx context.Context) error {
 	return nil
 }
 
+type AuthSetWorkspaceCmd struct {
+	WorkspaceID string `arg:"" required:"" help:"ClickUp Workspace ID for v3 API"`
+}
+
+func (cmd *AuthSetWorkspaceCmd) Run(ctx context.Context) error {
+	if cmd.WorkspaceID == "" {
+		return fmt.Errorf("workspace ID cannot be empty")
+	}
+
+	if err := config.SetWorkspaceID(cmd.WorkspaceID); err != nil {
+		return fmt.Errorf("store workspace ID: %w", err)
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, map[string]string{
+			"status":       "success",
+			"message":      "Workspace ID stored in config",
+			"workspace_id": cmd.WorkspaceID,
+		})
+	}
+	if outfmt.IsPlain(ctx) {
+		return outfmt.WritePlain(os.Stdout, []string{"STATUS", "WORKSPACE_ID"}, [][]string{{"success", cmd.WorkspaceID}})
+	}
+
+	fmt.Fprintf(os.Stderr, "Workspace ID %s stored in config\n", cmd.WorkspaceID)
+
+	return nil
+}
+
 type AuthStatusCmd struct{}
 
 func (cmd *AuthStatusCmd) Run(ctx context.Context) error {
@@ -142,16 +172,33 @@ func (cmd *AuthStatusCmd) Run(ctx context.Context) error {
 		teamSource = "config"
 	}
 
+	envWorkspaceID := os.Getenv("CLICKUP_WORKSPACE_ID")
+	cfgWorkspaceID, _ := config.GetWorkspaceID()
+
+	workspaceID := envWorkspaceID
+	workspaceSource := "env"
+
+	if workspaceID == "" {
+		workspaceID = cfgWorkspaceID
+		workspaceSource = "config"
+	}
+
 	status := map[string]any{
-		"has_key":         hasKey,
-		"env_override":    envOverride,
-		"storage_backend": "keyring",
-		"has_team_id":     teamID != "",
+		"has_key":          hasKey,
+		"env_override":     envOverride,
+		"storage_backend":  "keyring",
+		"has_team_id":      teamID != "",
+		"has_workspace_id": workspaceID != "",
 	}
 
 	if teamID != "" {
 		status["team_id"] = teamID
 		status["team_id_source"] = teamSource
+	}
+
+	if workspaceID != "" {
+		status["workspace_id"] = workspaceID
+		status["workspace_id_source"] = workspaceSource
 	}
 
 	if hasKey && !envOverride {
@@ -166,10 +213,14 @@ func (cmd *AuthStatusCmd) Run(ctx context.Context) error {
 		return outfmt.WriteJSON(os.Stdout, status)
 	}
 	if outfmt.IsPlain(ctx) {
-		headers := []string{"HAS_KEY", "ENV_OVERRIDE", "STORAGE", "HAS_TEAM_ID", "TEAM_ID", "TEAM_SOURCE"}
+		headers := []string{"HAS_KEY", "ENV_OVERRIDE", "STORAGE", "HAS_TEAM_ID", "TEAM_ID", "TEAM_SOURCE", "HAS_WORKSPACE_ID", "WORKSPACE_ID", "WORKSPACE_SOURCE"}
 		ts := teamSource
 		if teamID == "" {
 			ts = ""
+		}
+		ws := workspaceSource
+		if workspaceID == "" {
+			ws = ""
 		}
 		rows := [][]string{{
 			fmt.Sprintf("%t", hasKey),
@@ -178,6 +229,9 @@ func (cmd *AuthStatusCmd) Run(ctx context.Context) error {
 			fmt.Sprintf("%t", teamID != ""),
 			teamID,
 			ts,
+			fmt.Sprintf("%t", workspaceID != ""),
+			workspaceID,
+			ws,
 		}}
 		return outfmt.WritePlain(os.Stdout, headers, rows)
 	}
@@ -204,6 +258,12 @@ func (cmd *AuthStatusCmd) Run(ctx context.Context) error {
 	} else {
 		fmt.Fprintln(os.Stdout, "Team ID: Not configured")
 		fmt.Fprintln(os.Stderr, "Run: clickup-cli auth set-team <TEAM_ID>")
+	}
+
+	if workspaceID != "" {
+		fmt.Fprintf(os.Stdout, "Workspace ID: %s (source: %s)\n", workspaceID, workspaceSource)
+	} else {
+		fmt.Fprintln(os.Stdout, "Workspace ID: Not configured (optional, required for v3 API)")
 	}
 
 	return nil

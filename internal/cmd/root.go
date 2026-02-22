@@ -14,12 +14,13 @@ import (
 )
 
 type RootFlags struct {
-	Color   string `help:"Color output: auto|always|never" default:"${color}"`
-	JSON    bool   `help:"Output JSON to stdout (best for scripting)" default:"${json}"`
-	Plain   bool   `help:"Output stable, parseable text to stdout (TSV; no colors)" default:"${plain}"`
-	Force   bool   `help:"Skip confirmations for destructive commands"`
-	NoInput bool   `help:"Never prompt; fail instead (useful for CI)"`
-	Verbose bool   `help:"Enable verbose logging"`
+	Color     string `help:"Color output: auto|always|never" default:"${color}"`
+	JSON      bool   `help:"Output JSON to stdout (best for scripting)" default:"${json}"`
+	Plain     bool   `help:"Output stable, parseable text to stdout (TSV; no colors)" default:"${plain}"`
+	Force     bool   `help:"Skip confirmations for destructive commands"`
+	NoInput   bool   `help:"Never prompt; fail instead (useful for CI)"`
+	Verbose   bool   `help:"Enable verbose logging"`
+	Workspace string `help:"Workspace ID for v3 API calls (required for Chat, Docs, etc.)" default:"${workspace}"`
 }
 
 type CLI struct {
@@ -37,6 +38,19 @@ type CLI struct {
 }
 
 type exitPanic struct{ code int }
+
+type workspaceIDKey struct{}
+
+func withWorkspaceID(ctx context.Context, workspaceID string) context.Context {
+	return context.WithValue(ctx, workspaceIDKey{}, workspaceID)
+}
+
+func getWorkspaceIDFromContext(ctx context.Context) string {
+	if v, ok := ctx.Value(workspaceIDKey{}).(string); ok {
+		return v
+	}
+	return ""
+}
 
 func Execute(args []string) (err error) {
 	parser, cli, err := newParser(helpDescription())
@@ -82,6 +96,7 @@ func Execute(args []string) (err error) {
 
 	ctx := context.Background()
 	ctx = outfmt.WithMode(ctx, mode)
+	ctx = withWorkspaceID(ctx, cli.Workspace)
 
 	kctx.BindTo(ctx, (*context.Context)(nil))
 	kctx.Bind(&cli.RootFlags)
@@ -128,10 +143,11 @@ func boolString(v bool) string {
 func newParser(description string) (*kong.Kong, *CLI, error) {
 	envMode := outfmt.FromEnv("CLICKUP_CLI")
 	vars := kong.Vars{
-		"color":   envOr("CLICKUP_CLI_COLOR", "auto"),
-		"json":    boolString(envMode.JSON),
-		"plain":   boolString(envMode.Plain),
-		"version": VersionString(),
+		"color":     envOr("CLICKUP_CLI_COLOR", "auto"),
+		"json":      boolString(envMode.JSON),
+		"plain":     boolString(envMode.Plain),
+		"version":   VersionString(),
+		"workspace": envOr("CLICKUP_WORKSPACE_ID", ""),
 	}
 
 	cli := &CLI{}

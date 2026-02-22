@@ -18,7 +18,7 @@ type CommentsListCmd struct {
 }
 
 func (cmd *CommentsListCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient()
+	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ type CommentsAddCmd struct {
 }
 
 func (cmd *CommentsAddCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient()
+	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
 	}

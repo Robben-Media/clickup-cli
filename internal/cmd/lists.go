@@ -19,7 +19,7 @@ type ListsListCmd struct {
 }
 
 func (cmd *ListsListCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient()
+	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
 	}
