@@ -463,3 +463,34 @@ Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
 - Droid Shield secret scanner can detect test values that look like tokens - use simple placeholder values
 
 ---
+
+## Task 6 - 2026-02-22
+### Completed: Extend Spaces Service
+
+**What was implemented:**
+- Extended `SpacesService` with Get, Create, Update, Delete methods
+- Implemented `GET /v2/space/{space_id}` (get space details)
+- Implemented `POST /v2/team/{team_id}/space` (create space)
+- Implemented `PUT /v2/space/{space_id}` (update space)
+- Implemented `DELETE /v2/space/{space_id}` (delete space)
+- Added types: SpaceDetail, SpaceStatus, SpaceFeatures, FeatureToggle, CreateSpaceRequest, UpdateSpaceRequest
+- Added CLI commands: `spaces get`, `spaces create`, `spaces update`, `spaces delete`
+- Added 9 comprehensive tests for all new service methods
+- Delete warns user unless --force is used
+
+**Files changed:**
+- `internal/clickup/client.go` — extended SpacesService with Get, Create, Update, Delete
+- `internal/clickup/types.go` — added SpaceDetail and related types
+- `internal/clickup/client_test.go` — added 9 tests for new methods
+- `internal/cmd/spaces.go` — added get, create, update, delete commands
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `c1075a7`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Space features JSON is deeply nested - define proper structs for each level
+- Delete endpoint returns empty body with 200 status
+- Destructive operations should warn users unless --force is used
+
+---

@@ -110,7 +110,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/3-core-crud` | PR → fix/plain-output
 
 ### 6. Extend Spaces Service (Get, Create, Update, Delete)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/spaces.md
 - **Description**:
