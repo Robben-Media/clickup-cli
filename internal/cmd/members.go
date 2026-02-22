@@ -15,7 +15,7 @@ type MembersCmd struct {
 type MembersListCmd struct{}
 
 func (cmd *MembersListCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient()
+	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
 	}

@@ -24,7 +24,7 @@ type TasksListCmd struct {
 }
 
 func (cmd *TasksListCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient()
+	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ type TasksGetCmd struct {
 }
 
 func (cmd *TasksGetCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient()
+	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ type TasksCreateCmd struct {
 }
 
 func (cmd *TasksCreateCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient()
+	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ type TasksUpdateCmd struct {
 }
 
 func (cmd *TasksUpdateCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient()
+	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ type TasksDeleteCmd struct {
 }
 
 func (cmd *TasksDeleteCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient()
+	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
 	}

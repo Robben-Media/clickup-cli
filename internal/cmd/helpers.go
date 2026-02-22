@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -9,10 +10,26 @@ import (
 	"github.com/builtbyrobben/clickup-cli/internal/secrets"
 )
 
-func getClickUpClient() (*clickup.Client, error) {
-	// 1. Check env var
+func getClickUpClient(ctx context.Context) (*clickup.Client, error) {
+	// Resolve workspace ID: context (flag) > env var > config
+	workspaceID := getWorkspaceIDFromContext(ctx)
+
+	if workspaceID == "" {
+		workspaceID = os.Getenv("CLICKUP_WORKSPACE_ID")
+	}
+
+	if workspaceID == "" {
+		var err error
+
+		workspaceID, err = config.GetWorkspaceID()
+		if err != nil {
+			return nil, fmt.Errorf("read workspace config: %w", err)
+		}
+	}
+
+	// 1. Check env var for API key
 	if key := os.Getenv("CLICKUP_API_KEY"); key != "" {
-		return clickup.NewClient(key), nil
+		return clickup.NewClient(key, clickup.WithWorkspaceID(workspaceID)), nil
 	}
 
 	// 2. Check keyring
@@ -26,7 +43,7 @@ func getClickUpClient() (*clickup.Client, error) {
 		return nil, fmt.Errorf("no credentials found; run: clickup-cli auth set-key --stdin")
 	}
 
-	return clickup.NewClient(key), nil
+	return clickup.NewClient(key, clickup.WithWorkspaceID(workspaceID)), nil
 }
 
 func getTeamID() (string, error) {

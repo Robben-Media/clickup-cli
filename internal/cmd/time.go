@@ -22,7 +22,7 @@ type TimeLogCmd struct {
 }
 
 func (cmd *TimeLogCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient()
+	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ type TimeListCmd struct {
 }
 
 func (cmd *TimeListCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient()
+	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
 	}

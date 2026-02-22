@@ -1,0 +1,71 @@
+# Build Progress Log
+
+## Task 1 - 2026-02-21
+### Completed: Migrate to Dynamic v2/v3 Base URL
+
+**What was implemented:**
+- Changed `defaultBaseURL` from `https://api.clickup.com/api/v2` to `https://api.clickup.com/api` in both `api/client.go` and `clickup/client.go`
+- Updated ALL existing service method paths to include `/v2/` prefix (e.g., `/task/{id}` → `/v2/task/{id}`)
+- Added `workspaceID` field to `clickup.Client` struct
+- Added `ClientOption` functional options pattern for configuring the client
+- Added `WithWorkspaceID` option for future v3 endpoint support
+- Added `v3Path()` helper method to build v3 API paths with workspace ID prefix
+- Added `Patch()` method to `api.Client` for v3 PATCH endpoints
+- Added `PostMultipart()` method to `api.Client` for file upload endpoints
+- Added comprehensive tests for all new functionality:
+  - `TestV3Path_BuildsCorrectPath` - verifies v3 path construction
+  - `TestV3Path_MissingWorkspaceID` - verifies error handling for missing workspace ID
+  - `TestPatch_SendsJSONBody` - verifies PATCH method sends correct HTTP method and body
+  - `TestPatch_PropagatesAPIError` - verifies PATCH error handling
+  - `TestPostMultipart_SendsFile` - verifies multipart file upload
+  - `TestPostMultipart_SetsAuthHeader` - verifies auth header is set
+  - `TestPostMultipart_PropagatesAPIError` - verifies multipart error handling
+  - `TestBaseURLConstruction` - verifies new base URL structure
+
+**Files changed:**
+- `internal/api/client.go` — modified (base URL, Patch, PostMultipart methods)
+- `internal/api/client_test.go` — modified (added tests for Patch, PostMultipart, base URL)
+- `internal/clickup/client.go` — modified (base URL, workspaceID, v3Path helper, all paths with /v2/)
+- `internal/clickup/client_test.go` — modified (v3Path tests, updated path expectations)
+- `internal/clickup/types.go` — minor formatting fixes from linter
+
+**Branch:** `phase/1-foundation`
+**Commit:** `086de16`
+
+**Learnings for future iterations:**
+- The linter (wsl_v5) requires blank lines before return statements after if/else blocks
+- Variable shadowing (`err`) triggers govet shadow check - use different variable names
+- The `make ci` target runs `fmt-check` which checks for uncommitted changes - must commit before passing
+- Functional options pattern is the idiomatic way to configure clients in Go
+
+---
+
+## Task 2 - 2026-02-21
+### Completed: Add Workspace ID Configuration
+
+**What was implemented:**
+- Added `--workspace` global flag to CLI root command with help text explaining it's required for v3 API
+- Added `CLICKUP_WORKSPACE_ID` environment variable support via Kong vars binding
+- Added workspace ID to config file (`config.json`) with `GetWorkspaceID()` and `SetWorkspaceID()` functions
+- Updated `getClickUpClient()` to resolve workspace ID from: context (flag) > env var > config
+- Added `withWorkspaceID()` and `getWorkspaceIDFromContext()` helpers to pass workspace ID via context
+- Added `auth set-workspace` command to configure workspace ID
+- Updated `auth status` command to display workspace ID configuration status
+- Workspace ID is passed to the ClickUp client via `WithWorkspaceID()` option (implemented in Task 1)
+
+**Files changed:**
+- `internal/cmd/root.go` — modified (added Workspace flag, workspace context helpers, kong vars)
+- `internal/cmd/helpers.go` — modified (getClickUpClient now takes context, resolves workspace ID)
+- `internal/cmd/auth.go` — modified (added AuthSetWorkspaceCmd, updated AuthStatusCmd)
+- `internal/config/config.go` — modified (added WorkspaceID to configData, GetWorkspaceID, SetWorkspaceID)
+- All command files (tasks.go, comments.go, members.go, lists.go, time.go, spaces.go) — updated to pass context to getClickUpClient
+
+**Branch:** `phase/1-foundation`
+
+**Learnings for future iterations:**
+- When adding global flags to Kong CLI, do NOT embed RootFlags in subcommands - it creates duplicate flags
+- Use context to pass global flag values down to helper functions instead of adding fields to every command struct
+- The Kong vars mechanism allows environment variable defaults for flags via `${varname}` syntax in default tag
+- Workspace ID is optional for v2 endpoints - only v3 endpoints require it (error handled in v3Path helper from Task 1)
+
+---
