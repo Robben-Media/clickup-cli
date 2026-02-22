@@ -145,7 +145,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; all folder commands work
 
 ### 8. Extend Lists Service (Get, Create, Update, Delete)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/lists.md
 - **Description**:

@@ -211,3 +211,77 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 **Next:** Task 8 - Extend Lists Service (Get, Create, Update, Delete) - Phase 3 Core CRUD
 
 ---
+
+## Task 8 - 2026-02-22
+### Completed: Extend Lists Service (Get, Create, Update, Delete)
+
+**What was implemented:**
+- Extended `ListsService` with:
+  - `Get(ctx, listID)` - get list details by ID
+  - `CreateInFolder(ctx, folderID, req)` - create list in a folder
+  - `CreateFolderless(ctx, spaceID, req)` - create folderless list in a space
+  - `Update(ctx, listID, req)` - update list
+  - `Delete(ctx, listID)` - delete list
+  - `AddTask(ctx, listID, taskID)` - add task to list (enables "Tasks in Multiple Lists")
+  - `RemoveTask(ctx, listID, taskID)` - remove task from list
+  - `FromTemplateInFolder(ctx, folderID, templateID, req)` - create list from template in folder
+  - `FromTemplateInSpace(ctx, spaceID, templateID, req)` - create folderless list from template in space
+- Added types:
+  - `ListDetail` - full list with all properties
+  - `ListStatus` - status info for list
+  - `CreateListRequest` - request for creating lists
+  - `UpdateListRequest` - request for updating lists
+  - `CreateListFromTemplateRequest` - request for template creation
+- Updated `SpaceRef` to include Name field
+- Added CLI commands:
+  - `lists get <list_id>` - displays ID, name, task count, folder, space
+  - `lists create --folder|--space <name>` - create list with optional flags
+  - `lists update <list_id> [--name] [--content] [--due-date] [--priority] [--assignee] [--unset-assignee] [--unset-due-date]`
+  - `lists delete <list_id>`
+  - `lists add-task <list_id> <task_id>`
+  - `lists remove-task <list_id> <task_id>`
+  - `lists from-template --folder|--space <template_id> [--name]`
+- Added comprehensive tests:
+  - `TestListsGet_ReturnsListWithDetails` - verifies get with full details
+  - `TestListsGet_RequiresListID` - validates list ID requirement
+  - `TestListsCreateInFolder_ReturnsCreatedList` - verifies create in folder
+  - `TestListsCreateFolderless_ReturnsCreatedList` - verifies folderless create
+  - `TestListsCreateInFolder_RequiresFolderID` - validates folder ID requirement
+  - `TestListsCreateFolderless_RequiresSpaceID` - validates space ID requirement
+  - `TestListsCreate_RequiresName` - validates name requirement
+  - `TestListsUpdate_ReturnsUpdatedList` - verifies update
+  - `TestListsUpdate_RequiresListID` - validates list ID requirement
+  - `TestListsDelete_SendsDeleteRequest` - verifies delete request
+  - `TestListsDelete_RequiresListID` - validates list ID requirement
+  - `TestListsAddTask_SendsPostRequest` - verifies add task request
+  - `TestListsAddTask_RequiresListID` - validates list ID requirement
+  - `TestListsAddTask_RequiresTaskID` - validates task ID requirement
+  - `TestListsRemoveTask_SendsDeleteRequest` - verifies remove task request
+  - `TestListsRemoveTask_RequiresListID` - validates list ID requirement
+  - `TestListsRemoveTask_RequiresTaskID` - validates task ID requirement
+  - `TestListsFromTemplateInFolder_ReturnsCreatedList` - verifies template creation in folder
+  - `TestListsFromTemplateInSpace_ReturnsCreatedList` - verifies template creation in space
+  - `TestListsFromTemplateInFolder_RequiresFolderID` - validates folder ID requirement
+  - `TestListsFromTemplateInFolder_RequiresTemplateID` - validates template ID requirement
+  - `TestListsFromTemplateInSpace_RequiresSpaceID` - validates space ID requirement
+  - `TestListsFromTemplateInSpace_RequiresTemplateID` - validates template ID requirement
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (extended ListsService with Get, CreateInFolder, CreateFolderless, Update, Delete, AddTask, RemoveTask, FromTemplateInFolder, FromTemplateInSpace)
+- `internal/clickup/types.go` — modified (added ListDetail, ListStatus, CreateListRequest, UpdateListRequest, CreateListFromTemplateRequest; updated SpaceRef)
+- `internal/clickup/client_test.go` — modified (added tests for all ListsService methods)
+- `internal/cmd/lists.go` — modified (added lists get, create, update, delete, add-task, remove-task, from-template commands)
+
+**Branch:** `phase/3-core-crud`
+**Commit:** `a5c1038`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/11
+
+**Learnings for future iterations:**
+- List's task_count is returned as int (unlike folder's string)
+- AddTask and RemoveTask endpoints return empty body with 200 status
+- Create command requires exactly one of --folder or --space (mutually exclusive validation)
+- SpaceRef needed to include Name for display in list get command
+
+**Next:** Task 9 - Extend Tasks Service (Search, Time-in-Status, Merge, Move) - Phase 3 Core CRUD
+
+---
