@@ -168,3 +168,44 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 - All tests pass with new service implementation
 
 ---
+
+## Task 26 - 2026-02-22
+### Completed: Create Guests Service
+
+**What was implemented:**
+- Created `GuestsService` with 10 methods for guest management
+- Implemented workspace-level guest CRUD:
+  - `GET /v2/team/{team_id}/guest/{guest_id}` (get guest)
+  - `POST /v2/team/{team_id}/guest` (invite guest)
+  - `PUT /v2/team/{team_id}/guest/{guest_id}` (update guest)
+  - `DELETE /v2/team/{team_id}/guest/{guest_id}` (remove guest)
+- Implemented guest-to-resource assignments:
+  - `POST /v2/task/{task_id}/guest/{guest_id}` (add to task)
+  - `DELETE /v2/task/{task_id}/guest/{guest_id}` (remove from task)
+  - `POST /v2/list/{list_id}/guest/{guest_id}` (add to list)
+  - `DELETE /v2/list/{list_id}/guest/{guest_id}` (remove from list)
+  - `POST /v2/folder/{folder_id}/guest/{guest_id}` (add to folder)
+  - `DELETE /v2/folder/{folder_id}/guest/{guest_id}` (remove from folder)
+- Added Guest types: Guest, GuestResponse, InviteGuestRequest, EditGuestRequest, AddGuestToResourceRequest
+- Added CLI commands: `guests get`, `guests invite`, `guests update`, `guests remove`, `guests add-to-task`, `guests remove-from-task`, `guests add-to-list`, `guests remove-from-list`, `guests add-to-folder`, `guests remove-from-folder`
+- Added 12 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added Guests() accessor, errEmailRequired, and GuestsService with all methods
+- `internal/clickup/types.go` — added all Guest types
+- `internal/clickup/client_test.go` — added tests for Guests service
+- `internal/cmd/guests.go` — created with all CLI commands
+- `internal/cmd/root.go` — added GuestsCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `e88f284`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Guest IDs are integers (not UUIDs like groups)
+- Permission levels for adding guests: read, comment, edit, create
+- The err113 linter requires static error variables instead of dynamic errors.New()
+- wsl_v5 linter requires blank lines before variable declarations after short statements
+- Guests have resource counts (tasks_count, lists_count, folders_count) for tracking access
+
+---
