@@ -139,3 +139,32 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 - Update members uses add/rem pattern (same as task assignees)
 
 ---
+
+## Task 25 - 2026-02-22
+### Completed: Create Roles Service
+
+**What was implemented:**
+- Created `RolesService` with List method
+- Implemented `GET /v2/team/{team_id}/customroles` (list custom roles)
+- Added CustomRole types: CustomRole, CustomRolesResponse
+- Added CLI command: `roles list`
+- Added 2 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added Roles() accessor and RolesService with List method
+- `internal/clickup/types.go` — added all CustomRole types
+- `internal/clickup/client_test.go` — added tests for Roles service
+- `internal/cmd/roles.go` — created with CLI command
+- `internal/cmd/root.go` — added RolesCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `7084499`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Roles endpoint returns integer IDs (not UUIDs like groups)
+- The pattern is consistent with other services: simple service struct, accessor method, types, and tests
+- `make ci` includes fmt-check which requires files to be formatted before committing
+- All tests pass with new service implementation
+
+---
