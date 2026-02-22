@@ -16,6 +16,8 @@ var (
 	errTextRequired        = errors.New("comment text is required")
 	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
 	errSourceTasksRequired = errors.New("at least one source task ID is required")
+	errTimeEntryIDRequired = errors.New("at least one time entry ID is required")
+	errTagNamesRequired    = errors.New("both old and new tag names are required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -982,6 +984,186 @@ func (s *TimeService) Log(ctx context.Context, teamID, taskID string, durationMs
 	}
 
 	return &result.Data, nil
+}
+
+// Get returns a single time entry by ID.
+func (s *TimeService) Get(ctx context.Context, teamID, entryID string) (*TimeEntryDetail, error) {
+	if teamID == "" || entryID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/time_entries/%s", teamID, entryID)
+
+	var result TimeEntryDetailResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get time entry: %w", err)
+	}
+
+	return &result.Data, nil
+}
+
+// Current returns the currently running time entry.
+func (s *TimeService) Current(ctx context.Context, teamID string) (*TimeEntryDetail, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/time_entries/current", teamID)
+
+	var result TimeEntryDetailResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get current time entry: %w", err)
+	}
+
+	return &result.Data, nil
+}
+
+// Start starts a new time entry (timer).
+func (s *TimeService) Start(ctx context.Context, teamID string, req StartTimeEntryRequest) (*TimeEntryDetail, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	var result TimeEntryDetailResponse
+
+	path := fmt.Sprintf("/v2/team/%s/time_entries/start", teamID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("start time entry: %w", err)
+	}
+
+	return &result.Data, nil
+}
+
+// Stop stops the currently running time entry.
+func (s *TimeService) Stop(ctx context.Context, teamID string) (*TimeEntryDetail, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	var result TimeEntryDetailResponse
+
+	path := fmt.Sprintf("/v2/team/%s/time_entries/stop", teamID)
+	if err := s.client.Post(ctx, path, nil, &result); err != nil {
+		return nil, fmt.Errorf("stop time entry: %w", err)
+	}
+
+	return &result.Data, nil
+}
+
+// Update modifies an existing time entry.
+func (s *TimeService) Update(ctx context.Context, teamID, entryID string, req UpdateTimeEntryRequest) (*TimeEntryDetail, error) {
+	if teamID == "" || entryID == "" {
+		return nil, errIDRequired
+	}
+
+	var result TimeEntryDetailResponse
+
+	path := fmt.Sprintf("/v2/team/%s/time_entries/%s", teamID, entryID)
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update time entry: %w", err)
+	}
+
+	return &result.Data, nil
+}
+
+// Delete removes a time entry.
+func (s *TimeService) Delete(ctx context.Context, teamID, entryID string) error {
+	if teamID == "" || entryID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/time_entries/%s", teamID, entryID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete time entry: %w", err)
+	}
+
+	return nil
+}
+
+// History returns the change history for a time entry.
+func (s *TimeService) History(ctx context.Context, teamID, entryID string) (*TimeEntryHistoryResponse, error) {
+	if teamID == "" || entryID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/time_entries/%s/history", teamID, entryID)
+
+	var result TimeEntryHistoryResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get time entry history: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListTags returns all tags used across time entries in a team.
+func (s *TimeService) ListTags(ctx context.Context, teamID string) (*TimeEntryTagsResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/time_entries/tags", teamID)
+
+	var result TimeEntryTagsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list time entry tags: %w", err)
+	}
+
+	return &result, nil
+}
+
+// AddTags adds tags to one or more time entries.
+func (s *TimeService) AddTags(ctx context.Context, teamID string, req TimeEntryTagsRequest) error {
+	if teamID == "" {
+		return errIDRequired
+	}
+
+	if len(req.TimeEntryIDs) == 0 {
+		return errTimeEntryIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/time_entries/tags", teamID)
+	if err := s.client.Post(ctx, path, req, nil); err != nil {
+		return fmt.Errorf("add tags to time entries: %w", err)
+	}
+
+	return nil
+}
+
+// RemoveTags removes tags from one or more time entries.
+func (s *TimeService) RemoveTags(ctx context.Context, teamID string, req TimeEntryTagsRequest) error {
+	if teamID == "" {
+		return errIDRequired
+	}
+
+	if len(req.TimeEntryIDs) == 0 {
+		return errTimeEntryIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/time_entries/tags", teamID)
+	if err := s.client.DeleteWithBody(ctx, path, req); err != nil {
+		return fmt.Errorf("remove tags from time entries: %w", err)
+	}
+
+	return nil
+}
+
+// RenameTag renames a tag across all time entries.
+func (s *TimeService) RenameTag(ctx context.Context, teamID string, req RenameTimeEntryTagRequest) error {
+	if teamID == "" {
+		return errIDRequired
+	}
+
+	if req.Name == "" || req.NewName == "" {
+		return errTagNamesRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/time_entries/tags", teamID)
+	if err := s.client.Put(ctx, path, req, nil); err != nil {
+		return fmt.Errorf("rename time entry tag: %w", err)
+	}
+
+	return nil
 }
 
 // --- FoldersService ---

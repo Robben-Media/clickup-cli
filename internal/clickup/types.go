@@ -399,3 +399,75 @@ type PostSubtype struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
+
+// --- Time Tracking types (Phase 4) ---
+
+// TimeEntryDetail is a detailed time entry with all fields.
+type TimeEntryDetail struct {
+	ID          json.Number `json:"id"`
+	Task        TaskRef     `json:"task"`
+	Wid         string      `json:"wid"`
+	User        User        `json:"user"`
+	Billable    bool        `json:"billable"`
+	Start       json.Number `json:"start"`
+	End         json.Number `json:"end"`
+	Duration    json.Number `json:"duration"`
+	Description string      `json:"description"`
+	Tags        []Tag       `json:"tags"`
+}
+
+// StartTimeEntryRequest is the request body for starting a time entry.
+type StartTimeEntryRequest struct {
+	TaskID      string `json:"tid,omitempty"`
+	Description string `json:"description,omitempty"`
+	Billable    bool   `json:"billable,omitempty"`
+	Tags        []Tag  `json:"tags,omitempty"`
+}
+
+// UpdateTimeEntryRequest is the request body for updating a time entry.
+type UpdateTimeEntryRequest struct {
+	Description string `json:"description,omitempty"`
+	Duration    int64  `json:"duration,omitempty"`
+	Start       int64  `json:"start,omitempty"`
+	End         int64  `json:"end,omitempty"`
+	Billable    *bool  `json:"billable,omitempty"`
+	TagAction   string `json:"tag_action,omitempty"` // "add" or "remove"
+	Tags        []Tag  `json:"tags,omitempty"`
+}
+
+// TimeEntryTagsRequest is for adding/removing tags from time entries.
+type TimeEntryTagsRequest struct {
+	TimeEntryIDs []string `json:"time_entry_ids"`
+	Tags         []Tag    `json:"tags"`
+}
+
+// RenameTimeEntryTagRequest is for renaming a time entry tag.
+type RenameTimeEntryTagRequest struct {
+	Name    string `json:"name"`
+	NewName string `json:"new_name"`
+}
+
+// TimeEntryHistoryResponse is the response for time entry history.
+type TimeEntryHistoryResponse struct {
+	Data []TimeEntryHistoryItem `json:"data"`
+}
+
+// TimeEntryHistoryItem represents a single change in time entry history.
+type TimeEntryHistoryItem struct {
+	ID     string `json:"id"`
+	Field  string `json:"field"`
+	Before string `json:"before"`
+	After  string `json:"after"`
+	Date   string `json:"date"`
+	User   User   `json:"user"`
+}
+
+// TimeEntryTagsResponse is the response for listing time entry tags.
+type TimeEntryTagsResponse struct {
+	Data []Tag `json:"data"`
+}
+
+// TimeEntryDetailResponse wraps a single time entry.
+type TimeEntryDetailResponse struct {
+	Data TimeEntryDetail `json:"data"`
+}

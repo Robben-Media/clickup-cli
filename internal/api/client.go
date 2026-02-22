@@ -135,6 +135,12 @@ func (c *Client) Delete(ctx context.Context, path string) error {
 	return nil
 }
 
+// DeleteWithBody sends a DELETE request with a JSON body.
+// Some APIs (like ClickUp's remove tags endpoint) require a body with DELETE.
+func (c *Client) DeleteWithBody(ctx context.Context, path string, body any) error {
+	return c.doJSON(ctx, Request{Method: http.MethodDelete, Path: path, Body: body}, nil)
+}
+
 // PostMultipart sends a multipart/form-data POST request for file uploads.
 // The fieldName parameter specifies the form field name for the file.
 // The reader provides the file content, and fileName is the original filename.
