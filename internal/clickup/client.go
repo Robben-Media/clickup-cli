@@ -15,6 +15,7 @@ var (
 	errNameRequired        = errors.New("name is required")
 	errTextRequired        = errors.New("comment text is required")
 	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
+	errOAuthFieldsRequired = errors.New("client_id, client_secret, and code are required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -94,6 +95,11 @@ func (c *Client) Time() *TimeService {
 // Workspaces provides methods for the Workspaces API.
 func (c *Client) Workspaces() *WorkspacesService {
 	return &WorkspacesService{client: c}
+}
+
+// Auth provides methods for the Authorization API.
+func (c *Client) Auth() *AuthService {
+	return &AuthService{client: c}
 }
 
 // --- TasksService ---
@@ -442,6 +448,42 @@ func (s *WorkspacesService) Seats(ctx context.Context, teamID string) (*Workspac
 	path := fmt.Sprintf("/v2/team/%s/seats", teamID)
 	if err := s.client.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("get workspace seats: %w", err)
+	}
+
+	return &result, nil
+}
+
+// --- AuthService ---
+
+// AuthService handles authorization operations.
+type AuthService struct {
+	client *Client
+}
+
+// Whoami returns the currently authorized user.
+func (s *AuthService) Whoami(ctx context.Context) (*AuthorizedUserResponse, error) {
+	var result AuthorizedUserResponse
+
+	path := "/v2/user"
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get authorized user: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Token exchanges an OAuth authorization code for an access token.
+// This endpoint does not require the Authorization header.
+func (s *AuthService) Token(ctx context.Context, req OAuthTokenRequest) (*OAuthTokenResponse, error) {
+	if req.ClientID == "" || req.ClientSecret == "" || req.Code == "" {
+		return nil, errOAuthFieldsRequired
+	}
+
+	var result OAuthTokenResponse
+
+	path := "/v2/oauth/token"
+	if err := s.client.PostNoAuth(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("exchange oauth token: %w", err)
 	}
 
 	return &result, nil

@@ -135,6 +135,20 @@ func (c *Client) Delete(ctx context.Context, path string) error {
 	return nil
 }
 
+// PostNoAuth sends a POST request without the Authorization header.
+// This is used for endpoints like OAuth token exchange that don't require auth.
+func (c *Client) PostNoAuth(ctx context.Context, path string, body, result any) error {
+	// Create a temporary client without API key for unauthenticated requests
+	noAuthClient := &Client{
+		httpClient: c.httpClient,
+		baseURL:    c.baseURL,
+		apiKey:     "", // No API key - won't set Authorization header
+		userAgent:  c.userAgent,
+	}
+
+	return noAuthClient.doJSON(ctx, Request{Method: http.MethodPost, Path: path, Body: body}, result)
+}
+
 // PostMultipart sends a multipart/form-data POST request for file uploads.
 // The fieldName parameter specifies the form field name for the file.
 // The reader provides the file content, and fileName is the original filename.
