@@ -166,3 +166,44 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 **Next:** Task 13 - Create Checklists Service - Phase 5 Task Extensions
 
 ---
+
+## Task 13 - 2026-02-22
+### Completed: Create Checklists Service
+
+**What was implemented:**
+- Created `ChecklistsService` with Create, Update, Delete, AddItem, UpdateItem, DeleteItem methods
+- Implemented `POST /v2/task/{task_id}/checklist` - create checklist on task
+- Implemented `PUT /v2/checklist/{checklist_id}` - update checklist (name, position)
+- Implemented `DELETE /v2/checklist/{checklist_id}` - delete checklist
+- Implemented `POST /v2/checklist/{checklist_id}/checklist_item` - add item to checklist
+- Implemented `PUT /v2/checklist/{checklist_id}/checklist_item/{item_id}` - update checklist item
+- Implemented `DELETE /v2/checklist/{checklist_id}/checklist_item/{item_id}` - delete checklist item
+- Added types: `Checklist`, `ChecklistItem`, `CreateChecklistRequest`, `EditChecklistRequest`, `CreateChecklistItemRequest`, `EditChecklistItemRequest`
+- Added CLI commands:
+  - `checklists create --task <task_id> <name>` - create checklist on task
+  - `checklists update <checklist_id> [--name "..."] [--position <n>]` - update checklist
+  - `checklists delete <checklist_id>` - delete checklist
+  - `checklists add-item <checklist_id> <name> [--assignee <user_id>]` - add item
+  - `checklists update-item <checklist_id> <item_id> [--name "..."] [--resolved|--unresolved] [--assignee <user_id>] [--parent <item_id>]` - update item
+  - `checklists delete-item <checklist_id> <item_id>` - delete item
+- Added comprehensive tests for all 6 service methods (18 test cases total)
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (added ChecklistsService with 6 methods)
+- `internal/clickup/types.go` — modified (added Checklist, ChecklistItem, request types)
+- `internal/clickup/client_test.go` — modified (added 18 tests)
+- `internal/cmd/checklists.go` — created (CLI commands for all checklist operations)
+- `internal/cmd/root.go` — modified (added ChecklistsCmd to CLI struct)
+
+**Branch:** `phase/5-task-extensions`
+**Commit:** `c8b3d89`
+
+**Learnings for future iterations:**
+- ClickUp wraps checklist responses in `{"checklist": {...}}` envelope - need to unwrap in service layer
+- `resolved` field is boolean, use pointer type in request to allow true/false/unset distinction
+- Use `--resolved` and `--unresolved` flags to avoid ambiguity with boolean flag defaults
+- Linter (wsl_v5) requires blank lines between statements before if blocks
+
+**Next:** Task 14 - Create Relationships Service - Phase 5 Task Extensions
+
+---
