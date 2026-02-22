@@ -96,6 +96,56 @@ type List struct {
 	Name string `json:"name"`
 }
 
+// ListDetail represents a full list with all properties.
+type ListDetail struct {
+	ID               string     `json:"id"`
+	Name             string     `json:"name"`
+	Content          string     `json:"content,omitempty"`
+	DueDate          string     `json:"due_date,omitempty"`
+	Priority         *Priority  `json:"priority,omitempty"`
+	Assignee         *User      `json:"assignee,omitempty"`
+	TaskCount        int        `json:"task_count"`
+	Folder           FolderRef  `json:"folder,omitempty"`
+	Space            SpaceRef   `json:"space,omitempty"`
+	Status           ListStatus `json:"status,omitempty"`
+	Permission       string     `json:"permission_level,omitempty"`
+	Archived         bool       `json:"archived"`
+	OverrideStatuses bool       `json:"override_statuses"`
+}
+
+// ListStatus represents a list's status/due date info.
+type ListStatus struct {
+	Status     string `json:"status,omitempty"`
+	Color      string `json:"color,omitempty"`
+	OrderIndex int    `json:"orderindex,omitempty"`
+}
+
+// CreateListRequest is the request body for creating a list.
+type CreateListRequest struct {
+	Name     string `json:"name"`
+	Content  string `json:"content,omitempty"`
+	DueDate  int64  `json:"due_date,omitempty"`
+	Priority int    `json:"priority,omitempty"`
+	Assignee int    `json:"assignee,omitempty"`
+	Status   string `json:"status,omitempty"`
+}
+
+// UpdateListRequest is the request body for updating a list.
+type UpdateListRequest struct {
+	Name          string `json:"name,omitempty"`
+	Content       string `json:"content,omitempty"`
+	DueDate       int64  `json:"due_date,omitempty"`
+	Priority      int    `json:"priority,omitempty"`
+	Assignee      int    `json:"assignee,omitempty"`
+	UnsetAssignee bool   `json:"unset_assignee,omitempty"`
+	UnsetDueDate  bool   `json:"unset_due_date,omitempty"`
+}
+
+// CreateListFromTemplateRequest is the request body for creating a list from a template.
+type CreateListFromTemplateRequest struct {
+	Name string `json:"name,omitempty"`
+}
+
 // Folder represents a ClickUp folder (lightweight, from list endpoint).
 type Folder struct {
 	ID    string `json:"id"`
@@ -168,7 +218,8 @@ type FolderRef struct {
 
 // SpaceRef is a reference to a space within a task.
 type SpaceRef struct {
-	ID string `json:"id"`
+	ID   string `json:"id"`
+	Name string `json:"name,omitempty"`
 }
 
 // TaskRef is a reference to a task within a time entry.
