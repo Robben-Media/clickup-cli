@@ -131,6 +131,7 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 
 **Branch:** `phase/9-p2-completeness`
 **Commit:** `5683ef5`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
 
 **Learnings:**
 - Variable shadowing (`err`) inside if blocks triggers govet shadow check - use different variable names like `parseErr`
