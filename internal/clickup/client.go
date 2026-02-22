@@ -132,6 +132,11 @@ func (c *Client) AuditLogs() *AuditLogsService {
 	return &AuditLogsService{client: c}
 }
 
+// ACLs provides methods for the ACLs API.
+func (c *Client) ACLs() *ACLsService {
+	return &ACLsService{client: c}
+}
+
 // --- SharedHierarchyService ---
 
 // SharedHierarchyService handles shared hierarchy operations.
@@ -301,6 +306,31 @@ func (s *AuditLogsService) Query(ctx context.Context, req AuditLogQuery) (*Audit
 	}
 
 	return &result, nil
+}
+
+// --- ACLsService ---
+
+// ACLsService handles ACL operations.
+type ACLsService struct {
+	client *Client
+}
+
+// Update updates access control settings for an object.
+func (s *ACLsService) Update(ctx context.Context, objectType, objectID string, req UpdateACLRequest) error {
+	if objectType == "" || objectID == "" {
+		return errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/%s/%s/acls", objectType, objectID))
+	if err != nil {
+		return err
+	}
+
+	if err := s.client.Patch(ctx, path, req, nil); err != nil {
+		return fmt.Errorf("update ACLs: %w", err)
+	}
+
+	return nil
 }
 
 // --- TasksService ---

@@ -1331,3 +1331,72 @@ func TestAuditLogsQuery_RequiresWorkspaceID(t *testing.T) {
 		t.Fatal("expected error for missing workspace ID, got nil")
 	}
 }
+
+// --- ACLsService tests ---
+
+func TestACLsUpdate_SendsPatchRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPatch {
+			t.Fatalf("expected PATCH, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v3/workspaces/workspace-1/space/space-789/acls" {
+			t.Fatalf("expected path /v3/workspaces/workspace-1/space/space-789/acls, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "workspace-1"
+
+	privateTrue := true
+	req := UpdateACLRequest{Private: &privateTrue}
+
+	if err := client.ACLs().Update(context.Background(), "space", "space-789", req); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestACLsUpdate_RequiresWorkspaceID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	// No workspaceID set
+
+	req := UpdateACLRequest{}
+
+	if err := client.ACLs().Update(context.Background(), "space", "space-789", req); err == nil {
+		t.Fatal("expected error for missing workspace ID, got nil")
+	}
+}
+
+func TestACLsUpdate_RequiresObjectTypeAndID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "workspace-1"
+
+	req := UpdateACLRequest{}
+
+	if err := client.ACLs().Update(context.Background(), "", "space-789", req); err == nil {
+		t.Fatal("expected error for missing object type, got nil")
+	}
+
+	if err := client.ACLs().Update(context.Background(), "space", "", req); err == nil {
+		t.Fatal("expected error for missing object ID, got nil")
+	}
+}

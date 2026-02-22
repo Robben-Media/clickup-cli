@@ -43,6 +43,7 @@ type CLI struct {
 	TaskTypes  TaskTypesCmd     `cmd:"" help:"Custom task type operations"`
 	TimeLegacy TimeLegacyCmd    `cmd:"" help:"Legacy time tracking operations"`
 	AuditLogs  AuditLogsCmd     `cmd:"" help:"Audit log operations"`
+	ACLs       ACLsCmd          `cmd:"" help:"Access control operations"`
 	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

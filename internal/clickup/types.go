@@ -366,3 +366,11 @@ type AuditLogEntry struct {
 type AuditLogsResponse struct {
 	AuditLogs []AuditLogEntry `json:"audit_logs"`
 }
+
+// --- ACL types ---
+
+// UpdateACLRequest is the request body for updating ACLs.
+type UpdateACLRequest struct {
+	Private *bool  `json:"private,omitempty"`
+	Sharing string `json:"sharing,omitempty"` // "open" or "closed"
+}

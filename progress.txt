@@ -328,3 +328,32 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 - Interval IDs are strings (not integers)
 - List endpoint supports optional `custom_task_ids` and `team_id` query params
 
+---
+
+## Task 31 - 2026-02-22
+### Completed: Create Audit Logs Service (v3)
+
+**What was implemented:**
+- Created `AuditLogsService` with Query method
+- Implemented `POST /v3/workspaces/{workspace_id}/auditlogs` (query audit logs)
+- This is a v3 endpoint - uses v3Path() helper for path construction
+- Added AuditLog types: AuditLogQuery, AuditLogEntry, AuditLogsResponse
+- Added CLI command: `auditlogs query` with filter options (start-date, end-date, event-type, user-id, limit)
+- Added 2 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added AuditLogs() accessor and AuditLogsService with Query method
+- `internal/clickup/types.go` — added all AuditLog types
+- `internal/clickup/client_test.go` — added tests for AuditLogs service
+- `internal/cmd/auditlogs.go` — created with CLI command
+- `internal/cmd/root.go` — added AuditLogsCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `a604b24`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Audit Logs endpoint uses POST for querying (not GET) due to complex filter body
+- Requires workspace ID (v3 endpoint) - returns error if not configured
+- Uses json.Number for timestamp field (can be large)
+
