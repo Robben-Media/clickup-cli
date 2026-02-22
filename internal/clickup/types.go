@@ -182,3 +182,30 @@ type TimeEntriesListResponse struct {
 type MembersListResponse struct {
 	Members []Member `json:"members"`
 }
+
+// --- Users types ---
+
+// UserDetail represents a workspace user with full details.
+type UserDetail struct {
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Role     int    `json:"role"` // 1=owner, 2=admin, 3=member, 4=guest
+}
+
+// UserResponse is the response for getting a single user.
+type UserResponse struct {
+	User UserDetail `json:"user"`
+}
+
+// InviteUserRequest is the request body for inviting a user to a workspace.
+type InviteUserRequest struct {
+	Email string `json:"email"`
+	Admin bool   `json:"admin,omitempty"`
+}
+
+// EditUserRequest is the request body for editing a user on a workspace.
+type EditUserRequest struct {
+	Username string `json:"username,omitempty"`
+	Admin    bool   `json:"admin,omitempty"`
+}

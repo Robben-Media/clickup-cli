@@ -251,3 +251,217 @@ func TestTasksUpdate_SendsAssigneesAddRem(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+// --- UsersService tests ---
+
+func TestUsersGet_ReturnsUserDetails(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		wantPath := "/v2/team/team-1/user/123"
+		if r.URL.Path != wantPath {
+			t.Fatalf("expected path %s, got %s", wantPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(UserResponse{
+			User: UserDetail{
+				ID:       123,
+				Username: "alice",
+				Email:    "alice@example.com",
+				Role:     2,
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Users().Get(context.Background(), "team-1", "123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.User.ID != 123 {
+		t.Fatalf("expected ID 123, got %d", result.User.ID)
+	}
+
+	if result.User.Username != "alice" {
+		t.Fatalf("expected username alice, got %s", result.User.Username)
+	}
+
+	if result.User.Role != 2 {
+		t.Fatalf("expected role 2, got %d", result.User.Role)
+	}
+}
+
+func TestUsersGet_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	// Client without server - we're testing validation only
+	_, err := NewClient("test-key").Users().Get(context.Background(), "", "123")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestUsersGet_RequiresUserID(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewClient("test-key").Users().Get(context.Background(), "team-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing user ID, got nil")
+	}
+}
+
+func TestUsersInvite_SendsEmail(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		wantPath := "/v2/team/team-1/user"
+		if r.URL.Path != wantPath {
+			t.Fatalf("expected path %s, got %s", wantPath, r.URL.Path)
+		}
+
+		var body InviteUserRequest
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body.Email != "new@example.com" {
+			t.Fatalf("expected email new@example.com, got %s", body.Email)
+		}
+
+		if !body.Admin {
+			t.Fatal("expected admin to be true")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(UserResponse{
+			User: UserDetail{
+				ID:    456,
+				Email: "new@example.com",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Users().Invite(context.Background(), "team-1", InviteUserRequest{
+		Email: "new@example.com",
+		Admin: true,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.User.Email != "new@example.com" {
+		t.Fatalf("expected email new@example.com, got %s", result.User.Email)
+	}
+}
+
+func TestUsersInvite_RequiresEmail(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewClient("test-key").Users().Invite(context.Background(), "team-1", InviteUserRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing email, got nil")
+	}
+}
+
+func TestUsersUpdate_SendsFields(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		wantPath := "/v2/team/team-1/user/123"
+		if r.URL.Path != wantPath {
+			t.Fatalf("expected path %s, got %s", wantPath, r.URL.Path)
+		}
+
+		var body EditUserRequest
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body.Username != "newname" {
+			t.Fatalf("expected username newname, got %s", body.Username)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(UserResponse{
+			User: UserDetail{
+				ID:       123,
+				Username: "newname",
+				Role:     2,
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Users().Update(context.Background(), "team-1", "123", EditUserRequest{
+		Username: "newname",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.User.Username != "newname" {
+		t.Fatalf("expected username newname, got %s", result.User.Username)
+	}
+}
+
+func TestUsersRemove_DeletesUser(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		wantPath := "/v2/team/team-1/user/123"
+		if r.URL.Path != wantPath {
+			t.Fatalf("expected path %s, got %s", wantPath, r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Users().Remove(context.Background(), "team-1", "123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestUsersRemove_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	client := NewClient("test-key")
+
+	err := client.Users().Remove(context.Background(), "", "123")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+
+	err = client.Users().Remove(context.Background(), "team-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing user ID, got nil")
+	}
+}

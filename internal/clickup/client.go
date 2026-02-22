@@ -15,6 +15,7 @@ var (
 	errNameRequired        = errors.New("name is required")
 	errTextRequired        = errors.New("comment text is required")
 	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
+	errEmailRequired       = errors.New("email is required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -89,6 +90,11 @@ func (c *Client) Comments() *CommentsService {
 // Time provides methods for the Time Tracking API.
 func (c *Client) Time() *TimeService {
 	return &TimeService{client: c}
+}
+
+// Users provides methods for the Users API.
+func (c *Client) Users() *UsersService {
+	return &UsersService{client: c}
 }
 
 // --- TasksService ---
@@ -389,4 +395,77 @@ func (s *TimeService) Log(ctx context.Context, teamID, taskID string, durationMs
 	}
 
 	return &result.Data, nil
+}
+
+// --- UsersService ---
+
+// UsersService handles workspace user operations.
+type UsersService struct {
+	client *Client
+}
+
+// Get returns a user by ID from a workspace.
+func (s *UsersService) Get(ctx context.Context, teamID, userID string) (*UserResponse, error) {
+	if teamID == "" || userID == "" {
+		return nil, errIDRequired
+	}
+
+	var result UserResponse
+
+	path := fmt.Sprintf("/v2/team/%s/user/%s", teamID, userID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Invite invites a user to a workspace by email.
+func (s *UsersService) Invite(ctx context.Context, teamID string, req InviteUserRequest) (*UserResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Email == "" {
+		return nil, errEmailRequired
+	}
+
+	var result UserResponse
+
+	path := fmt.Sprintf("/v2/team/%s/user", teamID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("invite user: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Update edits a user on a workspace.
+func (s *UsersService) Update(ctx context.Context, teamID, userID string, req EditUserRequest) (*UserResponse, error) {
+	if teamID == "" || userID == "" {
+		return nil, errIDRequired
+	}
+
+	var result UserResponse
+
+	path := fmt.Sprintf("/v2/team/%s/user/%s", teamID, userID)
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update user: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Remove removes a user from a workspace.
+func (s *UsersService) Remove(ctx context.Context, teamID, userID string) error {
+	if teamID == "" || userID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/user/%s", teamID, userID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("remove user: %w", err)
+	}
+
+	return nil
 }
