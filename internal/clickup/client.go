@@ -15,6 +15,8 @@ var (
 	errNameRequired        = errors.New("name is required")
 	errTextRequired        = errors.New("comment text is required")
 	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
+	errDependsOnRequired   = errors.New("either depends_on or dependency_of is required")
+	errLinkTaskIDRequired  = errors.New("linked task ID is required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -99,6 +101,11 @@ func (c *Client) Tags() *TagsService {
 // Checklists provides methods for the Checklists API.
 func (c *Client) Checklists() *ChecklistsService {
 	return &ChecklistsService{client: c}
+}
+
+// Relationships provides methods for the Relationships API.
+func (c *Client) Relationships() *RelationshipsService {
+	return &RelationshipsService{client: c}
 }
 
 // --- TasksService ---
@@ -636,6 +643,97 @@ func (s *ChecklistsService) DeleteItem(ctx context.Context, checklistID, itemID 
 	path := fmt.Sprintf("/v2/checklist/%s/checklist_item/%s", checklistID, itemID)
 	if err := s.client.Delete(ctx, path); err != nil {
 		return fmt.Errorf("delete checklist item: %w", err)
+	}
+
+	return nil
+}
+
+// --- RelationshipsService ---
+
+// RelationshipsService handles task dependency and link operations.
+type RelationshipsService struct {
+	client *Client
+}
+
+// AddDependency adds a dependency to a task.
+// Use DependsOn to wait for another task, or DependencyOf to block another task.
+func (s *RelationshipsService) AddDependency(ctx context.Context, taskID string, req AddDependencyRequest) error {
+	if taskID == "" {
+		return errIDRequired
+	}
+
+	if req.DependsOn == "" && req.DependencyOf == "" {
+		return errDependsOnRequired
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/dependency", taskID)
+	if err := s.client.Post(ctx, path, req, nil); err != nil {
+		return fmt.Errorf("add dependency: %w", err)
+	}
+
+	return nil
+}
+
+// RemoveDependency removes a dependency from a task.
+// Use DependsOn to remove "waiting on", or DependencyOf to remove "blocking".
+func (s *RelationshipsService) RemoveDependency(ctx context.Context, taskID string, req AddDependencyRequest) error {
+	if taskID == "" {
+		return errIDRequired
+	}
+
+	if req.DependsOn == "" && req.DependencyOf == "" {
+		return errDependsOnRequired
+	}
+
+	// Build query params for DELETE request
+	params := url.Values{}
+	if req.DependsOn != "" {
+		params.Set("depends_on", req.DependsOn)
+	}
+
+	if req.DependencyOf != "" {
+		params.Set("dependency_of", req.DependencyOf)
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/dependency?%s", taskID, params.Encode())
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("remove dependency: %w", err)
+	}
+
+	return nil
+}
+
+// Link adds a link between two tasks.
+func (s *RelationshipsService) Link(ctx context.Context, taskID, linkTaskID string) error {
+	if taskID == "" {
+		return errIDRequired
+	}
+
+	if linkTaskID == "" {
+		return errLinkTaskIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/link/%s", taskID, linkTaskID)
+	if err := s.client.Post(ctx, path, nil, nil); err != nil {
+		return fmt.Errorf("add link: %w", err)
+	}
+
+	return nil
+}
+
+// Unlink removes a link between two tasks.
+func (s *RelationshipsService) Unlink(ctx context.Context, taskID, linkTaskID string) error {
+	if taskID == "" {
+		return errIDRequired
+	}
+
+	if linkTaskID == "" {
+		return errLinkTaskIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/link/%s", taskID, linkTaskID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("remove link: %w", err)
 	}
 
 	return nil

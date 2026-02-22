@@ -966,3 +966,231 @@ func TestChecklistsDeleteItem_RequiresItemID(t *testing.T) {
 		t.Fatal("expected error for missing item ID, got nil")
 	}
 }
+
+// --- RelationshipsService Tests ---
+
+func TestRelationshipsAddDep_SendsPostRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/dependency" {
+			t.Fatalf("expected path /v2/task/task-1/dependency, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["depends_on"] != "task-2" {
+			t.Fatalf("expected depends_on task-2, got %s", body["depends_on"])
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Relationships().AddDependency(context.Background(), "task-1", AddDependencyRequest{DependsOn: "task-2"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRelationshipsAddDep_UsesDependencyOf(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["dependency_of"] != "task-2" {
+			t.Fatalf("expected dependency_of task-2, got %s", body["dependency_of"])
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Relationships().AddDependency(context.Background(), "task-1", AddDependencyRequest{DependencyOf: "task-2"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRelationshipsAddDep_RequiresTaskID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	err := client.Relationships().AddDependency(context.Background(), "", AddDependencyRequest{DependsOn: "task-2"})
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+}
+
+func TestRelationshipsAddDep_RequiresDependsOnOrDependencyOf(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	err := client.Relationships().AddDependency(context.Background(), "task-1", AddDependencyRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing depends_on and dependency_of, got nil")
+	}
+}
+
+func TestRelationshipsRemoveDep_SendsDeleteWithQueryParams(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/dependency" {
+			t.Fatalf("expected path /v2/task/task-1/dependency, got %s", r.URL.Path)
+		}
+
+		if r.URL.Query().Get("depends_on") != "task-2" {
+			t.Fatalf("expected depends_on=task-2 in query, got %s", r.URL.Query().Get("depends_on"))
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Relationships().RemoveDependency(context.Background(), "task-1", AddDependencyRequest{DependsOn: "task-2"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRelationshipsRemoveDep_RequiresTaskID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	err := client.Relationships().RemoveDependency(context.Background(), "", AddDependencyRequest{DependsOn: "task-2"})
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+}
+
+func TestRelationshipsRemoveDep_RequiresDependsOnOrDependencyOf(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	err := client.Relationships().RemoveDependency(context.Background(), "task-1", AddDependencyRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing depends_on and dependency_of, got nil")
+	}
+}
+
+func TestRelationshipsLink_SendsPostRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/link/task-2" {
+			t.Fatalf("expected path /v2/task/task-1/link/task-2, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Relationships().Link(context.Background(), "task-1", "task-2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRelationshipsLink_RequiresTaskID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	err := client.Relationships().Link(context.Background(), "", "task-2")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+}
+
+func TestRelationshipsLink_RequiresLinkTaskID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	err := client.Relationships().Link(context.Background(), "task-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing link task ID, got nil")
+	}
+}
+
+func TestRelationshipsUnlink_SendsDeleteRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/link/task-2" {
+			t.Fatalf("expected path /v2/task/task-1/link/task-2, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Relationships().Unlink(context.Background(), "task-1", "task-2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRelationshipsUnlink_RequiresTaskID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	err := client.Relationships().Unlink(context.Background(), "", "task-2")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+}
+
+func TestRelationshipsUnlink_RequiresLinkTaskID(t *testing.T) {
+	t.Parallel()
+
+	client := &Client{Client: api.NewClient("test-key")}
+
+	err := client.Relationships().Unlink(context.Background(), "task-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing link task ID, got nil")
+	}
+}

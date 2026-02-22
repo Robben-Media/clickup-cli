@@ -26,17 +26,18 @@ type RootFlags struct {
 type CLI struct {
 	RootFlags `embed:""`
 
-	Version    kong.VersionFlag `help:"Print version and exit"`
-	Auth       AuthCmd          `cmd:"" help:"Auth and credentials"`
-	Tasks      TasksCmd         `cmd:"" help:"Task operations"`
-	Spaces     SpacesCmd        `cmd:"" help:"Space operations"`
-	Lists      ListsCmd         `cmd:"" help:"List operations"`
-	Members    MembersCmd       `cmd:"" help:"Team member operations"`
-	Comments   CommentsCmd      `cmd:"" help:"Comment operations"`
-	Time       TimeCmd          `cmd:"" help:"Time tracking"`
-	Tags       TagsCmd          `cmd:"" help:"Tag operations"`
-	Checklists ChecklistsCmd    `cmd:"" help:"Checklist operations"`
-	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
+	Version       kong.VersionFlag `help:"Print version and exit"`
+	Auth          AuthCmd          `cmd:"" help:"Auth and credentials"`
+	Tasks         TasksCmd         `cmd:"" help:"Task operations"`
+	Spaces        SpacesCmd        `cmd:"" help:"Space operations"`
+	Lists         ListsCmd         `cmd:"" help:"List operations"`
+	Members       MembersCmd       `cmd:"" help:"Team member operations"`
+	Comments      CommentsCmd      `cmd:"" help:"Comment operations"`
+	Time          TimeCmd          `cmd:"" help:"Time tracking"`
+	Tags          TagsCmd          `cmd:"" help:"Tag operations"`
+	Checklists    ChecklistsCmd    `cmd:"" help:"Checklist operations"`
+	Relationships RelationshipsCmd `cmd:"" help:"Task dependency and link operations"`
+	VersionCmd    VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 
 type exitPanic struct{ code int }
