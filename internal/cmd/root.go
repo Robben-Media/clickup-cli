@@ -38,6 +38,7 @@ type CLI struct {
 	Groups     GroupsCmd        `cmd:"" help:"User group operations"`
 	Roles      RolesCmd         `cmd:"" help:"Custom role operations"`
 	Guests     GuestsCmd        `cmd:"" help:"Guest operations"`
+	Shared     SharedCmd        `cmd:"" help:"Shared hierarchy operations"`
 	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

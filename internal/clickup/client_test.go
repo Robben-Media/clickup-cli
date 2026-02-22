@@ -870,3 +870,82 @@ func TestGuestsInvite_RequiresEmail(t *testing.T) {
 		t.Fatal("expected error for missing email, got nil")
 	}
 }
+
+// SharedHierarchy Service Tests
+
+func TestSharedHierarchyList_ReturnsResources(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/shared" {
+			t.Fatalf("expected path /v2/team/team-1/shared, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(SharedHierarchyResponse{
+			Shared: SharedResources{
+				Tasks: []TaskRef{
+					{ID: "task-1", Name: "Shared Task"},
+				},
+				Lists: []ListRef{
+					{ID: "list-1", Name: "Shared List"},
+				},
+				Folders: []FolderRef{
+					{ID: "folder-1", Name: "Shared Folder"},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.SharedHierarchy().List(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Shared.Tasks) != 1 {
+		t.Fatalf("expected 1 task, got %d", len(result.Shared.Tasks))
+	}
+
+	if result.Shared.Tasks[0].Name != "Shared Task" {
+		t.Fatalf("expected task name Shared Task, got %s", result.Shared.Tasks[0].Name)
+	}
+
+	if len(result.Shared.Lists) != 1 {
+		t.Fatalf("expected 1 list, got %d", len(result.Shared.Lists))
+	}
+
+	if result.Shared.Lists[0].Name != "Shared List" {
+		t.Fatalf("expected list name Shared List, got %s", result.Shared.Lists[0].Name)
+	}
+
+	if len(result.Shared.Folders) != 1 {
+		t.Fatalf("expected 1 folder, got %d", len(result.Shared.Folders))
+	}
+
+	if result.Shared.Folders[0].Name != "Shared Folder" {
+		t.Fatalf("expected folder name Shared Folder, got %s", result.Shared.Folders[0].Name)
+	}
+}
+
+func TestSharedHierarchyList_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.SharedHierarchy().List(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}

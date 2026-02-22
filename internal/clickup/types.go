@@ -107,6 +107,18 @@ type Member struct {
 	User User `json:"user"`
 }
 
+// SharedHierarchyResponse is the response from the shared hierarchy endpoint.
+type SharedHierarchyResponse struct {
+	Shared SharedResources `json:"shared"`
+}
+
+// SharedResources contains shared tasks, lists, and folders.
+type SharedResources struct {
+	Tasks   []TaskRef   `json:"tasks,omitempty"`
+	Lists   []ListRef   `json:"lists,omitempty"`
+	Folders []FolderRef `json:"folders,omitempty"`
+}
+
 // --- Request/Response types ---
 
 // CreateTaskRequest is the request body for creating a task.

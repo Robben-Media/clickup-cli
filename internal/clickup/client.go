@@ -107,6 +107,34 @@ func (c *Client) Guests() *GuestsService {
 	return &GuestsService{client: c}
 }
 
+// SharedHierarchy provides methods for the Shared Hierarchy API.
+func (c *Client) SharedHierarchy() *SharedHierarchyService {
+	return &SharedHierarchyService{client: c}
+}
+
+// --- SharedHierarchyService ---
+
+// SharedHierarchyService handles shared hierarchy operations.
+type SharedHierarchyService struct {
+	client *Client
+}
+
+// List returns all resources shared with the authenticated user.
+func (s *SharedHierarchyService) List(ctx context.Context, teamID string) (*SharedHierarchyResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/shared", teamID)
+
+	var result SharedHierarchyResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list shared hierarchy: %w", err)
+	}
+
+	return &result, nil
+}
+
 // --- TasksService ---
 
 // TasksService handles task operations.
