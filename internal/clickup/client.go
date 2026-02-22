@@ -673,6 +673,160 @@ func (s *ListsService) ListFolders(ctx context.Context, spaceID string) (*Folder
 	return &result, nil
 }
 
+// Get returns a list by ID with full details.
+func (s *ListsService) Get(ctx context.Context, listID string) (*ListDetail, error) {
+	if listID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/list/%s", listID)
+
+	var result ListDetail
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get list: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CreateInFolder creates a new list in a folder.
+func (s *ListsService) CreateInFolder(ctx context.Context, folderID string, req CreateListRequest) (*ListDetail, error) {
+	if folderID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	path := fmt.Sprintf("/v2/folder/%s/list", folderID)
+
+	var result ListDetail
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create list in folder: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CreateFolderless creates a new folderless list in a space.
+func (s *ListsService) CreateFolderless(ctx context.Context, spaceID string, req CreateListRequest) (*ListDetail, error) {
+	if spaceID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	path := fmt.Sprintf("/v2/space/%s/list", spaceID)
+
+	var result ListDetail
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create folderless list: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Update updates a list.
+func (s *ListsService) Update(ctx context.Context, listID string, req UpdateListRequest) (*ListDetail, error) {
+	if listID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/list/%s", listID)
+
+	var result ListDetail
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update list: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Delete deletes a list.
+func (s *ListsService) Delete(ctx context.Context, listID string) error {
+	if listID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/list/%s", listID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete list: %w", err)
+	}
+
+	return nil
+}
+
+// CreateFromTemplateInFolder creates a list from a template in a folder.
+func (s *ListsService) CreateFromTemplateInFolder(ctx context.Context, folderID, templateID string, req CreateListFromTemplateRequest) (*ListDetail, error) {
+	if folderID == "" || templateID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	path := fmt.Sprintf("/v2/folder/%s/list_template/%s", folderID, templateID)
+
+	var result ListDetail
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create list from template in folder: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CreateFromTemplateInSpace creates a folderless list from a template in a space.
+func (s *ListsService) CreateFromTemplateInSpace(ctx context.Context, spaceID, templateID string, req CreateListFromTemplateRequest) (*ListDetail, error) {
+	if spaceID == "" || templateID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	path := fmt.Sprintf("/v2/space/%s/list_template/%s", spaceID, templateID)
+
+	var result ListDetail
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create list from template in space: %w", err)
+	}
+
+	return &result, nil
+}
+
+// AddTask adds a task to a list.
+func (s *ListsService) AddTask(ctx context.Context, listID, taskID string) error {
+	if listID == "" || taskID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/list/%s/task/%s", listID, taskID)
+	if err := s.client.Post(ctx, path, nil, nil); err != nil {
+		return fmt.Errorf("add task to list: %w", err)
+	}
+
+	return nil
+}
+
+// RemoveTask removes a task from a list.
+func (s *ListsService) RemoveTask(ctx context.Context, listID, taskID string) error {
+	if listID == "" || taskID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/list/%s/task/%s", listID, taskID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("remove task from list: %w", err)
+	}
+
+	return nil
+}
+
 // --- MembersService ---
 
 // MembersService handles team member operations.

@@ -96,6 +96,43 @@ type List struct {
 	Name string `json:"name"`
 }
 
+// ListDetail represents a full list object with task count and references.
+type ListDetail struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Content   string    `json:"content,omitempty"`
+	DueDate   string    `json:"due_date,omitempty"`
+	Priority  *Priority `json:"priority,omitempty"`
+	Assignee  *User     `json:"assignee,omitempty"`
+	TaskCount int       `json:"task_count"`
+	Folder    FolderRef `json:"folder"`
+	Space     SpaceRef  `json:"space"`
+}
+
+// CreateListRequest is the request body for creating a list.
+type CreateListRequest struct {
+	Name     string `json:"name"`
+	Content  string `json:"content,omitempty"`
+	DueDate  int64  `json:"due_date,omitempty"`
+	Priority int    `json:"priority,omitempty"`
+	Assignee int    `json:"assignee,omitempty"`
+}
+
+// UpdateListRequest is the request body for updating a list.
+type UpdateListRequest struct {
+	Name          string `json:"name,omitempty"`
+	Content       string `json:"content,omitempty"`
+	DueDate       int64  `json:"due_date,omitempty"`
+	Priority      int    `json:"priority,omitempty"`
+	Assignee      int    `json:"assignee,omitempty"`
+	UnsetAssignee bool   `json:"unset_assignee,omitempty"`
+}
+
+// CreateListFromTemplateRequest is the request body for creating a list from template.
+type CreateListFromTemplateRequest struct {
+	Name string `json:"name"`
+}
+
 // Folder represents a ClickUp folder.
 type Folder struct {
 	ID    string `json:"id"`
@@ -139,7 +176,8 @@ type FolderRef struct {
 
 // SpaceRef is a reference to a space within a task.
 type SpaceRef struct {
-	ID string `json:"id"`
+	ID   string `json:"id"`
+	Name string `json:"name,omitempty"`
 }
 
 // TaskRef is a reference to a task within a time entry.

@@ -1943,3 +1943,278 @@ func TestSpacesDelete_RequiresSpaceID(t *testing.T) {
 		t.Fatal("expected error for missing space ID, got nil")
 	}
 }
+
+// --- ListsService extended tests ---
+
+func TestListsGet_ReturnsDetails(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/list/list-1" {
+			t.Fatalf("expected path /v2/list/list-1, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ListDetail{
+			ID:        "list-1",
+			Name:      "Sprint 1",
+			TaskCount: 15,
+			Folder:    FolderRef{ID: "folder-1", Name: "Backlog"},
+			Space:     SpaceRef{ID: "space-1", Name: "Engineering"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Lists().Get(context.Background(), "list-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "list-1" {
+		t.Fatalf("expected ID list-1, got %s", result.ID)
+	}
+
+	if result.Name != "Sprint 1" {
+		t.Fatalf("expected name Sprint 1, got %s", result.Name)
+	}
+
+	if result.TaskCount != 15 {
+		t.Fatalf("expected task count 15, got %d", result.TaskCount)
+	}
+}
+
+func TestListsCreateInFolder_SendsName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/folder/folder-1/list" {
+			t.Fatalf("expected path /v2/folder/folder-1/list, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["name"] != "New List" {
+			t.Fatalf("expected name New List, got %s", body["name"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ListDetail{
+			ID:   "list-new",
+			Name: "New List",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateListRequest{Name: "New List"}
+
+	result, err := client.Lists().CreateInFolder(context.Background(), "folder-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "list-new" {
+		t.Fatalf("expected ID list-new, got %s", result.ID)
+	}
+}
+
+func TestListsCreateFolderless_SendsName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/space/space-1/list" {
+			t.Fatalf("expected path /v2/space/space-1/list, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["name"] != "New List" {
+			t.Fatalf("expected name New List, got %s", body["name"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ListDetail{
+			ID:   "list-new",
+			Name: "New List",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateListRequest{Name: "New List"}
+
+	result, err := client.Lists().CreateFolderless(context.Background(), "space-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "list-new" {
+		t.Fatalf("expected ID list-new, got %s", result.ID)
+	}
+}
+
+func TestListsUpdate_SendsFields(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/list/list-1" {
+			t.Fatalf("expected path /v2/list/list-1, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["name"] != "Updated Name" {
+			t.Fatalf("expected name Updated Name, got %s", body["name"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ListDetail{
+			ID:   "list-1",
+			Name: "Updated Name",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := UpdateListRequest{Name: "Updated Name"}
+
+	result, err := client.Lists().Update(context.Background(), "list-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "Updated Name" {
+		t.Fatalf("expected name Updated Name, got %s", result.Name)
+	}
+}
+
+func TestListsDelete_SendsCorrectRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/list/list-1" {
+			t.Fatalf("expected path /v2/list/list-1, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Lists().Delete(context.Background(), "list-1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestListsAddTask_SendsCorrectRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/list/list-1/task/task-1" {
+			t.Fatalf("expected path /v2/list/list-1/task/task-1, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Lists().AddTask(context.Background(), "list-1", "task-1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestListsRemoveTask_SendsCorrectRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/list/list-1/task/task-1" {
+			t.Fatalf("expected path /v2/list/list-1/task/task-1, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Lists().RemoveTask(context.Background(), "list-1", "task-1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestListsCreateInFolder_RequiresName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Lists().CreateInFolder(context.Background(), "folder-1", CreateListRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing name, got nil")
+	}
+}
+
+func TestListsGet_RequiresListID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Lists().Get(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing list ID, got nil")
+	}
+}
