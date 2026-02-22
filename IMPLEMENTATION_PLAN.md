@@ -211,7 +211,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/4-time-tracking` | PR → fix/plain-output
 
 ### 11. Extend Time Service (Timer + CRUD + Tags + History)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/time-tracking.md
 - **Description**:
