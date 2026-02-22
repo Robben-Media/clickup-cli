@@ -107,3 +107,98 @@ All 3 foundation architecture tasks are complete:
 Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 2 (Workspaces & Authorization)
 
 ---
+
+## Task 19 - 2026-02-22
+### Completed: Create Users Service
+
+**What was implemented:**
+- Created `UsersService` with Get, Invite, Update, Remove methods
+- Implemented 4 v2 endpoints for workspace user management
+- Added types: UserDetail, UserResponse, InviteUserRequest, EditUserRequest
+- Added CLI commands: users get, users invite, users update, users remove
+- Added static error: errEmailRequired
+- Added comprehensive tests (8 test cases)
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (added UsersService with 4 methods, errEmailRequired)
+- `internal/clickup/types.go` — modified (added UserDetail, request/response types)
+- `internal/clickup/client_test.go` — modified (added 8 tests)
+- `internal/cmd/users.go` — created (CLI commands for all user operations)
+- `internal/cmd/root.go` — modified (added UsersCmd to CLI struct)
+
+**Branch:** `phase/7-users-members`
+**Commit:** `28d31cb`
+
+**Learnings for future iterations:**
+- User role codes: 1=owner, 2=admin, 3=member, 4=guest
+- Created roleName() helper for human-readable role display
+- Linter (err113) requires static errors - added errEmailRequired
+
+---
+
+## Task 20 - 2026-02-22
+### Completed: Extend Members Service
+
+**What was implemented:**
+- Added ListMembers, TaskMembers methods to existing MembersService
+- Implemented 2 v2 endpoints for list/task level member listing
+- Added types: MemberUser, MemberUsersResponse
+- Added CLI commands: members list-members, members task-members
+- Added comprehensive tests (4 test cases)
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (extended MembersService with 2 methods)
+- `internal/clickup/types.go` — modified (added MemberUser, MemberUsersResponse)
+- `internal/clickup/client_test.go` — modified (added 4 tests)
+- `internal/cmd/members.go` — modified (added ListMembersCmd, TaskMembersCmd)
+
+**Branch:** `phase/7-users-members`
+**Commit:** `5cd7965`
+
+**Learnings for future iterations:**
+- List/task members return flat user objects (not wrapped in {"user": {}})
+- Preallocate slices with make([][]string, 0, len) when iterating
+
+---
+
+## Task 21 - 2026-02-22
+### Completed: Create Attachments Service
+
+**What was implemented:**
+- Created `AttachmentsService` with Upload, List, Create methods
+- Implemented 3 endpoints (1 v2 + 2 v3) for file attachment management
+- Added types: Attachment, AttachmentsResponse
+- Added CLI commands: attachments upload, attachments list, attachments create
+- v2 Upload uses PostMultipart for file uploads to tasks
+- v3 List/Create use workspace ID and parent_type/parent_id path segments
+- Added comprehensive tests (6 test cases)
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (added AttachmentsService with 3 methods, io import)
+- `internal/clickup/types.go` — modified (added Attachment, AttachmentsResponse)
+- `internal/clickup/client_test.go` — modified (added 6 tests, bytes import)
+- `internal/cmd/attachments.go` — created (CLI commands for all attachment operations)
+- `internal/cmd/root.go` — modified (added AttachmentsCmd to CLI struct)
+
+**Branch:** `phase/7-users-members`
+**Commit:** `9cdba7c`
+
+**Learnings for future iterations:**
+- v3 attachment paths: /v3/workspaces/{wid}/{parent_type}/{parent_id}/attachments
+- parent_type values: task, list, folder, space
+- PostMultipart uses field name "attachment" for ClickUp API
+
+---
+
+## Phase 7 Complete
+
+All 3 Users/Members/Attachments tasks are complete:
+1. ✅ Task 19: Create Users Service (4 endpoints)
+2. ✅ Task 20: Extend Members Service (2 endpoints)
+3. ✅ Task 21: Create Attachments Service (3 endpoints)
+
+Phase 7 adds 9 endpoints for user management, member listing, and file attachments.
+
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/14
+
+**Next:** Phase 8 - v3 Domains (P1) - Tasks 22-23 (Chat, Docs)

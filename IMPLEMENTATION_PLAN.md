@@ -387,7 +387,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/7-users-members` | PR → fix/plain-output
 
 ### 19. Create Users Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/users.md
 - **Description**:
@@ -404,7 +404,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; user CRUD works
 
 ### 20. Extend Members Service (List/Task Members)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/members.md
 - **Description**:
@@ -419,7 +419,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; member listing works
 
 ### 21. Create Attachments Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1, 2
 - **Spec**: specs/features/attachments.md
 - **Description**:
