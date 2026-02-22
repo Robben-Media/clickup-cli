@@ -35,6 +35,7 @@ type CLI struct {
 	Comments   CommentsCmd      `cmd:"" help:"Comment operations"`
 	Time       TimeCmd          `cmd:"" help:"Time tracking"`
 	Views      ViewsCmd         `cmd:"" help:"View operations"`
+	Webhooks   WebhooksCmd      `cmd:"" help:"Webhook operations"`
 	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

@@ -15,6 +15,8 @@ var (
 	errNameRequired        = errors.New("name is required")
 	errTextRequired        = errors.New("comment text is required")
 	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
+	errEndpointRequired    = errors.New("endpoint URL is required")
+	errEventsRequired      = errors.New("at least one event is required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -94,6 +96,11 @@ func (c *Client) Time() *TimeService {
 // Views provides methods for the Views API.
 func (c *Client) Views() *ViewsService {
 	return &ViewsService{client: c}
+}
+
+// Webhooks provides methods for the Webhooks API.
+func (c *Client) Webhooks() *WebhooksService {
+	return &WebhooksService{client: c}
 }
 
 // --- TasksService ---
@@ -607,6 +614,83 @@ func (s *ViewsService) Delete(ctx context.Context, viewID string) error {
 	path := fmt.Sprintf("/v2/view/%s", viewID)
 	if err := s.client.Delete(ctx, path); err != nil {
 		return fmt.Errorf("delete view: %w", err)
+	}
+
+	return nil
+}
+
+// --- WebhooksService ---
+
+// WebhooksService handles webhook operations.
+type WebhooksService struct {
+	client *Client
+}
+
+// List returns webhooks for a team.
+func (s *WebhooksService) List(ctx context.Context, teamID string) (*WebhooksResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/webhook", teamID)
+
+	var result WebhooksResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list webhooks: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Create creates a webhook for a team.
+func (s *WebhooksService) Create(ctx context.Context, teamID string, req CreateWebhookRequest) (*Webhook, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Endpoint == "" {
+		return nil, errEndpointRequired
+	}
+
+	if len(req.Events) == 0 {
+		return nil, errEventsRequired
+	}
+
+	var result Webhook
+
+	path := fmt.Sprintf("/v2/team/%s/webhook", teamID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create webhook: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Update updates a webhook.
+func (s *WebhooksService) Update(ctx context.Context, webhookID string, req UpdateWebhookRequest) (*Webhook, error) {
+	if webhookID == "" {
+		return nil, errIDRequired
+	}
+
+	var result Webhook
+
+	path := fmt.Sprintf("/v2/webhook/%s", webhookID)
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update webhook: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Delete deletes a webhook.
+func (s *WebhooksService) Delete(ctx context.Context, webhookID string) error {
+	if webhookID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/webhook/%s", webhookID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete webhook: %w", err)
 	}
 
 	return nil
