@@ -156,6 +156,7 @@ Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 
 
 **Branch:** `phase/5-task-extensions`
 **Commit:** `8ad640e`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/12
 
 **Learnings for future iterations:**
 - Use `r.RequestURI` in tests to check URL-encoded paths; `r.URL.Path` is decoded by Go's http server
