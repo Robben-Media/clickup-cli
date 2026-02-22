@@ -510,3 +510,363 @@ func TestRolesList_RequiresTeamID(t *testing.T) {
 		t.Fatal("expected error for missing team ID, got nil")
 	}
 }
+
+// Guests Service Tests
+
+func TestGuestsGet_ReturnsGuest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/guest/123" {
+			t.Fatalf("expected path /v2/team/team-1/guest/123, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(GuestResponse{
+			Guest: Guest{ID: 123, Username: "client-bob", Email: "bob@client.com", TasksCount: 3},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Guests().Get(context.Background(), "team-1", 123)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != 123 {
+		t.Fatalf("expected ID 123, got %d", result.ID)
+	}
+
+	if result.Username != "client-bob" {
+		t.Fatalf("expected username client-bob, got %s", result.Username)
+	}
+}
+
+func TestGuestsInvite_SendsEmailAndPermissions(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/guest" {
+			t.Fatalf("expected path /v2/team/team-1/guest, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["email"] != "bob@client.com" {
+			t.Fatalf("expected email bob@client.com, got %s", body["email"])
+		}
+
+		if body["can_edit_tags"] != true {
+			t.Fatalf("expected can_edit_tags true, got %v", body["can_edit_tags"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(GuestResponse{
+			Guest: Guest{ID: 123, Username: "client-bob", Email: "bob@client.com"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Guests().Invite(context.Background(), "team-1", InviteGuestRequest{
+		Email:       "bob@client.com",
+		CanEditTags: true,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != 123 {
+		t.Fatalf("expected ID 123, got %d", result.ID)
+	}
+}
+
+func TestGuestsUpdate_SendsPermissions(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/guest/123" {
+			t.Fatalf("expected path /v2/team/team-1/guest/123, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["can_edit_tags"] != true {
+			t.Fatalf("expected can_edit_tags true, got %v", body["can_edit_tags"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(GuestResponse{
+			Guest: Guest{ID: 123, Username: "client-bob", Email: "bob@client.com"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	canEdit := true
+
+	result, err := client.Guests().Update(context.Background(), "team-1", 123, EditGuestRequest{
+		CanEditTags: &canEdit,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != 123 {
+		t.Fatalf("expected ID 123, got %d", result.ID)
+	}
+}
+
+func TestGuestsRemove_SendsCorrectRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/guest/123" {
+			t.Fatalf("expected path /v2/team/team-1/guest/123, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Guests().Remove(context.Background(), "team-1", 123)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestGuestsAddToTask_SendsPermission(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/guest/123" {
+			t.Fatalf("expected path /v2/task/task-1/guest/123, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["permission_level"] != "edit" {
+			t.Fatalf("expected permission_level edit, got %s", body["permission_level"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(GuestResponse{
+			Guest: Guest{ID: 123, Username: "client-bob", Email: "bob@client.com", TasksCount: 1},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Guests().AddToTask(context.Background(), "task-1", 123, "edit")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.TasksCount != 1 {
+		t.Fatalf("expected tasks_count 1, got %d", result.TasksCount)
+	}
+}
+
+func TestGuestsRemoveFromTask_SendsCorrectRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/guest/123" {
+			t.Fatalf("expected path /v2/task/task-1/guest/123, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Guests().RemoveFromTask(context.Background(), "task-1", 123)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestGuestsAddToList_SendsPermission(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/list/list-1/guest/123" {
+			t.Fatalf("expected path /v2/list/list-1/guest/123, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["permission_level"] != "read" {
+			t.Fatalf("expected permission_level read, got %s", body["permission_level"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(GuestResponse{
+			Guest: Guest{ID: 123, Username: "client-bob", Email: "bob@client.com", ListsCount: 1},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Guests().AddToList(context.Background(), "list-1", 123, "read")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ListsCount != 1 {
+		t.Fatalf("expected lists_count 1, got %d", result.ListsCount)
+	}
+}
+
+func TestGuestsRemoveFromList_SendsCorrectRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/list/list-1/guest/123" {
+			t.Fatalf("expected path /v2/list/list-1/guest/123, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Guests().RemoveFromList(context.Background(), "list-1", 123)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestGuestsAddToFolder_SendsPermission(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/folder/folder-1/guest/123" {
+			t.Fatalf("expected path /v2/folder/folder-1/guest/123, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["permission_level"] != "comment" {
+			t.Fatalf("expected permission_level comment, got %s", body["permission_level"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(GuestResponse{
+			Guest: Guest{ID: 123, Username: "client-bob", Email: "bob@client.com", FoldersCount: 1},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Guests().AddToFolder(context.Background(), "folder-1", 123, "comment")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.FoldersCount != 1 {
+		t.Fatalf("expected folders_count 1, got %d", result.FoldersCount)
+	}
+}
+
+func TestGuestsRemoveFromFolder_SendsCorrectRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/folder/folder-1/guest/123" {
+			t.Fatalf("expected path /v2/folder/folder-1/guest/123, got %s", r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Guests().RemoveFromFolder(context.Background(), "folder-1", 123)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestGuestsInvite_RequiresEmail(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Guests().Invite(context.Background(), "team-1", InviteGuestRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing email, got nil")
+	}
+}

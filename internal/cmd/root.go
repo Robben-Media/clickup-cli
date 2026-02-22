@@ -37,6 +37,7 @@ type CLI struct {
 	Time       TimeCmd          `cmd:"" help:"Time tracking"`
 	Groups     GroupsCmd        `cmd:"" help:"User group operations"`
 	Roles      RolesCmd         `cmd:"" help:"Custom role operations"`
+	Guests     GuestsCmd        `cmd:"" help:"Guest operations"`
 	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

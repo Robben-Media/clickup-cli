@@ -15,7 +15,7 @@ var (
 	errNameRequired        = errors.New("name is required")
 	errTextRequired        = errors.New("comment text is required")
 	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
-	errOAuthFieldsRequired = errors.New("client_id, client_secret, and code are required")
+	errEmailRequired       = errors.New("email is required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -100,6 +100,11 @@ func (c *Client) UserGroups() *UserGroupsService {
 // Roles provides methods for the Roles API.
 func (c *Client) Roles() *RolesService {
 	return &RolesService{client: c}
+}
+
+// Guests provides methods for the Guests API.
+func (c *Client) Guests() *GuestsService {
+	return &GuestsService{client: c}
 }
 
 // --- TasksService ---
@@ -492,4 +497,173 @@ func (s *RolesService) List(ctx context.Context, teamID string) (*CustomRolesRes
 	}
 
 	return &result, nil
+}
+
+// --- GuestsService ---
+
+// GuestsService handles guest operations.
+type GuestsService struct {
+	client *Client
+}
+
+// Get returns a guest by ID.
+func (s *GuestsService) Get(ctx context.Context, teamID string, guestID int) (*Guest, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	var result GuestResponse
+
+	path := fmt.Sprintf("/v2/team/%s/guest/%d", teamID, guestID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get guest: %w", err)
+	}
+
+	return &result.Guest, nil
+}
+
+// Invite invites a new guest to the workspace.
+func (s *GuestsService) Invite(ctx context.Context, teamID string, req InviteGuestRequest) (*Guest, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Email == "" {
+		return nil, errEmailRequired
+	}
+
+	var result GuestResponse
+
+	path := fmt.Sprintf("/v2/team/%s/guest", teamID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("invite guest: %w", err)
+	}
+
+	return &result.Guest, nil
+}
+
+// Update updates a guest's permissions.
+func (s *GuestsService) Update(ctx context.Context, teamID string, guestID int, req EditGuestRequest) (*Guest, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	var result GuestResponse
+
+	path := fmt.Sprintf("/v2/team/%s/guest/%d", teamID, guestID)
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update guest: %w", err)
+	}
+
+	return &result.Guest, nil
+}
+
+// Remove removes a guest from the workspace.
+func (s *GuestsService) Remove(ctx context.Context, teamID string, guestID int) error {
+	if teamID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/guest/%d", teamID, guestID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("remove guest: %w", err)
+	}
+
+	return nil
+}
+
+// AddToTask adds a guest to a task with the specified permission level.
+func (s *GuestsService) AddToTask(ctx context.Context, taskID string, guestID int, permissionLevel string) (*Guest, error) {
+	if taskID == "" {
+		return nil, errIDRequired
+	}
+
+	req := AddGuestToResourceRequest{PermissionLevel: permissionLevel}
+
+	var result GuestResponse
+
+	path := fmt.Sprintf("/v2/task/%s/guest/%d", taskID, guestID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("add guest to task: %w", err)
+	}
+
+	return &result.Guest, nil
+}
+
+// RemoveFromTask removes a guest from a task.
+func (s *GuestsService) RemoveFromTask(ctx context.Context, taskID string, guestID int) error {
+	if taskID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/guest/%d", taskID, guestID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("remove guest from task: %w", err)
+	}
+
+	return nil
+}
+
+// AddToList adds a guest to a list with the specified permission level.
+func (s *GuestsService) AddToList(ctx context.Context, listID string, guestID int, permissionLevel string) (*Guest, error) {
+	if listID == "" {
+		return nil, errIDRequired
+	}
+
+	req := AddGuestToResourceRequest{PermissionLevel: permissionLevel}
+
+	var result GuestResponse
+
+	path := fmt.Sprintf("/v2/list/%s/guest/%d", listID, guestID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("add guest to list: %w", err)
+	}
+
+	return &result.Guest, nil
+}
+
+// RemoveFromList removes a guest from a list.
+func (s *GuestsService) RemoveFromList(ctx context.Context, listID string, guestID int) error {
+	if listID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/list/%s/guest/%d", listID, guestID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("remove guest from list: %w", err)
+	}
+
+	return nil
+}
+
+// AddToFolder adds a guest to a folder with the specified permission level.
+func (s *GuestsService) AddToFolder(ctx context.Context, folderID string, guestID int, permissionLevel string) (*Guest, error) {
+	if folderID == "" {
+		return nil, errIDRequired
+	}
+
+	req := AddGuestToResourceRequest{PermissionLevel: permissionLevel}
+
+	var result GuestResponse
+
+	path := fmt.Sprintf("/v2/folder/%s/guest/%d", folderID, guestID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("add guest to folder: %w", err)
+	}
+
+	return &result.Guest, nil
+}
+
+// RemoveFromFolder removes a guest from a folder.
+func (s *GuestsService) RemoveFromFolder(ctx context.Context, folderID string, guestID int) error {
+	if folderID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/folder/%s/guest/%d", folderID, guestID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("remove guest from folder: %w", err)
+	}
+
+	return nil
 }

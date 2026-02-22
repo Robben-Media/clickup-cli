@@ -226,3 +226,40 @@ type CustomRole struct {
 type CustomRolesResponse struct {
 	CustomRoles []CustomRole `json:"custom_roles"`
 }
+
+// --- Guest types ---
+
+// Guest represents a ClickUp guest user.
+type Guest struct {
+	ID           int    `json:"id"`
+	Username     string `json:"username"`
+	Email        string `json:"email"`
+	TasksCount   int    `json:"tasks_count,omitempty"`
+	ListsCount   int    `json:"lists_count,omitempty"`
+	FoldersCount int    `json:"folders_count,omitempty"`
+}
+
+// GuestResponse is the response for getting a guest.
+type GuestResponse struct {
+	Guest Guest `json:"guest"`
+}
+
+// InviteGuestRequest is the request body for inviting a guest.
+type InviteGuestRequest struct {
+	Email               string `json:"email"`
+	CanEditTags         bool   `json:"can_edit_tags,omitempty"`
+	CanSeeTimeSpent     bool   `json:"can_see_time_spent,omitempty"`
+	CanSeeTimeEstimated bool   `json:"can_see_time_estimated,omitempty"`
+}
+
+// EditGuestRequest is the request body for editing a guest.
+type EditGuestRequest struct {
+	CanEditTags         *bool `json:"can_edit_tags,omitempty"`
+	CanSeeTimeSpent     *bool `json:"can_see_time_spent,omitempty"`
+	CanSeeTimeEstimated *bool `json:"can_see_time_estimated,omitempty"`
+}
+
+// AddGuestToResourceRequest is the request body for adding a guest to a resource.
+type AddGuestToResourceRequest struct {
+	PermissionLevel string `json:"permission_level"` // "read", "comment", "edit", "create"
+}
