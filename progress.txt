@@ -435,3 +435,31 @@ Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
 - The workspaces list endpoint is the entry point for workspace discovery
 
 ---
+
+## Task 5 - 2026-02-22
+### Completed: Implement Authorization Service
+
+**What was implemented:**
+- Created `AuthService` with Whoami and Token methods
+- Implemented `GET /v2/user` (get authorized user)
+- Implemented `POST /v2/oauth/token` (OAuth token exchange)
+- Added Auth types: AuthUser, AuthorizedUserResponse, OAuthTokenRequest, OAuthTokenResponse
+- Added CLI commands: `auth whoami`, `auth token`
+- Added 3 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added Auth() accessor and AuthService with all methods
+- `internal/clickup/types.go` — added all Auth types
+- `internal/clickup/client_test.go` — added tests for Auth service
+- `internal/cmd/auth.go` — added whoami and token commands
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `3b108a2`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- The err113 linter requires static errors instead of dynamic errors.New()
+- The tagliatelle linter wants snake_case JSON fields, but ClickUp API uses camelCase - use nolint comment
+- Droid Shield secret scanner can detect test values that look like tokens - use simple placeholder values
+
+---
