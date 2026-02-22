@@ -530,3 +530,36 @@ Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
 - Template creation requires both location (folder/space) AND template ID
 
 ---
+
+## Task 7 (Folders) - 2026-02-22
+### Completed: Create Folders Service
+
+**What was implemented:**
+- Created `FoldersService` as a new top-level service for full folder management
+- Implemented `GET /v2/folder/{folder_id}` (get folder details)
+- Implemented `POST /v2/space/{space_id}/folder` (create folder)
+- Implemented `PUT /v2/folder/{folder_id}` (update folder)
+- Implemented `DELETE /v2/folder/{folder_id}` (delete folder)
+- Implemented `POST /v2/space/{space_id}/folder_template/{template_id}` (create from template)
+- Added types: FolderDetail, CreateFolderRequest, UpdateFolderRequest, CreateFolderFromTemplateRequest
+- Added CLI commands: folders get, create, update, delete, from-template
+- Added 6 comprehensive tests for all service methods
+- Delete warns user unless --force is used
+
+**Files changed:**
+- `internal/clickup/client.go` — added FoldersService with all methods
+- `internal/clickup/types.go` — added FolderDetail and related types
+- `internal/clickup/client_test.go` — added 6 tests for Folders service
+- `internal/cmd/folders.go` — created with all CLI commands
+- `internal/cmd/root.go` — added FoldersCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `258bb61`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Folder `task_count` is returned as string, not number (API quirk)
+- Deleting a folder moves its lists to folderless, doesn't delete them
+- Template creation endpoint requires space ID AND template ID
+
+---
