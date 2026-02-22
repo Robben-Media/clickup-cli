@@ -105,7 +105,7 @@ func (cmd *WorkspacesSeatsCmd) Run(ctx context.Context) error {
 	}
 	if outfmt.IsPlain(ctx) {
 		headers := []string{"TYPE", "FILLED", "TOTAL", "EMPTY"}
-		var rows [][]string
+		rows := make([][]string, 0, 2)
 		rows = append(rows, []string{
 			"members",
 			fmt.Sprintf("%d", result.Members.FilledSeats),
