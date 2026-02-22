@@ -34,6 +34,7 @@ type CLI struct {
 	Members    MembersCmd       `cmd:"" help:"Team member operations"`
 	Comments   CommentsCmd      `cmd:"" help:"Comment operations"`
 	Time       TimeCmd          `cmd:"" help:"Time tracking"`
+	Tags       TagsCmd          `cmd:"" help:"Tag operations"`
 	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 
