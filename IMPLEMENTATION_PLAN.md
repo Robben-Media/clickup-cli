@@ -74,7 +74,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/2-workspaces-auth` | PR → fix/plain-output
 
 ### 4. Implement Workspaces Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/workspaces.md
 - **Description**:

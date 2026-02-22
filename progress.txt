@@ -107,3 +107,51 @@ All 3 foundation architecture tasks are complete:
 Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 2 (Workspaces & Authorization)
 
 ---
+
+## Task 4 - 2026-02-22
+### Completed: Implement Workspaces Service
+
+**What was implemented:**
+- Created `WorkspacesService` with List, Plan, Seats methods
+- Implemented `GET /v2/team` (list workspaces) - returns all authorized workspaces
+- Implemented `GET /v2/team/{team_id}/plan` (get plan) - returns workspace plan details
+- Implemented `GET /v2/team/{team_id}/seats` (get seats) - returns workspace seat usage
+- Added CLI commands:
+  - `workspaces list` - displays all workspaces with ID, name, and member count
+  - `workspaces plan --team <team_id>` - displays workspace plan (Team ID, Plan ID, Plan Name)
+  - `workspaces seats --team <team_id>` - displays member and guest seat usage (filled, total, empty)
+- Added types:
+  - `WorkspacesResponse` - response wrapper for workspace list
+  - `Workspace` - individual workspace with ID, name, color, members
+  - `WorkspacePlanResponse` - plan information
+  - `WorkspaceSeatsResponse` - seat usage information
+  - `SeatInfo` - seat details (filled, total, empty)
+- Added comprehensive tests:
+  - `TestWorkspacesList_ReturnsTeams` - verifies list functionality
+  - `TestWorkspacesPlan_ReturnsPlanInfo` - verifies plan retrieval
+  - `TestWorkspacesSeats_ReturnsSeatInfo` - verifies seats retrieval
+  - `TestWorkspacesPlan_RequiresTeamID` - validates team ID requirement
+  - `TestWorkspacesSeats_RequiresTeamID` - validates team ID requirement
+
+**Files changed:**
+- `internal/clickup/client.go` — modified (added WorkspacesService and accessor)
+- `internal/clickup/types.go` — modified (added Workspace types)
+- `internal/cmd/workspaces.go` — created (CLI commands for list, plan, seats)
+- `internal/cmd/root.go` — modified (registered Workspaces command)
+- `internal/clickup/client_test.go` — modified (added tests for all workspace methods)
+
+**Branch:** `phase/2-workspaces-auth`
+**Commits:**
+- `50aaaa2` - feat: implement Workspaces Service (task 4)
+- `d098fed` - fix: preallocate rows slice in workspaces seats command
+- `baf6d30` - fix: avoid nil pointer in workspace validation tests
+
+**Learnings for future iterations:**
+- The `prealloc` linter suggests preallocating slices when size is known - use `make([][]string, 0, 2)` instead of `var rows [][]string`
+- When writing validation tests that don't make HTTP requests, create clients without server to avoid nil pointer dereferences
+- All three output formats (JSON, plain TSV, human-readable) must be supported for each command
+- Plain output uses tab-separated values with headers, while human output uses formatted printing to stdout/stderr
+
+**Next:** Task 5 - Implement Authorization Service (auth whoami, auth token)
+
+---
