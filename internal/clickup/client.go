@@ -11,16 +11,17 @@ import (
 )
 
 var (
-	errIDRequired           = errors.New("id is required")
-	errNameRequired         = errors.New("name is required")
-	errTextRequired         = errors.New("comment text is required")
-	errWorkspaceIDRequired  = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
-	errEmailRequired        = errors.New("email is required")
-	errOAuthFieldsRequired  = errors.New("client_id, client_secret, and code are required")
-	errTaskIDRequired       = errors.New("at least one task ID is required")
-	errSourceTaskIDRequired = errors.New("at least one source task ID is required")
-	errEndpointRequired     = errors.New("endpoint URL is required")
-	errEventsRequired       = errors.New("at least one event is required")
+	errIDRequired            = errors.New("id is required")
+	errNameRequired          = errors.New("name is required")
+	errTextRequired          = errors.New("comment text is required")
+	errWorkspaceIDRequired   = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
+	errEmailRequired         = errors.New("email is required")
+	errOAuthFieldsRequired   = errors.New("client_id, client_secret, and code are required")
+	errTaskIDRequired        = errors.New("at least one task ID is required")
+	errSourceTaskIDRequired  = errors.New("at least one source task ID is required")
+	errEndpointRequired      = errors.New("endpoint URL is required")
+	errEventsRequired        = errors.New("at least one event is required")
+	errKeyResultTypeRequired = errors.New("key result type is required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -170,6 +171,11 @@ func (c *Client) Views() *ViewsService {
 // Webhooks provides methods for the Webhooks API.
 func (c *Client) Webhooks() *WebhooksService {
 	return &WebhooksService{client: c}
+}
+
+// Goals provides methods for the Goals API.
+func (c *Client) Goals() *GoalsService {
+	return &GoalsService{client: c}
 }
 
 // Workspaces provides methods for the Workspaces API.
@@ -2548,6 +2554,152 @@ func (s *WebhooksService) Delete(ctx context.Context, webhookID string) error {
 	path := fmt.Sprintf("/v2/webhook/%s", webhookID)
 	if err := s.client.Delete(ctx, path); err != nil {
 		return fmt.Errorf("delete webhook: %w", err)
+	}
+
+	return nil
+}
+
+// --- GoalsService ---
+
+// GoalsService handles goal and key result operations.
+type GoalsService struct {
+	client *Client
+}
+
+// List returns all goals for a team.
+func (s *GoalsService) List(ctx context.Context, teamID string, includeCompleted bool) (*GoalsResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/goal", teamID)
+	if includeCompleted {
+		path += "?include_closed=true"
+	}
+
+	var result GoalsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list goals: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Get returns a single goal with key results.
+func (s *GoalsService) Get(ctx context.Context, goalID string) (*Goal, error) {
+	if goalID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/goal/%s", goalID)
+
+	var result GoalResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get goal: %w", err)
+	}
+
+	return &result.Goal, nil
+}
+
+// Create creates a new goal.
+func (s *GoalsService) Create(ctx context.Context, teamID string, req CreateGoalRequest) (*Goal, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	var result GoalResponse
+
+	path := fmt.Sprintf("/v2/team/%s/goal", teamID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create goal: %w", err)
+	}
+
+	return &result.Goal, nil
+}
+
+// Update updates a goal.
+func (s *GoalsService) Update(ctx context.Context, goalID string, req UpdateGoalRequest) (*Goal, error) {
+	if goalID == "" {
+		return nil, errIDRequired
+	}
+
+	var result GoalResponse
+
+	path := fmt.Sprintf("/v2/goal/%s", goalID)
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update goal: %w", err)
+	}
+
+	return &result.Goal, nil
+}
+
+// Delete deletes a goal and all its key results.
+func (s *GoalsService) Delete(ctx context.Context, goalID string) error {
+	if goalID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/goal/%s", goalID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete goal: %w", err)
+	}
+
+	return nil
+}
+
+// CreateKeyResult creates a key result for a goal.
+func (s *GoalsService) CreateKeyResult(ctx context.Context, goalID string, req CreateKeyResultRequest) (*KeyResult, error) {
+	if goalID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	if req.Type == "" {
+		return nil, errKeyResultTypeRequired
+	}
+
+	var result KeyResultResponse
+
+	path := fmt.Sprintf("/v2/goal/%s/key_result", goalID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create key result: %w", err)
+	}
+
+	return &result.KeyResult, nil
+}
+
+// UpdateKeyResult updates a key result's progress.
+func (s *GoalsService) UpdateKeyResult(ctx context.Context, keyResultID string, req EditKeyResultRequest) (*KeyResult, error) {
+	if keyResultID == "" {
+		return nil, errIDRequired
+	}
+
+	var result KeyResultResponse
+
+	path := fmt.Sprintf("/v2/key_result/%s", keyResultID)
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update key result: %w", err)
+	}
+
+	return &result.KeyResult, nil
+}
+
+// DeleteKeyResult deletes a key result.
+func (s *GoalsService) DeleteKeyResult(ctx context.Context, keyResultID string) error {
+	if keyResultID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/key_result/%s", keyResultID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete key result: %w", err)
 	}
 
 	return nil

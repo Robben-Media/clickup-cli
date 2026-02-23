@@ -51,6 +51,7 @@ type CLI struct {
 	Fields        FieldsCmd        `cmd:"" help:"Custom field operations"`
 	Views         ViewsCmd         `cmd:"" help:"View operations"`
 	Webhooks      WebhooksCmd      `cmd:"" help:"Webhook operations"`
+	Goals         GoalsCmd         `cmd:"" help:"Goal and key result operations"`
 	VersionCmd    VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

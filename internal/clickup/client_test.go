@@ -6089,3 +6089,517 @@ func TestWebhooksDelete_RequiresID(t *testing.T) {
 		t.Fatal("expected error for missing webhook ID, got nil")
 	}
 }
+
+// Goals Service tests
+
+func TestGoalsList_ReturnsGoals(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/goal" {
+			t.Fatalf("expected path /v2/team/team-1/goal, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(GoalsResponse{
+			Goals: []Goal{
+				{ID: "g-123", Name: "Q1 Revenue", Description: "Hit $100k", PercentCompleted: 65, DueDate: "1710000000000"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Goals().List(context.Background(), "team-1", false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Goals) != 1 {
+		t.Fatalf("expected 1 goal, got %d", len(result.Goals))
+	}
+
+	if result.Goals[0].Name != "Q1 Revenue" {
+		t.Fatalf("expected goal name Q1 Revenue, got %s", result.Goals[0].Name)
+	}
+
+	if result.Goals[0].PercentCompleted != 65 {
+		t.Fatalf("expected 65%% complete, got %d", result.Goals[0].PercentCompleted)
+	}
+}
+
+func TestGoalsList_WithIncludeCompleted(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.RawQuery != "include_closed=true" {
+			t.Fatalf("expected query include_closed=true, got %s", r.URL.RawQuery)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(GoalsResponse{Goals: []Goal{}})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Goals().List(context.Background(), "team-1", true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestGoalsList_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Goals().List(context.Background(), "", false)
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestGoalsGet_ReturnsGoal(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/goal/g-123" {
+			t.Fatalf("expected path /v2/goal/g-123, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(GoalResponse{
+			Goal: Goal{
+				ID:               "g-123",
+				Name:             "Q1 Revenue",
+				Description:      "Hit $100k",
+				PercentCompleted: 65,
+				KeyResults: []KeyResult{
+					{ID: "kr-1", Name: "Close 10 deals", Type: "number", StepsStart: 0, StepsEnd: 10, StepsCurrent: 6},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Goals().Get(context.Background(), "g-123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "Q1 Revenue" {
+		t.Fatalf("expected goal name Q1 Revenue, got %s", result.Name)
+	}
+
+	if len(result.KeyResults) != 1 {
+		t.Fatalf("expected 1 key result, got %d", len(result.KeyResults))
+	}
+
+	if result.KeyResults[0].Name != "Close 10 deals" {
+		t.Fatalf("expected key result name Close 10 deals, got %s", result.KeyResults[0].Name)
+	}
+}
+
+func TestGoalsGet_RequiresGoalID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Goals().Get(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing goal ID, got nil")
+	}
+}
+
+func TestGoalsCreate_ReturnsGoal(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/goal" {
+			t.Fatalf("expected path /v2/team/team-1/goal, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		var req CreateGoalRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.Name != "New Goal" {
+			t.Fatalf("expected name New Goal, got %s", req.Name)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(GoalResponse{
+			Goal: Goal{
+				ID:          "g-456",
+				Name:        "New Goal",
+				Description: "Test description",
+				DateCreated: "1700000000000",
+				DueDate:     "1710000000000",
+				Color:       "#ff0000",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateGoalRequest{
+		Name:        "New Goal",
+		Description: "Test description",
+		DueDate:     1710000000000,
+		Color:       "#ff0000",
+	}
+
+	result, err := client.Goals().Create(context.Background(), "team-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "g-456" {
+		t.Fatalf("expected ID g-456, got %s", result.ID)
+	}
+
+	if result.Name != "New Goal" {
+		t.Fatalf("expected name New Goal, got %s", result.Name)
+	}
+}
+
+func TestGoalsCreate_RequiresTeamIDAndName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Goals().Create(context.Background(), "", CreateGoalRequest{Name: "test"})
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+
+	_, err = client.Goals().Create(context.Background(), "team-1", CreateGoalRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing name, got nil")
+	}
+}
+
+func TestGoalsUpdate_ReturnsGoal(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/goal/g-123" {
+			t.Fatalf("expected path /v2/goal/g-123, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(GoalResponse{
+			Goal: Goal{
+				ID:               "g-123",
+				Name:             "Updated Goal",
+				PercentCompleted: 75,
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := UpdateGoalRequest{Name: "Updated Goal"}
+
+	result, err := client.Goals().Update(context.Background(), "g-123", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "Updated Goal" {
+		t.Fatalf("expected name Updated Goal, got %s", result.Name)
+	}
+}
+
+func TestGoalsUpdate_RequiresGoalID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Goals().Update(context.Background(), "", UpdateGoalRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing goal ID, got nil")
+	}
+}
+
+func TestGoalsDelete_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/goal/g-123" {
+			t.Fatalf("expected path /v2/goal/g-123, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Goals().Delete(context.Background(), "g-123"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestGoalsDelete_RequiresGoalID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Goals().Delete(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing goal ID, got nil")
+	}
+}
+
+func TestGoalsCreateKeyResult_ReturnsKeyResult(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/goal/g-123/key_result" {
+			t.Fatalf("expected path /v2/goal/g-123/key_result, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		var req CreateKeyResultRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.Name != "Close 10 deals" {
+			t.Fatalf("expected name Close 10 deals, got %s", req.Name)
+		}
+
+		if req.Type != "number" {
+			t.Fatalf("expected type number, got %s", req.Type)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(KeyResultResponse{
+			KeyResult: KeyResult{
+				ID:           "kr-456",
+				Name:         "Close 10 deals",
+				Type:         "number",
+				StepsStart:   0,
+				StepsEnd:     10,
+				StepsCurrent: 0,
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateKeyResultRequest{
+		Name:       "Close 10 deals",
+		Type:       "number",
+		StepsStart: 0,
+		StepsEnd:   10,
+	}
+
+	result, err := client.Goals().CreateKeyResult(context.Background(), "g-123", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "kr-456" {
+		t.Fatalf("expected ID kr-456, got %s", result.ID)
+	}
+
+	if result.Name != "Close 10 deals" {
+		t.Fatalf("expected name Close 10 deals, got %s", result.Name)
+	}
+}
+
+func TestGoalsCreateKeyResult_RequiresGoalIDNameAndType(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Goals().CreateKeyResult(context.Background(), "", CreateKeyResultRequest{Name: "test", Type: "number"})
+	if err == nil {
+		t.Fatal("expected error for missing goal ID, got nil")
+	}
+
+	_, err = client.Goals().CreateKeyResult(context.Background(), "g-123", CreateKeyResultRequest{Type: "number"})
+	if err == nil {
+		t.Fatal("expected error for missing name, got nil")
+	}
+
+	_, err = client.Goals().CreateKeyResult(context.Background(), "g-123", CreateKeyResultRequest{Name: "test"})
+	if err == nil {
+		t.Fatal("expected error for missing type, got nil")
+	}
+}
+
+func TestGoalsUpdateKeyResult_ReturnsKeyResult(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/key_result/kr-456" {
+			t.Fatalf("expected path /v2/key_result/kr-456, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		var req EditKeyResultRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.StepsCurrent != 7 {
+			t.Fatalf("expected steps_current 7, got %d", req.StepsCurrent)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(KeyResultResponse{
+			KeyResult: KeyResult{
+				ID:           "kr-456",
+				Name:         "Close 10 deals",
+				Type:         "number",
+				StepsStart:   0,
+				StepsEnd:     10,
+				StepsCurrent: 7,
+				Note:         "Updated progress",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := EditKeyResultRequest{
+		StepsCurrent: 7,
+		Note:         "Updated progress",
+	}
+
+	result, err := client.Goals().UpdateKeyResult(context.Background(), "kr-456", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.StepsCurrent != 7 {
+		t.Fatalf("expected steps_current 7, got %d", result.StepsCurrent)
+	}
+
+	if result.Note != "Updated progress" {
+		t.Fatalf("expected note Updated progress, got %s", result.Note)
+	}
+}
+
+func TestGoalsUpdateKeyResult_RequiresKeyResultID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Goals().UpdateKeyResult(context.Background(), "", EditKeyResultRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing key result ID, got nil")
+	}
+}
+
+func TestGoalsDeleteKeyResult_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/key_result/kr-456" {
+			t.Fatalf("expected path /v2/key_result/kr-456, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Goals().DeleteKeyResult(context.Background(), "kr-456"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestGoalsDeleteKeyResult_RequiresKeyResultID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Goals().DeleteKeyResult(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing key result ID, got nil")
+	}
+}

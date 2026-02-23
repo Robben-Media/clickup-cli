@@ -917,3 +917,80 @@ type UpdateWebhookRequest struct {
 	Events   []string `json:"events,omitempty"`
 	Status   string   `json:"status,omitempty"` // "active" or "inactive"
 }
+
+// --- Goal types ---
+
+// Goal represents a ClickUp goal.
+type Goal struct {
+	ID               string      `json:"id"`
+	Name             string      `json:"name"`
+	Description      string      `json:"description,omitempty"`
+	DateCreated      string      `json:"date_created,omitempty"`
+	DueDate          string      `json:"due_date,omitempty"`
+	PercentCompleted int         `json:"percent_completed"`
+	Color            string      `json:"color,omitempty"`
+	KeyResults       []KeyResult `json:"key_results,omitempty"`
+	Owners           []User      `json:"owners,omitempty"`
+}
+
+// KeyResult represents a key result for a goal.
+type KeyResult struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	Type         string `json:"type"` // number, currency, boolean, percentage, automatic
+	StepsStart   int    `json:"steps_start"`
+	StepsEnd     int    `json:"steps_end"`
+	StepsCurrent int    `json:"steps_current"`
+	Unit         string `json:"unit,omitempty"`
+	Note         string `json:"note,omitempty"`
+}
+
+// GoalsResponse is the response for listing goals.
+type GoalsResponse struct {
+	Goals []Goal `json:"goals"`
+}
+
+// GoalResponse is the response for a single goal.
+type GoalResponse struct {
+	Goal Goal `json:"goal"`
+}
+
+// KeyResultResponse is the response for a single key result.
+type KeyResultResponse struct {
+	KeyResult KeyResult `json:"key_result"`
+}
+
+// CreateGoalRequest is the request body for creating a goal.
+type CreateGoalRequest struct {
+	Name        string `json:"name"`
+	DueDate     int64  `json:"due_date,omitempty"`
+	Description string `json:"description,omitempty"`
+	Owners      []int  `json:"owners,omitempty"`
+	Color       string `json:"color,omitempty"`
+}
+
+// UpdateGoalRequest is the request body for updating a goal.
+type UpdateGoalRequest struct {
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	DueDate     int64  `json:"due_date,omitempty"`
+	Color       string `json:"color,omitempty"`
+	AddOwners   []int  `json:"add_owners,omitempty"`
+	RemOwners   []int  `json:"rem_owners,omitempty"`
+}
+
+// CreateKeyResultRequest is the request body for creating a key result.
+type CreateKeyResultRequest struct {
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	StepsStart int    `json:"steps_start,omitempty"`
+	StepsEnd   int    `json:"steps_end,omitempty"`
+	Unit       string `json:"unit,omitempty"`
+	Owners     []int  `json:"owners,omitempty"`
+}
+
+// EditKeyResultRequest is the request body for editing a key result.
+type EditKeyResultRequest struct {
+	StepsCurrent int    `json:"steps_current,omitempty"`
+	Note         string `json:"note,omitempty"`
+}
