@@ -4957,3 +4957,295 @@ func TestRelationshipsDeleteLink_RequiresIDs(t *testing.T) {
 		t.Fatal("expected error for missing linked task ID, got nil")
 	}
 }
+
+// CustomFields Service tests
+
+func TestCustomFieldsListByList_ReturnsFields(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/list/list-1/field" {
+			t.Fatalf("expected path /v2/list/list-1/field, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(CustomFieldsResponse{
+			Fields: []CustomField{
+				{ID: "cf-123", Name: "Budget", Type: "currency", Required: false},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.CustomFields().ListByList(context.Background(), "list-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Fields) != 1 {
+		t.Fatalf("expected 1 field, got %d", len(result.Fields))
+	}
+
+	if result.Fields[0].Name != "Budget" {
+		t.Fatalf("expected field name Budget, got %s", result.Fields[0].Name)
+	}
+}
+
+func TestCustomFieldsListByList_RequiresID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.CustomFields().ListByList(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing list ID, got nil")
+	}
+}
+
+func TestCustomFieldsListByFolder_ReturnsFields(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/folder/folder-1/field" {
+			t.Fatalf("expected path /v2/folder/folder-1/field, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(CustomFieldsResponse{
+			Fields: []CustomField{
+				{ID: "cf-123", Name: "Priority", Type: "dropdown", Required: true},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.CustomFields().ListByFolder(context.Background(), "folder-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Fields[0].Name != "Priority" {
+		t.Fatalf("expected field name Priority, got %s", result.Fields[0].Name)
+	}
+}
+
+func TestCustomFieldsListByFolder_RequiresID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.CustomFields().ListByFolder(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing folder ID, got nil")
+	}
+}
+
+func TestCustomFieldsListBySpace_ReturnsFields(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/space/space-1/field" {
+			t.Fatalf("expected path /v2/space/space-1/field, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(CustomFieldsResponse{
+			Fields: []CustomField{},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.CustomFields().ListBySpace(context.Background(), "space-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Fields) != 0 {
+		t.Fatalf("expected 0 fields, got %d", len(result.Fields))
+	}
+}
+
+func TestCustomFieldsListBySpace_RequiresID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.CustomFields().ListBySpace(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing space ID, got nil")
+	}
+}
+
+func TestCustomFieldsListByTeam_ReturnsFields(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/field" {
+			t.Fatalf("expected path /v2/team/team-1/field, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(CustomFieldsResponse{
+			Fields: []CustomField{},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.CustomFields().ListByTeam(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("expected result, got nil")
+	}
+}
+
+func TestCustomFieldsListByTeam_RequiresID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.CustomFields().ListByTeam(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestCustomFieldsSet_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/task/task-1/field/cf-123" {
+			t.Fatalf("expected path /v2/task/task-1/field/cf-123, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		var req SetCustomFieldRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		// Value is passed as-is (could be any type)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.CustomFields().Set(context.Background(), "task-1", "cf-123", "test value"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCustomFieldsSet_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.CustomFields().Set(context.Background(), "", "cf-123", "value")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+
+	err = client.CustomFields().Set(context.Background(), "task-1", "", "value")
+	if err == nil {
+		t.Fatal("expected error for missing field ID, got nil")
+	}
+}
+
+func TestCustomFieldsRemove_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/task/task-1/field/cf-123" {
+			t.Fatalf("expected path /v2/task/task-1/field/cf-123, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.CustomFields().Remove(context.Background(), "task-1", "cf-123"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCustomFieldsRemove_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.CustomFields().Remove(context.Background(), "", "cf-123")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+
+	err = client.CustomFields().Remove(context.Background(), "task-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing field ID, got nil")
+	}
+}

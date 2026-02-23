@@ -48,6 +48,7 @@ type CLI struct {
 	Tags          TagsCmd          `cmd:"" help:"Tag operations"`
 	Checklists    ChecklistsCmd    `cmd:"" help:"Checklist operations"`
 	Relationships RelationshipsCmd `cmd:"" help:"Task relationship operations"`
+	Fields        FieldsCmd        `cmd:"" help:"Custom field operations"`
 	VersionCmd    VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

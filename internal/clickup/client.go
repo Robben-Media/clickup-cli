@@ -155,6 +155,11 @@ func (c *Client) Relationships() *RelationshipsService {
 	return &RelationshipsService{client: c}
 }
 
+// CustomFields provides methods for the Custom Fields API.
+func (c *Client) CustomFields() *CustomFieldsService {
+	return &CustomFieldsService{client: c}
+}
+
 // Workspaces provides methods for the Workspaces API.
 func (c *Client) Workspaces() *WorkspacesService {
 	return &WorkspacesService{client: c}
@@ -2136,6 +2141,107 @@ func (s *RelationshipsService) DeleteLink(ctx context.Context, taskID, linkedTas
 	path := fmt.Sprintf("/v2/task/%s/link/%s", taskID, linkedTaskID)
 	if err := s.client.Delete(ctx, path); err != nil {
 		return fmt.Errorf("delete task link: %w", err)
+	}
+
+	return nil
+}
+
+// --- CustomFieldsService ---
+
+// CustomFieldsService handles custom field operations.
+type CustomFieldsService struct {
+	client *Client
+}
+
+// ListByList returns custom fields for a list.
+func (s *CustomFieldsService) ListByList(ctx context.Context, listID string) (*CustomFieldsResponse, error) {
+	if listID == "" {
+		return nil, errIDRequired
+	}
+
+	var result CustomFieldsResponse
+
+	path := fmt.Sprintf("/v2/list/%s/field", listID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list custom fields: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListByFolder returns custom fields for a folder.
+func (s *CustomFieldsService) ListByFolder(ctx context.Context, folderID string) (*CustomFieldsResponse, error) {
+	if folderID == "" {
+		return nil, errIDRequired
+	}
+
+	var result CustomFieldsResponse
+
+	path := fmt.Sprintf("/v2/folder/%s/field", folderID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list custom fields: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListBySpace returns custom fields for a space.
+func (s *CustomFieldsService) ListBySpace(ctx context.Context, spaceID string) (*CustomFieldsResponse, error) {
+	if spaceID == "" {
+		return nil, errIDRequired
+	}
+
+	var result CustomFieldsResponse
+
+	path := fmt.Sprintf("/v2/space/%s/field", spaceID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list custom fields: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListByTeam returns custom fields for a workspace/team.
+func (s *CustomFieldsService) ListByTeam(ctx context.Context, teamID string) (*CustomFieldsResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	var result CustomFieldsResponse
+
+	path := fmt.Sprintf("/v2/team/%s/field", teamID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list custom fields: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Set sets a custom field value on a task.
+func (s *CustomFieldsService) Set(ctx context.Context, taskID, fieldID string, value interface{}) error {
+	if taskID == "" || fieldID == "" {
+		return errIDRequired
+	}
+
+	req := SetCustomFieldRequest{Value: value}
+
+	path := fmt.Sprintf("/v2/task/%s/field/%s", taskID, fieldID)
+	if err := s.client.Post(ctx, path, req, nil); err != nil {
+		return fmt.Errorf("set custom field: %w", err)
+	}
+
+	return nil
+}
+
+// Remove removes a custom field value from a task.
+func (s *CustomFieldsService) Remove(ctx context.Context, taskID, fieldID string) error {
+	if taskID == "" || fieldID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/field/%s", taskID, fieldID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("remove custom field: %w", err)
 	}
 
 	return nil
