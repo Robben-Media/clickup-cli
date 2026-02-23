@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/builtbyrobben/clickup-cli/internal/api"
@@ -4756,5 +4757,203 @@ func TestChecklistsDeleteItem_RequiresIDs(t *testing.T) {
 	err = client.Checklists().DeleteItem(context.Background(), "cl-123", "")
 	if err == nil {
 		t.Fatal("expected error for missing item ID, got nil")
+	}
+}
+
+// Relationships Service tests
+
+func TestRelationshipsAddDep_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/task/task-1/dependency" {
+			t.Fatalf("expected path /v2/task/task-1/dependency, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		var req AddDependencyRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.DependsOn != "task-2" {
+			t.Fatalf("expected depends_on task-2, got %s", req.DependsOn)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := AddDependencyRequest{DependsOn: "task-2"}
+	if err := client.Relationships().AddDependency(context.Background(), "task-1", req); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRelationshipsAddDep_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Relationships().AddDependency(context.Background(), "", AddDependencyRequest{DependsOn: "task-2"})
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+
+	err = client.Relationships().AddDependency(context.Background(), "task-1", AddDependencyRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing dependency, got nil")
+	}
+}
+
+func TestRelationshipsDeleteDep_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/task/task-1/dependency" {
+			// URL might have query params
+			if !strings.HasPrefix(r.URL.Path, "/v2/task/task-1/dependency?") {
+				t.Fatalf("expected path /v2/task/task-1/dependency, got %s", r.URL.Path)
+			}
+		}
+
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		// Check query params
+		dependsOn := r.URL.Query().Get("depends_on")
+		if dependsOn != "task-2" {
+			t.Fatalf("expected depends_on=task-2, got %s", dependsOn)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := AddDependencyRequest{DependsOn: "task-2"}
+	if err := client.Relationships().DeleteDependency(context.Background(), "task-1", req); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRelationshipsDeleteDep_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Relationships().DeleteDependency(context.Background(), "", AddDependencyRequest{DependsOn: "task-2"})
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+
+	err = client.Relationships().DeleteDependency(context.Background(), "task-1", AddDependencyRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing dependency, got nil")
+	}
+}
+
+func TestRelationshipsAddLink_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/task/task-1/link/task-2" {
+			t.Fatalf("expected path /v2/task/task-1/link/task-2, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Relationships().AddLink(context.Background(), "task-1", "task-2"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRelationshipsAddLink_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Relationships().AddLink(context.Background(), "", "task-2")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+
+	err = client.Relationships().AddLink(context.Background(), "task-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing linked task ID, got nil")
+	}
+}
+
+func TestRelationshipsDeleteLink_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/task/task-1/link/task-2" {
+			t.Fatalf("expected path /v2/task/task-1/link/task-2, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Relationships().DeleteLink(context.Background(), "task-1", "task-2"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRelationshipsDeleteLink_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Relationships().DeleteLink(context.Background(), "", "task-2")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+
+	err = client.Relationships().DeleteLink(context.Background(), "task-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing linked task ID, got nil")
 	}
 }

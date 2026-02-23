@@ -807,3 +807,11 @@ type EditChecklistItemRequest struct {
 	Assignee int    `json:"assignee,omitempty"`
 	Parent   string `json:"parent,omitempty"`
 }
+
+// --- Task Relationship types ---
+
+// AddDependencyRequest is the request body for adding a task dependency.
+type AddDependencyRequest struct {
+	DependsOn    string `json:"depends_on,omitempty"`
+	DependencyOf string `json:"dependency_of,omitempty"`
+}
