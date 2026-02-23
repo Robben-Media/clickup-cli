@@ -165,7 +165,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; all list commands work
 
 ### 9. Extend Tasks Service (Search, Time-in-Status, Merge, Move)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/tasks.md
 - **Description**:

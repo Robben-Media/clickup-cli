@@ -563,3 +563,39 @@ Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
 - Template creation endpoint requires space ID AND template ID
 
 ---
+
+## Task 9 - 2026-02-22
+### Completed: Extend Tasks Service (Search, Time-in-Status, Merge, Move)
+
+**What was implemented:**
+- Extended `TasksService` with Search, TimeInStatus, BulkTimeInStatus, Merge, Move, CreateFromTemplate methods
+- Implemented `GET /v2/team/{team_id}/task` (GetFilteredTeamTasks - workspace search with filters)
+- Implemented `GET /v2/task/{task_id}/time_in_status` (time in status for single task)
+- Implemented `GET /v2/task/bulk_time_in_status/task_ids` (bulk time in status)
+- Implemented `POST /v2/task/{task_id}/merge` (merge tasks)
+- Implemented `PUT /v3/workspaces/{workspace_id}/tasks/{task_id}/home_list/{list_id}` (move task - v3)
+- Implemented `POST /v2/list/{list_id}/taskTemplate/{template_id}` (create from template)
+- Added types: FilteredTeamTasksParams, FilteredTeamTasksResponse, TimeInStatusResponse, StatusTime, TimeValue, BulkTimeInStatusResponse, MergeTasksRequest, MergeTasksResponse, MoveTaskResponse, CreateTaskFromTemplateRequest
+- Added CLI commands: tasks search, time-in-status, bulk-time-in-status, merge, move, from-template
+- Added 16 comprehensive tests for all new service methods
+- Added static error variables: errTaskIDRequired, errSourceTaskIDRequired
+
+**Files changed:**
+- `internal/clickup/client.go` — extended TasksService with all new methods
+- `internal/clickup/types.go` — added all Task extension types
+- `internal/clickup/client_test.go` — added 16 tests for new methods
+- `internal/cmd/tasks.go` — added all new CLI commands with output formatting
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `abd68e5`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- GetFilteredTeamTasks uses query string arrays (`statuses[]=&statuses[]=`)
+- BulkTimeInStatus uses repeated query params (`?task_ids=abc&task_ids=def`)
+- Move task is v3 only - requires workspace ID via v3Path()
+- Time-in-status returns minutes (not milliseconds)
+- Must use static error variables (err113 linter)
+- formatDuration in time_legacy.go takes milliseconds, needed separate formatMinutesToDuration for minutes
+
+---
