@@ -3388,3 +3388,700 @@ func TestCommentsSubtypes_RequiresWorkspaceID(t *testing.T) {
 		t.Fatal("expected error for missing workspace ID, got nil")
 	}
 }
+
+// Time Service extension tests
+
+func TestTimeGet_ReturnsEntry(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/time_entries/123" {
+			t.Fatalf("expected path /v2/team/team-1/time_entries/123, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TimeEntryDetailResponse{
+			Data: TimeEntryDetail{
+				ID:          json.Number("123"),
+				Task:        TaskRef{ID: "task-1", Name: "Test Task"},
+				Wid:         "workspace-1",
+				User:        User{ID: 1, Username: "testuser"},
+				Billable:    true,
+				Start:       json.Number("1700000000000"),
+				End:         json.Number("1700003600000"),
+				Duration:    json.Number("3600000"),
+				Description: "Test description",
+				Tags:        []Tag{{Name: "billable"}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Time().Get(context.Background(), "team-1", "123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID.String() != "123" {
+		t.Fatalf("expected ID 123, got %s", result.ID)
+	}
+
+	if result.Task.ID != "task-1" {
+		t.Fatalf("expected task ID task-1, got %s", result.Task.ID)
+	}
+
+	if !result.Billable {
+		t.Fatal("expected billable to be true")
+	}
+}
+
+func TestTimeGet_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Time().Get(context.Background(), "", "entry-1")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+
+	_, err = client.Time().Get(context.Background(), "team-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing entry ID, got nil")
+	}
+}
+
+func TestTimeCurrent_ReturnsRunningTimer(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/time_entries/current" {
+			t.Fatalf("expected path /v2/team/team-1/time_entries/current, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TimeEntryDetailResponse{
+			Data: TimeEntryDetail{
+				ID:          json.Number("124"),
+				Task:        TaskRef{ID: "task-1", Name: "Test Task"},
+				Start:       json.Number("1700000000000"),
+				Duration:    json.Number("-1700000000000"),
+				Description: "Working on it",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Time().Current(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID.String() != "124" {
+		t.Fatalf("expected ID 124, got %s", result.ID)
+	}
+}
+
+func TestTimeCurrent_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Time().Current(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestTimeStart_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/time_entries/start" {
+			t.Fatalf("expected path /v2/team/team-1/time_entries/start, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		var req StartTimeEntryRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.TaskID != "task-1" {
+			t.Fatalf("expected task ID task-1, got %s", req.TaskID)
+		}
+
+		if req.Description != "Working on it" {
+			t.Fatalf("expected description 'Working on it', got %s", req.Description)
+		}
+
+		if !req.Billable {
+			t.Fatal("expected billable to be true")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TimeEntryDetailResponse{
+			Data: TimeEntryDetail{
+				ID:          json.Number("125"),
+				Task:        TaskRef{ID: "task-1", Name: "Test Task"},
+				Start:       json.Number("1700000000000"),
+				Duration:    json.Number("-1700000000000"),
+				Description: "Working on it",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := StartTimeEntryRequest{
+		TaskID:      "task-1",
+		Description: "Working on it",
+		Billable:    true,
+	}
+
+	result, err := client.Time().Start(context.Background(), "team-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID.String() != "125" {
+		t.Fatalf("expected ID 125, got %s", result.ID)
+	}
+}
+
+func TestTimeStart_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Time().Start(context.Background(), "", StartTimeEntryRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestTimeStop_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/time_entries/stop" {
+			t.Fatalf("expected path /v2/team/team-1/time_entries/stop, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TimeEntryDetailResponse{
+			Data: TimeEntryDetail{
+				ID:       json.Number("126"),
+				Task:     TaskRef{ID: "task-1", Name: "Test Task"},
+				Start:    json.Number("1700000000000"),
+				End:      json.Number("1700003600000"),
+				Duration: json.Number("3600000"),
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Time().Stop(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID.String() != "126" {
+		t.Fatalf("expected ID 126, got %s", result.ID)
+	}
+}
+
+func TestTimeStop_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Time().Stop(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestTimeUpdate_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/time_entries/entry-1" {
+			t.Fatalf("expected path /v2/team/team-1/time_entries/entry-1, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		var req UpdateTimeEntryRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.Description != "Updated description" {
+			t.Fatalf("expected description 'Updated description', got %s", req.Description)
+		}
+
+		if req.Duration != 7200000 {
+			t.Fatalf("expected duration 7200000, got %d", req.Duration)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TimeEntryDetailResponse{
+			Data: TimeEntryDetail{
+				ID:          json.Number("123"),
+				Task:        TaskRef{ID: "task-1", Name: "Test Task"},
+				Start:       json.Number("1700000000000"),
+				End:         json.Number("1700007200000"),
+				Duration:    json.Number("7200000"),
+				Description: "Updated description",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	billable := true
+	req := UpdateTimeEntryRequest{
+		Description: "Updated description",
+		Duration:    7200000,
+		Billable:    &billable,
+	}
+
+	result, err := client.Time().Update(context.Background(), "team-1", "entry-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Duration.String() != "7200000" {
+		t.Fatalf("expected duration 7200000, got %s", result.Duration)
+	}
+}
+
+func TestTimeUpdate_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Time().Update(context.Background(), "", "entry-1", UpdateTimeEntryRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+
+	_, err = client.Time().Update(context.Background(), "team-1", "", UpdateTimeEntryRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing entry ID, got nil")
+	}
+}
+
+func TestTimeDelete_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/time_entries/entry-1" {
+			t.Fatalf("expected path /v2/team/team-1/time_entries/entry-1, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Time().Delete(context.Background(), "team-1", "entry-1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestTimeDelete_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Time().Delete(context.Background(), "", "entry-1")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+
+	err = client.Time().Delete(context.Background(), "team-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing entry ID, got nil")
+	}
+}
+
+func TestTimeHistory_ReturnsHistory(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/time_entries/entry-1/history" {
+			t.Fatalf("expected path /v2/team/team-1/time_entries/entry-1/history, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TimeEntryHistoryResponse{
+			Data: []TimeEntryHistoryItem{
+				{
+					ID:     "1",
+					Field:  "duration",
+					Before: "3600000",
+					After:  "7200000",
+					Date:   "1700100000000",
+					User:   User{ID: 1, Username: "testuser"},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Time().History(context.Background(), "team-1", "entry-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Data) != 1 {
+		t.Fatalf("expected 1 history item, got %d", len(result.Data))
+	}
+
+	if result.Data[0].Field != "duration" {
+		t.Fatalf("expected field duration, got %s", result.Data[0].Field)
+	}
+}
+
+func TestTimeHistory_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Time().History(context.Background(), "", "entry-1")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+
+	_, err = client.Time().History(context.Background(), "team-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing entry ID, got nil")
+	}
+}
+
+func TestTimeListTags_ReturnsTags(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/time_entries/tags" {
+			t.Fatalf("expected path /v2/team/team-1/time_entries/tags, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TimeEntryTagsResponse{
+			Data: []TimeEntryTag{
+				{Name: "billable"},
+				{Name: "internal"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Time().ListTags(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Data) != 2 {
+		t.Fatalf("expected 2 tags, got %d", len(result.Data))
+	}
+
+	if result.Data[0].Name != "billable" {
+		t.Fatalf("expected first tag billable, got %s", result.Data[0].Name)
+	}
+}
+
+func TestTimeListTags_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Time().ListTags(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestTimeAddTags_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/time_entries/tags" {
+			t.Fatalf("expected path /v2/team/team-1/time_entries/tags, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		var req TimeEntryTagsRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if len(req.TimeEntryIDs) != 2 {
+			t.Fatalf("expected 2 entry IDs, got %d", len(req.TimeEntryIDs))
+		}
+
+		if len(req.Tags) != 1 {
+			t.Fatalf("expected 1 tag, got %d", len(req.Tags))
+		}
+
+		if req.Tags[0].Name != "billable" {
+			t.Fatalf("expected tag name billable, got %s", req.Tags[0].Name)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := TimeEntryTagsRequest{
+		TimeEntryIDs: []string{"entry-1", "entry-2"},
+		Tags:         []Tag{{Name: "billable"}},
+	}
+
+	if err := client.Time().AddTags(context.Background(), "team-1", req); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestTimeAddTags_RequiresIDsAndTags(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Time().AddTags(context.Background(), "team-1", TimeEntryTagsRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing entry IDs and tags, got nil")
+	}
+
+	err = client.Time().AddTags(context.Background(), "", TimeEntryTagsRequest{TimeEntryIDs: []string{"1"}, Tags: []Tag{{Name: "tag"}}})
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestTimeRemoveTags_SendsRequestWithBody(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/time_entries/tags" {
+			t.Fatalf("expected path /v2/team/team-1/time_entries/tags, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		var req TimeEntryTagsRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if len(req.TimeEntryIDs) != 1 {
+			t.Fatalf("expected 1 entry ID, got %d", len(req.TimeEntryIDs))
+		}
+
+		if len(req.Tags) != 1 {
+			t.Fatalf("expected 1 tag, got %d", len(req.Tags))
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := TimeEntryTagsRequest{
+		TimeEntryIDs: []string{"entry-1"},
+		Tags:         []Tag{{Name: "billable"}},
+	}
+
+	if err := client.Time().RemoveTags(context.Background(), "team-1", req); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestTimeRemoveTags_RequiresIDsAndTags(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Time().RemoveTags(context.Background(), "team-1", TimeEntryTagsRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing entry IDs and tags, got nil")
+	}
+
+	err = client.Time().RemoveTags(context.Background(), "", TimeEntryTagsRequest{TimeEntryIDs: []string{"1"}, Tags: []Tag{{Name: "tag"}}})
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestTimeRenameTag_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/time_entries/tags" {
+			t.Fatalf("expected path /v2/team/team-1/time_entries/tags, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		var req RenameTimeEntryTagRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.Name != "old-tag" {
+			t.Fatalf("expected old name old-tag, got %s", req.Name)
+		}
+
+		if req.NewName != "new-tag" {
+			t.Fatalf("expected new name new-tag, got %s", req.NewName)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := RenameTimeEntryTagRequest{
+		Name:    "old-tag",
+		NewName: "new-tag",
+	}
+
+	if err := client.Time().RenameTag(context.Background(), "team-1", req); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestTimeRenameTag_RequiresNames(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Time().RenameTag(context.Background(), "team-1", RenameTimeEntryTagRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing names, got nil")
+	}
+
+	err = client.Time().RenameTag(context.Background(), "team-1", RenameTimeEntryTagRequest{Name: "old"})
+	if err == nil {
+		t.Fatal("expected error for missing new name, got nil")
+	}
+
+	err = client.Time().RenameTag(context.Background(), "team-1", RenameTimeEntryTagRequest{NewName: "new"})
+	if err == nil {
+		t.Fatal("expected error for missing old name, got nil")
+	}
+
+	err = client.Time().RenameTag(context.Background(), "", RenameTimeEntryTagRequest{Name: "old", NewName: "new"})
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}

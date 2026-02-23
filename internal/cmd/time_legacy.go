@@ -183,9 +183,9 @@ func (cmd *TimeLegacyDeleteCmd) Run(ctx context.Context) error {
 
 func printLegacyTimeInterval(interval *clickup.LegacyTimeInterval) {
 	fmt.Printf("ID: %s\n", interval.ID)
-	fmt.Printf("  Duration: %s\n", formatDuration(interval.Time))
-	fmt.Printf("  Start: %s\n", formatTimestamp(interval.Start))
-	fmt.Printf("  End: %s\n", formatTimestamp(interval.End))
+	fmt.Printf("  Duration: %s\n", formatLegacyDuration(interval.Time))
+	fmt.Printf("  Start: %s\n", formatLegacyTimestamp(interval.Start))
+	fmt.Printf("  End: %s\n", formatLegacyTimestamp(interval.End))
 
 	if interval.Source != "" {
 		fmt.Printf("  Source: %s\n", interval.Source)
@@ -194,7 +194,7 @@ func printLegacyTimeInterval(interval *clickup.LegacyTimeInterval) {
 	fmt.Println()
 }
 
-func formatDuration(ms int64) string {
+func formatLegacyDuration(ms int64) string {
 	seconds := ms / 1000
 	minutes := seconds / 60
 	hours := minutes / 60
@@ -203,7 +203,7 @@ func formatDuration(ms int64) string {
 	return fmt.Sprintf("%dh %dm", hours, minutes)
 }
 
-func formatTimestamp(ms int64) string {
+func formatLegacyTimestamp(ms int64) string {
 	seconds := ms / 1000
 	return fmt.Sprintf("<timestamp:%d>", seconds)
 }
