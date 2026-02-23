@@ -109,6 +109,10 @@ type GroupsUpdateCmd struct {
 }
 
 func (cmd *GroupsUpdateCmd) Run(ctx context.Context) error {
+	if cmd.Name == "" && cmd.AddMembers == "" && cmd.RemoveMembers == "" {
+		return fmt.Errorf("at least one field must be provided: --name, --add-members, or --remove-members")
+	}
+
 	client, err := getClickUpClient(ctx)
 	if err != nil {
 		return err
@@ -206,6 +210,10 @@ func parseMemberIDs(s string) ([]int, error) {
 		}
 
 		ids = append(ids, id)
+	}
+
+	if len(ids) == 0 {
+		return nil, fmt.Errorf("no valid user IDs found in input")
 	}
 
 	return ids, nil

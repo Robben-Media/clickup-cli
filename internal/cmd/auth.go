@@ -19,8 +19,6 @@ type AuthCmd struct {
 	SetKey       AuthSetKeyCmd       `cmd:"" help:"Set API key (uses --stdin by default)"`
 	SetTeam      AuthSetTeamCmd      `cmd:"" help:"Set ClickUp Team ID"`
 	SetWorkspace AuthSetWorkspaceCmd `cmd:"" help:"Set ClickUp Workspace ID for v3 API"`
-	Whoami       AuthWhoamiCmd       `cmd:"" help:"Get current authenticated user"`
-	Token        AuthTokenCmd        `cmd:"" help:"Exchange OAuth code for access token"`
 	Status       AuthStatusCmd       `cmd:"" help:"Show authentication status"`
 	Remove       AuthRemoveCmd       `cmd:"" help:"Remove stored credentials"`
 	Whoami       AuthWhoamiCmd       `cmd:"" help:"Get the currently authorized user"`
@@ -147,85 +145,6 @@ func (cmd *AuthSetWorkspaceCmd) Run(ctx context.Context) error {
 	fmt.Fprintf(os.Stderr, "Workspace ID %s stored in config\n", cmd.WorkspaceID)
 
 	return nil
-}
-
-type AuthWhoamiCmd struct{}
-
-func (cmd *AuthWhoamiCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient(ctx)
-	if err != nil {
-		return err
-	}
-
-	result, err := client.Auth().Whoami(ctx)
-	if err != nil {
-		return err
-	}
-
-	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, result)
-	}
-	if outfmt.IsPlain(ctx) {
-		headers := []string{"ID", "USERNAME", "EMAIL"}
-		rows := [][]string{
-			{fmt.Sprintf("%d", result.User.ID), result.User.Username, result.User.Email},
-		}
-		return outfmt.WritePlain(os.Stdout, headers, rows)
-	}
-
-	fmt.Fprintln(os.Stderr, "Authenticated as:")
-	fmt.Printf("  ID: %d\n", result.User.ID)
-	fmt.Printf("  Username: %s\n", result.User.Username)
-	fmt.Printf("  Email: %s\n", result.User.Email)
-
-	return nil
-}
-
-type AuthTokenCmd struct {
-	ClientID     string `required:"" help:"OAuth client ID"`
-	ClientSecret string `required:"" help:"OAuth client secret"`
-	Code         string `required:"" help:"OAuth authorization code"`
-}
-
-func (cmd *AuthTokenCmd) Run(ctx context.Context) error {
-	client, err := getClickUpClient(ctx)
-	if err != nil {
-		return err
-	}
-
-	req := clickup.OAuthTokenRequest{
-		ClientID:     cmd.ClientID,
-		ClientSecret: cmd.ClientSecret,
-		Code:         cmd.Code,
-	}
-
-	result, err := client.Auth().Token(ctx, req)
-	if err != nil {
-		return err
-	}
-
-	if outfmt.IsJSON(ctx) {
-		return outfmt.WriteJSON(os.Stdout, result)
-	}
-	if outfmt.IsPlain(ctx) {
-		headers := []string{"ACCESS_TOKEN", "TOKEN_TYPE"}
-		rows := [][]string{{result.AccessToken, result.TokenType}}
-		return outfmt.WritePlain(os.Stdout, headers, rows)
-	}
-
-	fmt.Fprintln(os.Stderr, "Token exchange successful:")
-	fmt.Printf("  Access Token: %s\n", maskToken(result.AccessToken))
-	fmt.Printf("  Token Type: %s\n", result.TokenType)
-
-	return nil
-}
-
-func maskToken(token string) string {
-	if len(token) <= 8 {
-		return "****"
-	}
-
-	return token[:4] + "..." + token[len(token)-4:]
 }
 
 type AuthStatusCmd struct{}
