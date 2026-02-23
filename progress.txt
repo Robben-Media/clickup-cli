@@ -949,3 +949,36 @@ All 5 planned services have been implemented:
 - The err113 linter requires static errors (added errKeyResultTypeRequired)
 
 ---
+
+## Task 19 - 2026-02-23
+### Completed: Create Users Service
+
+**What was implemented:**
+- Created `UsersService` with Get, Invite, Update, Remove methods
+- Implemented `GET /v2/team/{team_id}/user/{user_id}` (get user details)
+- Implemented `POST /v2/team/{team_id}/user` (invite user to workspace)
+- Implemented `PUT /v2/team/{team_id}/user/{user_id}` (update user role)
+- Implemented `DELETE /v2/team/{team_id}/user/{user_id}` (remove user from workspace)
+- Added UserDetail types: UserDetail, UserRef, UserResponse, InviteUserRequest, EditUserRequest
+- Added CLI commands: `users get`, `users invite`, `users update`, `users remove`
+- Added 8 comprehensive tests for all service methods
+- Remove warns user unless --force is used
+
+**Files changed:**
+- `internal/clickup/client.go` — added Users() accessor and UsersService with all methods
+- `internal/clickup/types.go` — added all UserDetail types
+- `internal/clickup/client_test.go` — added 8 tests for Users service
+- `internal/cmd/users.go` — created with all CLI commands
+- `internal/cmd/root.go` — added UsersCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `7adc8fc`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- User roles: 1=owner, 2=admin, 3=member, 4=guest
+- Invited user response includes `invited_by` reference
+- The tagliatelle linter requires nolint comment for camelCase JSON fields from ClickUp API
+- Destructive operations (remove user) should warn unless --force is used
+
+---
