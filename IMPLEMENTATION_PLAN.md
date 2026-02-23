@@ -419,7 +419,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; member listing works
 
 ### 21. Create Attachments Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1, 2
 - **Spec**: specs/features/attachments.md
 - **Description**:

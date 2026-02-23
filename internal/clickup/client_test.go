@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -6973,5 +6974,276 @@ func TestUsersRemove_RequiresTeamID(t *testing.T) {
 	err := client.Users().Remove(context.Background(), "", 456)
 	if err == nil {
 		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+// --- AttachmentsService tests ---
+
+func TestAttachmentsUpload_SendsMultipartFile(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/attachment" {
+			t.Fatalf("expected path /v2/task/task-1/attachment, got %s", r.URL.Path)
+		}
+
+		// Verify content type is multipart
+		contentType := r.Header.Get("Content-Type")
+		if !strings.HasPrefix(contentType, "multipart/form-data") {
+			t.Fatalf("expected multipart content type, got %s", contentType)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Attachment{
+			ID:        "att-123",
+			URL:       "https://example.com/file.pdf",
+			Title:     "test.pdf",
+			Extension: "pdf",
+			Size:      1024,
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	// Create a temp file for testing
+	tmpFile, err := os.CreateTemp("", "test-*.txt")
+	if err != nil {
+		t.Fatalf("create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	_, _ = tmpFile.WriteString("test content")
+	tmpFile.Close()
+
+	result, err := client.Attachments().Upload(context.Background(), "task-1", tmpFile.Name())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "att-123" {
+		t.Fatalf("expected ID att-123, got %s", result.ID)
+	}
+
+	if result.Title != "test.pdf" {
+		t.Fatalf("expected title test.pdf, got %s", result.Title)
+	}
+}
+
+func TestAttachmentsUpload_RequiresTaskID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Attachments().Upload(context.Background(), "", "/tmp/test.txt")
+	if err == nil {
+		t.Fatal("expected error for empty task ID")
+	}
+}
+
+func TestAttachmentsUpload_RequiresFilePath(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Attachments().Upload(context.Background(), "task-1", "")
+	if err == nil {
+		t.Fatal("expected error for empty file path")
+	}
+}
+
+func TestAttachmentsList_ReturnsAttachments(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/task/task-1/attachments"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(AttachmentsResponse{
+			Attachments: []Attachment{
+				{ID: "att-1", Title: "file1.pdf", URL: "https://example.com/file1.pdf", Size: 1024},
+				{ID: "att-2", Title: "file2.png", URL: "https://example.com/file2.png", Size: 2048},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Attachments().List(context.Background(), "task", "task-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Attachments) != 2 {
+		t.Fatalf("expected 2 attachments, got %d", len(result.Attachments))
+	}
+
+	if result.Attachments[0].ID != "att-1" {
+		t.Fatalf("expected ID att-1, got %s", result.Attachments[0].ID)
+	}
+}
+
+func TestAttachmentsList_RequiresParentType(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	_, err := client.Attachments().List(context.Background(), "", "task-1")
+	if err == nil {
+		t.Fatal("expected error for empty parent type")
+	}
+}
+
+func TestAttachmentsList_RequiresParentID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	_, err := client.Attachments().List(context.Background(), "task", "")
+	if err == nil {
+		t.Fatal("expected error for empty parent ID")
+	}
+}
+
+func TestAttachmentsCreate_SendsMultipartFile(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/list/list-1/attachments"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		// Verify content type is multipart
+		contentType := r.Header.Get("Content-Type")
+		if !strings.HasPrefix(contentType, "multipart/form-data") {
+			t.Fatalf("expected multipart content type, got %s", contentType)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Attachment{
+			ID:        "att-456",
+			URL:       "https://example.com/uploaded.pdf",
+			Title:     "uploaded.pdf",
+			Extension: "pdf",
+			Size:      4096,
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	// Create a temp file for testing
+	tmpFile, err := os.CreateTemp("", "test-*.txt")
+	if err != nil {
+		t.Fatalf("create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	_, _ = tmpFile.WriteString("test content")
+	tmpFile.Close()
+
+	result, err := client.Attachments().Create(context.Background(), "list", "list-1", tmpFile.Name())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "att-456" {
+		t.Fatalf("expected ID att-456, got %s", result.ID)
+	}
+
+	if result.Size != 4096 {
+		t.Fatalf("expected size 4096, got %d", result.Size)
+	}
+}
+
+func TestAttachmentsCreate_RequiresParentType(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	_, err := client.Attachments().Create(context.Background(), "", "list-1", "/tmp/test.txt")
+	if err == nil {
+		t.Fatal("expected error for empty parent type")
+	}
+}
+
+func TestAttachmentsCreate_RequiresParentID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	_, err := client.Attachments().Create(context.Background(), "list", "", "/tmp/test.txt")
+	if err == nil {
+		t.Fatal("expected error for empty parent ID")
+	}
+}
+
+func TestAttachmentsCreate_RequiresFilePath(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	_, err := client.Attachments().Create(context.Background(), "list", "list-1", "")
+	if err == nil {
+		t.Fatal("expected error for empty file path")
 	}
 }

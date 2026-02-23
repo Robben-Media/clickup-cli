@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
 
 	"github.com/builtbyrobben/clickup-cli/internal/api"
 )
@@ -22,6 +23,9 @@ var (
 	errEndpointRequired      = errors.New("endpoint URL is required")
 	errEventsRequired        = errors.New("at least one event is required")
 	errKeyResultTypeRequired = errors.New("key result type is required")
+	errFilePathRequired      = errors.New("file path is required")
+	errParentTypeRequired    = errors.New("parent type is required")
+	errParentIDRequired      = errors.New("parent ID is required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -181,6 +185,11 @@ func (c *Client) Goals() *GoalsService {
 // Users provides methods for the Users API.
 func (c *Client) Users() *UsersService {
 	return &UsersService{client: c}
+}
+
+// Attachments provides methods for the Attachments API.
+func (c *Client) Attachments() *AttachmentsService {
+	return &AttachmentsService{client: c}
 }
 
 // Workspaces provides methods for the Workspaces API.
@@ -2813,4 +2822,99 @@ func (s *UsersService) Remove(ctx context.Context, teamID string, userID int) er
 	}
 
 	return nil
+}
+
+// --- AttachmentsService ---
+
+// AttachmentsService handles file attachment operations.
+type AttachmentsService struct {
+	client *Client
+}
+
+// Upload uploads a file attachment to a task (v2 API).
+func (s *AttachmentsService) Upload(ctx context.Context, taskID, filePath string) (*Attachment, error) {
+	if taskID == "" {
+		return nil, errIDRequired
+	}
+
+	if filePath == "" {
+		return nil, errFilePathRequired
+	}
+
+	//nolint:gosec // G304: File path is provided by user via CLI argument - expected behavior
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("open file: %w", err)
+	}
+	defer file.Close()
+
+	path := fmt.Sprintf("/v2/task/%s/attachment", taskID)
+
+	var result Attachment
+	if err := s.client.PostMultipart(ctx, path, "attachment", file, filePath, &result); err != nil {
+		return nil, fmt.Errorf("upload attachment: %w", err)
+	}
+
+	return &result, nil
+}
+
+// List returns all attachments for a parent entity (v3 API).
+func (s *AttachmentsService) List(ctx context.Context, parentType, parentID string) (*AttachmentsResponse, error) {
+	if parentType == "" {
+		return nil, errParentTypeRequired
+	}
+
+	if parentID == "" {
+		return nil, errParentIDRequired
+	}
+
+	basePath := fmt.Sprintf("/%s/%s/attachments", parentType, parentID)
+
+	path, err := s.client.v3Path(basePath)
+	if err != nil {
+		return nil, fmt.Errorf("list attachments: %w", err)
+	}
+
+	var result AttachmentsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list attachments: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Create uploads a file attachment to a parent entity (v3 API).
+func (s *AttachmentsService) Create(ctx context.Context, parentType, parentID, filePath string) (*Attachment, error) {
+	if parentType == "" {
+		return nil, errParentTypeRequired
+	}
+
+	if parentID == "" {
+		return nil, errParentIDRequired
+	}
+
+	if filePath == "" {
+		return nil, errFilePathRequired
+	}
+
+	//nolint:gosec // G304: File path is provided by user via CLI argument - expected behavior
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("open file: %w", err)
+	}
+	defer file.Close()
+
+	basePath := fmt.Sprintf("/%s/%s/attachments", parentType, parentID)
+
+	path, err := s.client.v3Path(basePath)
+	if err != nil {
+		return nil, fmt.Errorf("create attachment: %w", err)
+	}
+
+	var result Attachment
+	if err := s.client.PostMultipart(ctx, path, "attachment", file, filePath, &result); err != nil {
+		return nil, fmt.Errorf("create attachment: %w", err)
+	}
+
+	return &result, nil
 }
