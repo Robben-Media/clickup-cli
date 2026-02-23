@@ -49,6 +49,7 @@ type CLI struct {
 	Checklists    ChecklistsCmd    `cmd:"" help:"Checklist operations"`
 	Relationships RelationshipsCmd `cmd:"" help:"Task relationship operations"`
 	Fields        FieldsCmd        `cmd:"" help:"Custom field operations"`
+	Views         ViewsCmd         `cmd:"" help:"View operations"`
 	VersionCmd    VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

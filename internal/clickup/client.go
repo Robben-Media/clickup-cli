@@ -160,6 +160,11 @@ func (c *Client) CustomFields() *CustomFieldsService {
 	return &CustomFieldsService{client: c}
 }
 
+// Views provides methods for the Views API.
+func (c *Client) Views() *ViewsService {
+	return &ViewsService{client: c}
+}
+
 // Workspaces provides methods for the Workspaces API.
 func (c *Client) Workspaces() *WorkspacesService {
 	return &WorkspacesService{client: c}
@@ -2242,6 +2247,223 @@ func (s *CustomFieldsService) Remove(ctx context.Context, taskID, fieldID string
 	path := fmt.Sprintf("/v2/task/%s/field/%s", taskID, fieldID)
 	if err := s.client.Delete(ctx, path); err != nil {
 		return fmt.Errorf("remove custom field: %w", err)
+	}
+
+	return nil
+}
+
+// --- ViewsService ---
+
+// ViewsService handles view operations.
+type ViewsService struct {
+	client *Client
+}
+
+// ListByTeam returns all views in a workspace/team.
+func (s *ViewsService) ListByTeam(ctx context.Context, teamID string) (*ViewsResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/view", teamID)
+
+	var result ViewsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list team views: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListBySpace returns all views in a space.
+func (s *ViewsService) ListBySpace(ctx context.Context, spaceID string) (*ViewsResponse, error) {
+	if spaceID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/space/%s/view", spaceID)
+
+	var result ViewsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list space views: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListByFolder returns all views in a folder.
+func (s *ViewsService) ListByFolder(ctx context.Context, folderID string) (*ViewsResponse, error) {
+	if folderID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/folder/%s/view", folderID)
+
+	var result ViewsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list folder views: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListByList returns all views in a list.
+func (s *ViewsService) ListByList(ctx context.Context, listID string) (*ViewsResponse, error) {
+	if listID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/list/%s/view", listID)
+
+	var result ViewsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list views for list: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Get returns a view by ID.
+func (s *ViewsService) Get(ctx context.Context, viewID string) (*View, error) {
+	if viewID == "" {
+		return nil, errIDRequired
+	}
+
+	var result ViewResponse
+
+	path := fmt.Sprintf("/v2/view/%s", viewID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get view: %w", err)
+	}
+
+	return &result.View, nil
+}
+
+// Tasks returns tasks matching the view's filters.
+func (s *ViewsService) Tasks(ctx context.Context, viewID string, page int) (*ViewTasksResponse, error) {
+	if viewID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/view/%s/task", viewID)
+
+	if page > 0 {
+		path += fmt.Sprintf("?page=%d", page)
+	}
+
+	var result ViewTasksResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get view tasks: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CreateInTeam creates a view in a workspace/team.
+func (s *ViewsService) CreateInTeam(ctx context.Context, teamID string, req CreateViewRequest) (*View, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" || req.Type == "" {
+		return nil, errNameRequired
+	}
+
+	var result ViewResponse
+
+	path := fmt.Sprintf("/v2/team/%s/view", teamID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create team view: %w", err)
+	}
+
+	return &result.View, nil
+}
+
+// CreateInSpace creates a view in a space.
+func (s *ViewsService) CreateInSpace(ctx context.Context, spaceID string, req CreateViewRequest) (*View, error) {
+	if spaceID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" || req.Type == "" {
+		return nil, errNameRequired
+	}
+
+	var result ViewResponse
+
+	path := fmt.Sprintf("/v2/space/%s/view", spaceID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create space view: %w", err)
+	}
+
+	return &result.View, nil
+}
+
+// CreateInFolder creates a view in a folder.
+func (s *ViewsService) CreateInFolder(ctx context.Context, folderID string, req CreateViewRequest) (*View, error) {
+	if folderID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" || req.Type == "" {
+		return nil, errNameRequired
+	}
+
+	var result ViewResponse
+
+	path := fmt.Sprintf("/v2/folder/%s/view", folderID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create folder view: %w", err)
+	}
+
+	return &result.View, nil
+}
+
+// CreateInList creates a view in a list.
+func (s *ViewsService) CreateInList(ctx context.Context, listID string, req CreateViewRequest) (*View, error) {
+	if listID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" || req.Type == "" {
+		return nil, errNameRequired
+	}
+
+	var result ViewResponse
+
+	path := fmt.Sprintf("/v2/list/%s/view", listID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create list view: %w", err)
+	}
+
+	return &result.View, nil
+}
+
+// Update updates a view.
+func (s *ViewsService) Update(ctx context.Context, viewID string, req UpdateViewRequest) (*View, error) {
+	if viewID == "" {
+		return nil, errIDRequired
+	}
+
+	var result ViewResponse
+
+	path := fmt.Sprintf("/v2/view/%s", viewID)
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update view: %w", err)
+	}
+
+	return &result.View, nil
+}
+
+// Delete deletes a view.
+func (s *ViewsService) Delete(ctx context.Context, viewID string) error {
+	if viewID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/view/%s", viewID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete view: %w", err)
 	}
 
 	return nil

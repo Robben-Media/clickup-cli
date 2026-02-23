@@ -836,3 +836,46 @@ type CustomFieldsResponse struct {
 type SetCustomFieldRequest struct {
 	Value interface{} `json:"value"`
 }
+
+// --- View types ---
+
+// View represents a saved view configuration.
+type View struct {
+	ID        string     `json:"id"`
+	Name      string     `json:"name"`
+	Type      string     `json:"type"`
+	Parent    ViewParent `json:"parent"`
+	Protected bool       `json:"protected"`
+}
+
+// ViewParent represents the parent resource of a view.
+type ViewParent struct {
+	ID   string `json:"id"`
+	Type int    `json:"type"` // 7=space, 5=folder, 6=list, etc.
+}
+
+// ViewsResponse is the response for listing views.
+type ViewsResponse struct {
+	Views []View `json:"views"`
+}
+
+// ViewResponse wraps a single view response.
+type ViewResponse struct {
+	View View `json:"view"`
+}
+
+// ViewTasksResponse is the response for getting tasks in a view.
+type ViewTasksResponse struct {
+	Tasks []Task `json:"tasks"`
+}
+
+// CreateViewRequest is the request body for creating a view.
+type CreateViewRequest struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+}
+
+// UpdateViewRequest is the request body for updating a view.
+type UpdateViewRequest struct {
+	Name string `json:"name,omitempty"`
+}

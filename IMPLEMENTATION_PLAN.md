@@ -211,7 +211,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/4-time-tracking` | PR → fix/plain-output
 
 ### 11. Extend Time Service (Timer + CRUD + Tags + History)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/time-tracking.md
 - **Description**:
@@ -240,7 +240,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/5-task-extensions` | PR → fix/plain-output
 
 ### 12. Create Tags Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/tags.md
 - **Description**:
@@ -259,7 +259,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; tag CRUD works
 
 ### 13. Create Checklists Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/task-checklists.md
 - **Description**:
@@ -278,7 +278,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; checklist CRUD works
 
 ### 14. Create Relationships Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/task-relationships.md
 - **Description**:
@@ -295,7 +295,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; dependency/link CRUD works
 
 ### 15. Create Custom Fields Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/custom-fields.md
 - **Description**:
@@ -319,7 +319,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/6-views-webhooks-goals` | PR → fix/plain-output
 
 ### 16. Create Views Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/views.md
 - **Description**:
