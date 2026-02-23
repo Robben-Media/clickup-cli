@@ -478,6 +478,67 @@ type UpdateMessageRequest struct {
 	Content string `json:"content,omitempty"`
 }
 
+// --- Docs types (v3) ---
+
+// Doc represents a ClickUp doc.
+type Doc struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	DateCreated int64  `json:"date_created,omitempty"`
+	Creator     *User  `json:"creator,omitempty"`
+}
+
+// DocPage represents a page within a doc.
+type DocPage struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Content string `json:"content,omitempty"`
+	Order   int    `json:"order,omitempty"`
+}
+
+// DocPageListingItem represents an item in the page listing.
+type DocPageListingItem struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Order int    `json:"order,omitempty"`
+}
+
+// DocsResponse is the response for searching docs.
+type DocsResponse struct {
+	Docs []Doc `json:"docs"`
+}
+
+// DocPagesResponse is the response for getting doc pages.
+type DocPagesResponse struct {
+	Pages []DocPage `json:"pages"`
+}
+
+// DocPageListingResponse is the response for getting page listing.
+type DocPageListingResponse struct {
+	Pages []DocPageListingItem `json:"pages"`
+}
+
+// CreateDocRequest is the request body for creating a doc.
+type CreateDocRequest struct {
+	Name       string `json:"name"`
+	ParentType string `json:"parent_type,omitempty"` // space, folder, list
+	ParentID   string `json:"parent_id,omitempty"`
+}
+
+// CreatePageRequest is the request body for creating a page.
+type CreatePageRequest struct {
+	Name          string `json:"name"`
+	Content       string `json:"content,omitempty"`
+	ContentFormat string `json:"content_format,omitempty"` // md or html
+}
+
+// EditPageRequest is the request body for editing a page.
+type EditPageRequest struct {
+	Name          string `json:"name,omitempty"`
+	Content       string `json:"content,omitempty"`
+	ContentFormat string `json:"content_format,omitempty"`
+}
+
 // --- User Group types ---
 
 // UserGroup represents a ClickUp user group.

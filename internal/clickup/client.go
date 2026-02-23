@@ -200,6 +200,11 @@ func (c *Client) Chat() *ChatService {
 	return &ChatService{client: c}
 }
 
+// Docs provides methods for the Docs API (v3).
+func (c *Client) Docs() *DocsService {
+	return &DocsService{client: c}
+}
+
 // Workspaces provides methods for the Workspaces API.
 func (c *Client) Workspaces() *WorkspacesService {
 	return &WorkspacesService{client: c}
@@ -3317,6 +3322,178 @@ func (s *ChatService) GetTaggedUsers(ctx context.Context, messageID string) (*Ch
 	var result ChatTaggedUsersResponse
 	if err := s.client.Get(ctx, path, &result); err != nil {
 		return nil, fmt.Errorf("get tagged users: %w", err)
+	}
+
+	return &result, nil
+}
+
+// --- DocsService (v3) ---
+
+// DocsService handles docs operations (v3 API).
+type DocsService struct {
+	client *Client
+}
+
+// Search searches for docs in the workspace.
+func (s *DocsService) Search(ctx context.Context, query string) (*DocsResponse, error) {
+	path, err := s.client.v3Path("/docs")
+	if err != nil {
+		return nil, fmt.Errorf("search docs: %w", err)
+	}
+
+	// Add query param if provided
+	if query != "" {
+		path = path + "?query=" + url.QueryEscape(query)
+	}
+
+	var result DocsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("search docs: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Get returns a single doc by ID.
+func (s *DocsService) Get(ctx context.Context, docID string) (*Doc, error) {
+	if docID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/docs/%s", docID))
+	if err != nil {
+		return nil, fmt.Errorf("get doc: %w", err)
+	}
+
+	var result Doc
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get doc: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetPageListing returns the page listing for a doc (structure without content).
+func (s *DocsService) GetPageListing(ctx context.Context, docID string) (*DocPageListingResponse, error) {
+	if docID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/docs/%s/page_listing", docID))
+	if err != nil {
+		return nil, fmt.Errorf("get page listing: %w", err)
+	}
+
+	var result DocPageListingResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get page listing: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetPages returns all pages in a doc with content.
+func (s *DocsService) GetPages(ctx context.Context, docID string) (*DocPagesResponse, error) {
+	if docID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/docs/%s/pages", docID))
+	if err != nil {
+		return nil, fmt.Errorf("get pages: %w", err)
+	}
+
+	var result DocPagesResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get pages: %w", err)
+	}
+
+	return &result, nil
+}
+
+// GetPage returns a single page with content.
+func (s *DocsService) GetPage(ctx context.Context, docID, pageID string) (*DocPage, error) {
+	if docID == "" {
+		return nil, errIDRequired
+	}
+
+	if pageID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/docs/%s/pages/%s", docID, pageID))
+	if err != nil {
+		return nil, fmt.Errorf("get page: %w", err)
+	}
+
+	var result DocPage
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get page: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Create creates a new doc.
+func (s *DocsService) Create(ctx context.Context, req CreateDocRequest) (*Doc, error) {
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	path, err := s.client.v3Path("/docs")
+	if err != nil {
+		return nil, fmt.Errorf("create doc: %w", err)
+	}
+
+	var result Doc
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create doc: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CreatePage creates a new page in a doc.
+func (s *DocsService) CreatePage(ctx context.Context, docID string, req CreatePageRequest) (*DocPage, error) {
+	if docID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/docs/%s/pages", docID))
+	if err != nil {
+		return nil, fmt.Errorf("create page: %w", err)
+	}
+
+	var result DocPage
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create page: %w", err)
+	}
+
+	return &result, nil
+}
+
+// EditPage edits a page (uses PUT, not PATCH).
+func (s *DocsService) EditPage(ctx context.Context, docID, pageID string, req EditPageRequest) (*DocPage, error) {
+	if docID == "" {
+		return nil, errIDRequired
+	}
+
+	if pageID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/docs/%s/pages/%s", docID, pageID))
+	if err != nil {
+		return nil, fmt.Errorf("edit page: %w", err)
+	}
+
+	var result DocPage
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("edit page: %w", err)
 	}
 
 	return &result, nil

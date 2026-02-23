@@ -7622,3 +7622,268 @@ func TestChatCreateReply_SendsContent(t *testing.T) {
 		t.Fatalf("expected parent message msg-1, got %s", result.ParentMessage)
 	}
 }
+
+// --- DocsService tests ---
+
+func TestDocsSearch_ReturnsDocs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/docs"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(DocsResponse{
+			Docs: []Doc{
+				{ID: "doc-1", Name: "API Guide", DateCreated: 1700000000000},
+				{ID: "doc-2", Name: "User Manual", DateCreated: 1700000001000},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Docs().Search(context.Background(), "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Docs) != 2 {
+		t.Fatalf("expected 2 docs, got %d", len(result.Docs))
+	}
+
+	if result.Docs[0].Name != "API Guide" {
+		t.Fatalf("expected name API Guide, got %s", result.Docs[0].Name)
+	}
+}
+
+func TestDocsGet_ReturnsDoc(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/docs/doc-1"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Doc{ID: "doc-1", Name: "API Guide"})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Docs().Get(context.Background(), "doc-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "API Guide" {
+		t.Fatalf("expected name API Guide, got %s", result.Name)
+	}
+}
+
+func TestDocsCreate_SendsName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/docs"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		var req CreateDocRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.Name != "New Doc" {
+			t.Fatalf("expected name New Doc, got %s", req.Name)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Doc{ID: "doc-new", Name: "New Doc"})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Docs().Create(context.Background(), CreateDocRequest{Name: "New Doc"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "doc-new" {
+		t.Fatalf("expected ID doc-new, got %s", result.ID)
+	}
+}
+
+func TestDocsGetPages_ReturnsPages(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/docs/doc-1/pages"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(DocPagesResponse{
+			Pages: []DocPage{
+				{ID: "page-1", Name: "Introduction", Content: "# Intro", Order: 0},
+				{ID: "page-2", Name: "Getting Started", Content: "## Start here", Order: 1},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Docs().GetPages(context.Background(), "doc-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Pages) != 2 {
+		t.Fatalf("expected 2 pages, got %d", len(result.Pages))
+	}
+
+	if result.Pages[0].Content != "# Intro" {
+		t.Fatalf("expected content # Intro, got %s", result.Pages[0].Content)
+	}
+}
+
+func TestDocsCreatePage_SendsContent(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/docs/doc-1/pages"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		var req CreatePageRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.Name != "New Page" {
+			t.Fatalf("expected name New Page, got %s", req.Name)
+		}
+
+		if req.Content != "# Hello" {
+			t.Fatalf("expected content # Hello, got %s", req.Content)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(DocPage{ID: "page-new", Name: "New Page", Content: "# Hello"})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Docs().CreatePage(context.Background(), "doc-1", CreatePageRequest{
+		Name:    "New Page",
+		Content: "# Hello",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "page-new" {
+		t.Fatalf("expected ID page-new, got %s", result.ID)
+	}
+}
+
+func TestDocsEditPage_UsesPut(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/docs/doc-1/pages/page-1"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(DocPage{ID: "page-1", Name: "Updated Page"})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Docs().EditPage(context.Background(), "doc-1", "page-1", EditPageRequest{Name: "Updated Page"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "Updated Page" {
+		t.Fatalf("expected name Updated Page, got %s", result.Name)
+	}
+}
+
+func TestDocsEditPage_RequiresDocID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	_, err := client.Docs().EditPage(context.Background(), "", "page-1", EditPageRequest{Name: "Test"})
+	if err == nil {
+		t.Fatal("expected error for empty doc ID")
+	}
+}
+
+func TestDocsEditPage_RequiresPageID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	_, err := client.Docs().EditPage(context.Background(), "doc-1", "", EditPageRequest{Name: "Test"})
+	if err == nil {
+		t.Fatal("expected error for empty page ID")
+	}
+}

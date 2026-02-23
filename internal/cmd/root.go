@@ -55,6 +55,7 @@ type CLI struct {
 	Users         UsersCmd         `cmd:"" help:"User management operations"`
 	Attachments   AttachmentsCmd   `cmd:"" help:"File attachment operations"`
 	Chat          ChatCmd          `cmd:"" help:"Chat operations (v3 API)"`
+	Docs          DocsCmd          `cmd:"" help:"Docs operations (v3 API)"`
 	VersionCmd    VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 
