@@ -38,6 +38,49 @@ type User struct {
 	Email    string `json:"email,omitempty"`
 }
 
+// UserDetail represents a full user object with role information.
+type UserDetail struct {
+	ID             int         `json:"id"`
+	Username       string      `json:"username"`
+	Email          string      `json:"email"`
+	Role           int         `json:"role"`                     // 1=owner, 2=admin, 3=member, 4=guest
+	ProfilePicture string      `json:"profilePicture,omitempty"` //nolint:tagliatelle // ClickUp API uses camelCase
+	InvitedBy      *UserRef    `json:"invited_by,omitempty"`
+	DateInvited    string      `json:"date_invited,omitempty"`
+	DateJoined     string      `json:"date_joined,omitempty"`
+	CustomRole     *CustomRole `json:"custom_role,omitempty"`
+}
+
+// UserRef is a reference to a user (used in invited_by).
+type UserRef struct {
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email,omitempty"`
+}
+
+// UserResponse is the response for a single user.
+type UserResponse struct {
+	User UserDetail `json:"user"`
+}
+
+// InviteUserRequest is the request body for inviting a user.
+type InviteUserRequest struct {
+	Email           string `json:"email"`
+	Admin           bool   `json:"admin,omitempty"`
+	CustomRoleIDs   []int  `json:"custom_role_ids,omitempty"`
+	Locale          string `json:"locale,omitempty"`
+	SendInviteEmail *bool  `json:"send_invite_email,omitempty"`
+}
+
+// EditUserRequest is the request body for editing a user.
+type EditUserRequest struct {
+	Username       string `json:"username,omitempty"`
+	Admin          bool   `json:"admin,omitempty"`
+	CustomRoleIDs  []int  `json:"custom_role_ids,omitempty"`
+	AddCustomRoles []int  `json:"add_custom_role_ids,omitempty"`
+	RemCustomRoles []int  `json:"remove_custom_role_ids,omitempty"`
+}
+
 // Space represents a ClickUp space.
 type Space struct {
 	ID   string `json:"id"`

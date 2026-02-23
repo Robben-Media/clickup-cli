@@ -361,7 +361,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; webhook CRUD works
 
 ### 18. Create Goals Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/goals.md
 - **Description**:

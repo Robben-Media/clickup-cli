@@ -52,6 +52,7 @@ type CLI struct {
 	Views         ViewsCmd         `cmd:"" help:"View operations"`
 	Webhooks      WebhooksCmd      `cmd:"" help:"Webhook operations"`
 	Goals         GoalsCmd         `cmd:"" help:"Goal and key result operations"`
+	Users         UsersCmd         `cmd:"" help:"User management operations"`
 	VersionCmd    VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 
