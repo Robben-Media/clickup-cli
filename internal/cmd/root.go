@@ -46,6 +46,7 @@ type CLI struct {
 	AuditLogs  AuditLogsCmd     `cmd:"" help:"Audit log operations"`
 	ACLs       ACLsCmd          `cmd:"" help:"Access control operations"`
 	Tags       TagsCmd          `cmd:"" help:"Tag operations"`
+	Checklists ChecklistsCmd    `cmd:"" help:"Checklist operations"`
 	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

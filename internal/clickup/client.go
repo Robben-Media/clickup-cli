@@ -145,6 +145,11 @@ func (c *Client) Tags() *TagsService {
 	return &TagsService{client: c}
 }
 
+// Checklists provides methods for the Checklists API.
+func (c *Client) Checklists() *ChecklistsService {
+	return &ChecklistsService{client: c}
+}
+
 // Workspaces provides methods for the Workspaces API.
 func (c *Client) Workspaces() *WorkspacesService {
 	return &WorkspacesService{client: c}
@@ -1935,6 +1940,113 @@ func (s *TagsService) RemoveFromTask(ctx context.Context, taskID, tagName string
 	path := fmt.Sprintf("/v2/task/%s/tag/%s", taskID, url.QueryEscape(tagName))
 	if err := s.client.Delete(ctx, path); err != nil {
 		return fmt.Errorf("remove tag from task: %w", err)
+	}
+
+	return nil
+}
+
+// --- ChecklistsService ---
+
+// ChecklistsService handles checklist operations.
+type ChecklistsService struct {
+	client *Client
+}
+
+// Create creates a new checklist on a task.
+func (s *ChecklistsService) Create(ctx context.Context, taskID string, req CreateChecklistRequest) (*Checklist, error) {
+	if taskID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	var result ChecklistResponse
+
+	path := fmt.Sprintf("/v2/task/%s/checklist", taskID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create checklist: %w", err)
+	}
+
+	return &result.Checklist, nil
+}
+
+// Update updates a checklist.
+func (s *ChecklistsService) Update(ctx context.Context, checklistID string, req EditChecklistRequest) (*Checklist, error) {
+	if checklistID == "" {
+		return nil, errIDRequired
+	}
+
+	var result ChecklistResponse
+
+	path := fmt.Sprintf("/v2/checklist/%s", checklistID)
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update checklist: %w", err)
+	}
+
+	return &result.Checklist, nil
+}
+
+// Delete deletes a checklist.
+func (s *ChecklistsService) Delete(ctx context.Context, checklistID string) error {
+	if checklistID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/checklist/%s", checklistID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete checklist: %w", err)
+	}
+
+	return nil
+}
+
+// AddItem creates a new item in a checklist.
+func (s *ChecklistsService) AddItem(ctx context.Context, checklistID string, req CreateChecklistItemRequest) (*Checklist, error) {
+	if checklistID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.Name == "" {
+		return nil, errNameRequired
+	}
+
+	var result ChecklistResponse
+
+	path := fmt.Sprintf("/v2/checklist/%s/checklist_item", checklistID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("add checklist item: %w", err)
+	}
+
+	return &result.Checklist, nil
+}
+
+// UpdateItem updates a checklist item.
+func (s *ChecklistsService) UpdateItem(ctx context.Context, checklistID, itemID string, req EditChecklistItemRequest) (*Checklist, error) {
+	if checklistID == "" || itemID == "" {
+		return nil, errIDRequired
+	}
+
+	var result ChecklistResponse
+
+	path := fmt.Sprintf("/v2/checklist/%s/checklist_item/%s", checklistID, itemID)
+	if err := s.client.Put(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("update checklist item: %w", err)
+	}
+
+	return &result.Checklist, nil
+}
+
+// DeleteItem deletes a checklist item.
+func (s *ChecklistsService) DeleteItem(ctx context.Context, checklistID, itemID string) error {
+	if checklistID == "" || itemID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/checklist/%s/checklist_item/%s", checklistID, itemID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete checklist item: %w", err)
 	}
 
 	return nil

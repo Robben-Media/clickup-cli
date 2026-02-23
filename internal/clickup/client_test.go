@@ -4403,3 +4403,358 @@ func TestTagsRemoveFromTask_RequiresIDs(t *testing.T) {
 		t.Fatal("expected error for missing tag name, got nil")
 	}
 }
+
+// Checklists Service tests
+
+func TestChecklistsCreate_ReturnsChecklist(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/task/task-1/checklist" {
+			t.Fatalf("expected path /v2/task/task-1/checklist, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		var req CreateChecklistRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.Name != "QA Steps" {
+			t.Fatalf("expected name QA Steps, got %s", req.Name)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChecklistResponse{
+			Checklist: Checklist{
+				ID:         "cl-123",
+				Name:       "QA Steps",
+				OrderIndex: 0,
+				Items:      []ChecklistItem{},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateChecklistRequest{Name: "QA Steps"}
+
+	result, err := client.Checklists().Create(context.Background(), "task-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "cl-123" {
+		t.Fatalf("expected ID cl-123, got %s", result.ID)
+	}
+
+	if result.Name != "QA Steps" {
+		t.Fatalf("expected name QA Steps, got %s", result.Name)
+	}
+}
+
+func TestChecklistsCreate_RequiresTaskIDAndName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Checklists().Create(context.Background(), "", CreateChecklistRequest{Name: "test"})
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+
+	_, err = client.Checklists().Create(context.Background(), "task-1", CreateChecklistRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing name, got nil")
+	}
+}
+
+func TestChecklistsUpdate_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/checklist/cl-123" {
+			t.Fatalf("expected path /v2/checklist/cl-123, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChecklistResponse{
+			Checklist: Checklist{
+				ID:         "cl-123",
+				Name:       "Updated Name",
+				OrderIndex: 1,
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := EditChecklistRequest{Name: "Updated Name", Position: 1}
+
+	result, err := client.Checklists().Update(context.Background(), "cl-123", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "Updated Name" {
+		t.Fatalf("expected name Updated Name, got %s", result.Name)
+	}
+}
+
+func TestChecklistsUpdate_RequiresChecklistID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Checklists().Update(context.Background(), "", EditChecklistRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing checklist ID, got nil")
+	}
+}
+
+func TestChecklistsDelete_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/checklist/cl-123" {
+			t.Fatalf("expected path /v2/checklist/cl-123, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Checklists().Delete(context.Background(), "cl-123"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestChecklistsDelete_RequiresChecklistID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Checklists().Delete(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing checklist ID, got nil")
+	}
+}
+
+func TestChecklistsAddItem_ReturnsChecklist(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/checklist/cl-123/checklist_item" {
+			t.Fatalf("expected path /v2/checklist/cl-123/checklist_item, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		var req CreateChecklistItemRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.Name != "Step 1" {
+			t.Fatalf("expected name Step 1, got %s", req.Name)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChecklistResponse{
+			Checklist: Checklist{
+				ID:   "cl-123",
+				Name: "QA Steps",
+				Items: []ChecklistItem{
+					{ID: "ci-456", Name: "Step 1", Resolved: false},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateChecklistItemRequest{Name: "Step 1"}
+
+	result, err := client.Checklists().AddItem(context.Background(), "cl-123", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(result.Items))
+	}
+
+	if result.Items[0].ID != "ci-456" {
+		t.Fatalf("expected item ID ci-456, got %s", result.Items[0].ID)
+	}
+}
+
+func TestChecklistsAddItem_RequiresIDsAndName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Checklists().AddItem(context.Background(), "", CreateChecklistItemRequest{Name: "test"})
+	if err == nil {
+		t.Fatal("expected error for missing checklist ID, got nil")
+	}
+
+	_, err = client.Checklists().AddItem(context.Background(), "cl-123", CreateChecklistItemRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing name, got nil")
+	}
+}
+
+func TestChecklistsUpdateItem_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/checklist/cl-123/checklist_item/ci-456" {
+			t.Fatalf("expected path /v2/checklist/cl-123/checklist_item/ci-456, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		resolved := true
+
+		var req EditChecklistItemRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if *req.Resolved != resolved {
+			t.Fatalf("expected resolved true, got %v", *req.Resolved)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChecklistResponse{
+			Checklist: Checklist{
+				ID:   "cl-123",
+				Name: "QA Steps",
+				Items: []ChecklistItem{
+					{ID: "ci-456", Name: "Step 1", Resolved: true},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	resolved := true
+	req := EditChecklistItemRequest{Resolved: &resolved}
+
+	result, err := client.Checklists().UpdateItem(context.Background(), "cl-123", "ci-456", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if !result.Items[0].Resolved {
+		t.Fatal("expected item to be resolved")
+	}
+}
+
+func TestChecklistsUpdateItem_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Checklists().UpdateItem(context.Background(), "", "ci-456", EditChecklistItemRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing checklist ID, got nil")
+	}
+
+	_, err = client.Checklists().UpdateItem(context.Background(), "cl-123", "", EditChecklistItemRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing item ID, got nil")
+	}
+}
+
+func TestChecklistsDeleteItem_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/checklist/cl-123/checklist_item/ci-456" {
+			t.Fatalf("expected path /v2/checklist/cl-123/checklist_item/ci-456, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Checklists().DeleteItem(context.Background(), "cl-123", "ci-456"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestChecklistsDeleteItem_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Checklists().DeleteItem(context.Background(), "", "ci-456")
+	if err == nil {
+		t.Fatal("expected error for missing checklist ID, got nil")
+	}
+
+	err = client.Checklists().DeleteItem(context.Background(), "cl-123", "")
+	if err == nil {
+		t.Fatal("expected error for missing item ID, got nil")
+	}
+}
