@@ -131,6 +131,122 @@ func TestMembersList_ExtractsNestedMembers(t *testing.T) {
 	}
 }
 
+func TestMembersListMembers_ReturnsFlatUserObjects(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/list/list-1/member" {
+			t.Fatalf("expected path /v2/list/list-1/member, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(MemberUsersResponse{
+			Members: []MemberUser{
+				{ID: 1, Username: "alice", Email: "alice@example.com"},
+				{ID: 2, Username: "bob", Email: "bob@example.com"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Members().ListMembers(context.Background(), "list-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Members) != 2 {
+		t.Fatalf("expected 2 members, got %d", len(result.Members))
+	}
+
+	if result.Members[0].Username != "alice" {
+		t.Fatalf("expected username alice, got %s", result.Members[0].Username)
+	}
+
+	if result.Members[1].Email != "bob@example.com" {
+		t.Fatalf("expected email bob@example.com, got %s", result.Members[1].Email)
+	}
+}
+
+func TestMembersListMembers_RequiresListID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Members().ListMembers(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty list ID")
+	}
+}
+
+func TestMembersTaskMembers_ReturnsAssigneesAndWatchers(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/member" {
+			t.Fatalf("expected path /v2/task/task-1/member, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(MemberUsersResponse{
+			Members: []MemberUser{
+				{ID: 1, Username: "alice", Email: "alice@example.com"},
+				{ID: 3, Username: "charlie", Email: "charlie@example.com"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Members().TaskMembers(context.Background(), "task-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Members) != 2 {
+		t.Fatalf("expected 2 members, got %d", len(result.Members))
+	}
+
+	if result.Members[0].ID != 1 {
+		t.Fatalf("expected member ID 1, got %d", result.Members[0].ID)
+	}
+
+	if result.Members[1].Username != "charlie" {
+		t.Fatalf("expected username charlie, got %s", result.Members[1].Username)
+	}
+}
+
+func TestMembersTaskMembers_RequiresTaskID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Members().TaskMembers(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty task ID")
+	}
+}
+
 func TestCommentsAdd_ReturnsIDAndText(t *testing.T) {
 	t.Parallel()
 

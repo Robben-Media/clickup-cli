@@ -404,7 +404,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; user CRUD works
 
 ### 20. Extend Members Service (List/Task Members)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/members.md
 - **Description**:

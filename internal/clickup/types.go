@@ -349,6 +349,18 @@ type MembersListResponse struct {
 	Members []Member `json:"members"`
 }
 
+// MemberUser represents a user in list/task member responses (flat structure, no wrapper).
+type MemberUser struct {
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email,omitempty"`
+}
+
+// MemberUsersResponse is the response for listing list/task members.
+type MemberUsersResponse struct {
+	Members []MemberUser `json:"members"`
+}
+
 // --- User Group types ---
 
 // UserGroup represents a ClickUp user group.

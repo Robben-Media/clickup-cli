@@ -982,3 +982,32 @@ All 5 planned services have been implemented:
 - Destructive operations (remove user) should warn unless --force is used
 
 ---
+
+## Task 20 - 2026-02-23
+### Completed: Extend Members Service (List/Task Members)
+
+**What was implemented:**
+- Extended `MembersService` with ListMembers and TaskMembers methods
+- Implemented `GET /v2/list/{list_id}/member` (get list members)
+- Implemented `GET /v2/task/{task_id}/member` (get task members)
+- Added MemberUser and MemberUsersResponse types (flat user objects, not wrapped like workspace members)
+- Added CLI commands: `members list-members --list <list_id>`, `members task-members --task <task_id>`
+- Added 4 comprehensive tests for all new service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — extended MembersService with ListMembers, TaskMembers methods
+- `internal/clickup/types.go` — added MemberUser and MemberUsersResponse types
+- `internal/clickup/client_test.go` — added 4 tests for new methods
+- `internal/cmd/members.go` — added list-members and task-members commands
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** (pending)
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- List/Task members return flat user objects `{"id", "username", "email"}`, NOT wrapped in `{"user": {}}`
+- The existing workspace members endpoint wraps in `{"user": {...}}` structure
+- Tests requiring validation only (no HTTP call) still need mock server - can't pass nil to newTestClient
+
+---
+
