@@ -781,3 +781,54 @@ Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
 - Linked task ID goes in the URL path for link operations
 
 ---
+
+## Task 15 - 2026-02-22
+### Completed: Create Custom Fields Service
+
+**What was implemented:**
+- Created `CustomFieldsService` with 6 methods:
+  - ListByList(listID) - list custom fields for a list
+  - ListByFolder(folderID) - list custom fields for a folder
+  - ListBySpace(spaceID) - list custom fields for a space
+  - ListByTeam(teamID) - list custom fields for a workspace
+  - Set(taskID, fieldID, value) - set a custom field value
+  - Remove(taskID, fieldID) - remove a custom field value
+- Added types: CustomField, CustomFieldsResponse, SetCustomFieldRequest
+- Added CLI commands: fields list, set, remove
+- Added 12 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added CustomFieldsService with all methods
+- `internal/clickup/types.go` — added CustomField types
+- `internal/clickup/client_test.go` — added 12 tests for CustomFields service
+- `internal/cmd/fields.go` — added all CLI commands
+- `internal/cmd/root.go` — added Fields command to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `4e3ecb0`
+**PR URL:** (pending - will be added to existing PR)
+
+**Learnings:**
+- Field listing supports list/folder/space/team scope - exactly one required
+- Custom field types: text, number, currency, dropdown, checkbox, date, email, phone, url, labels, etc.
+- Dropdown values require option UUID, not label text
+- Set value: POST with `{"value": <any>}` body - field ID in URL path
+- Remove value: DELETE - field ID in URL path, no body
+
+---
+
+## Summary - Phase 9 Part 2 Completeness
+
+All 5 planned services have been implemented:
+
+1. **Time Service Extension** (Task 11) - 11 new methods for timer management, CRUD, and tags
+2. **Tags Service** (Task 12) - 6 methods for space-level tag and task-tag operations
+3. **Checklists Service** (Task 13) - 6 methods for checklist and checklist item management
+4. **Relationships Service** (Task 14) - 4 methods for task dependencies and links
+5. **Custom Fields Service** (Task 15) - 6 methods for custom field discovery and value management
+
+**Total new service methods:** 33
+**Total new tests added:** 67
+**Total new CLI commands:** 31
+
+---
