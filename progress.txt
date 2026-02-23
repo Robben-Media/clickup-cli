@@ -749,3 +749,35 @@ Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
 - WSL linter requires blank lines between variable declarations and if statements
 
 ---
+
+## Task 14 - 2026-02-22
+### Completed: Create Relationships Service
+
+**What was implemented:**
+- Created `RelationshipsService` with 4 methods:
+  - AddDependency(taskID, req) - add a dependency to a task
+  - DeleteDependency(taskID, req) - remove a dependency from a task
+  - AddLink(taskID, linkedTaskID) - link two tasks
+  - DeleteLink(taskID, linkedTaskID) - unlink two tasks
+- Added type: AddDependencyRequest with DependsOn and DependencyOf fields
+- Added CLI commands: relationships add-dep, remove-dep, link, unlink
+- Added 8 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added RelationshipsService with all methods
+- `internal/clickup/types.go` — added AddDependencyRequest type
+- `internal/clickup/client_test.go` — added 8 tests for Relationships service
+- `internal/cmd/relationships.go` — added all CLI commands
+- `internal/cmd/root.go` — added Relationships command to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `3e2ec48`
+**PR URL:** (pending - will be added to existing PR)
+
+**Learnings:**
+- Delete dependency uses query params (`depends_on` or `dependency_of`), not request body
+- `depends_on` = this task waits for other; `dependency_of` = this task blocks other
+- Links are bidirectional relationships (not dependencies)
+- Linked task ID goes in the URL path for link operations
+
+---
