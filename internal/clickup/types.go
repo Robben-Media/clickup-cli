@@ -550,6 +550,43 @@ type OAuthTokenResponse struct {
 	TokenType   string `json:"token_type"`
 }
 
+// --- Comment extension types ---
+
+// UpdateCommentRequest is the request body for updating a comment.
+type UpdateCommentRequest struct {
+	CommentText string `json:"comment_text,omitempty"`
+	Assignee    int    `json:"assignee,omitempty"`
+	Resolved    *bool  `json:"resolved,omitempty"`
+}
+
+// CreateListCommentRequest is the request body for creating a list comment.
+type CreateListCommentRequest struct {
+	CommentText string `json:"comment_text"`
+	Assignee    int    `json:"assignee,omitempty"`
+}
+
+// CreateViewCommentRequest is the request body for creating a view comment.
+type CreateViewCommentRequest struct {
+	CommentText string `json:"comment_text"`
+	Assignee    int    `json:"assignee,omitempty"`
+}
+
+// ThreadedCommentsResponse is the response for getting threaded replies.
+type ThreadedCommentsResponse struct {
+	Comments []Comment `json:"comments"`
+}
+
+// PostSubtype represents a comment post subtype.
+type PostSubtype struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// PostSubtypesResponse is the response for getting post subtypes.
+type PostSubtypesResponse struct {
+	Subtypes []PostSubtype `json:"subtypes"`
+}
+
 // --- Task extension types ---
 
 // FilteredTeamTasksParams contains query parameters for searching tasks across a workspace.

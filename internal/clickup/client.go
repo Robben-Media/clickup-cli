@@ -1174,6 +1174,182 @@ func (s *CommentsService) Add(ctx context.Context, taskID string, text string) (
 	return &Comment{ID: result.ID, Text: text}, nil
 }
 
+// Delete removes a comment.
+func (s *CommentsService) Delete(ctx context.Context, commentID string) error {
+	if commentID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/comment/%s", commentID)
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete comment: %w", err)
+	}
+
+	return nil
+}
+
+// Update updates a comment.
+func (s *CommentsService) Update(ctx context.Context, commentID string, req UpdateCommentRequest) error {
+	if commentID == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/comment/%s", commentID)
+	if err := s.client.Put(ctx, path, req, nil); err != nil {
+		return fmt.Errorf("update comment: %w", err)
+	}
+
+	return nil
+}
+
+// Replies returns threaded replies to a comment.
+func (s *CommentsService) Replies(ctx context.Context, commentID string) (*ThreadedCommentsResponse, error) {
+	if commentID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/comment/%s/reply", commentID)
+
+	var result ThreadedCommentsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get comment replies: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Reply creates a threaded reply to a comment.
+func (s *CommentsService) Reply(ctx context.Context, commentID string, text string) (*Comment, error) {
+	if commentID == "" {
+		return nil, errIDRequired
+	}
+
+	if text == "" {
+		return nil, errTextRequired
+	}
+
+	req := CreateCommentRequest{CommentText: text}
+
+	var result Comment
+
+	path := fmt.Sprintf("/v2/comment/%s/reply", commentID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create comment reply: %w", err)
+	}
+
+	return &result, nil
+}
+
+// ListComments returns list-level comments.
+func (s *CommentsService) ListComments(ctx context.Context, listID string) (*CommentsListResponse, error) {
+	if listID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/list/%s/comment", listID)
+
+	var result CommentsListResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get list comments: %w", err)
+	}
+
+	return &result, nil
+}
+
+// AddList creates a comment on a list.
+func (s *CommentsService) AddList(ctx context.Context, listID string, req CreateListCommentRequest) (*Comment, error) {
+	if listID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.CommentText == "" {
+		return nil, errTextRequired
+	}
+
+	// ClickUp returns the comment ID as a number in a wrapper
+	var result struct {
+		ID json.Number `json:"id"`
+	}
+
+	path := fmt.Sprintf("/v2/list/%s/comment", listID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("add list comment: %w", err)
+	}
+
+	return &Comment{ID: result.ID, Text: req.CommentText}, nil
+}
+
+// ViewComments returns view-level comments with pagination.
+func (s *CommentsService) ViewComments(ctx context.Context, viewID string, start int, startID string) (*CommentsListResponse, error) {
+	if viewID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/view/%s/comment", viewID)
+
+	params := url.Values{}
+	if start > 0 {
+		params.Set("start", fmt.Sprintf("%d", start))
+	}
+
+	if startID != "" {
+		params.Set("start_id", startID)
+	}
+
+	if len(params) > 0 {
+		path += "?" + params.Encode()
+	}
+
+	var result CommentsListResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list view comments: %w", err)
+	}
+
+	return &result, nil
+}
+
+// AddView creates a comment on a view.
+func (s *CommentsService) AddView(ctx context.Context, viewID string, req CreateViewCommentRequest) (*Comment, error) {
+	if viewID == "" {
+		return nil, errIDRequired
+	}
+
+	if req.CommentText == "" {
+		return nil, errTextRequired
+	}
+
+	// ClickUp returns the comment ID as a number in a wrapper
+	var result struct {
+		ID json.Number `json:"id"`
+	}
+
+	path := fmt.Sprintf("/v2/view/%s/comment", viewID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("add view comment: %w", err)
+	}
+
+	return &Comment{ID: result.ID, Text: req.CommentText}, nil
+}
+
+// Subtypes returns post subtype IDs for a type (v3 API).
+func (s *CommentsService) Subtypes(ctx context.Context, typeID string) (*PostSubtypesResponse, error) {
+	if typeID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/comments/types/%s/subtypes", typeID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result PostSubtypesResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get post subtypes: %w", err)
+	}
+
+	return &result, nil
+}
+
 // --- TimeService ---
 
 // TimeService handles time tracking operations.
