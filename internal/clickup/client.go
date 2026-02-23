@@ -11,12 +11,14 @@ import (
 )
 
 var (
-	errIDRequired          = errors.New("id is required")
-	errNameRequired        = errors.New("name is required")
-	errTextRequired        = errors.New("comment text is required")
-	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
-	errEmailRequired       = errors.New("email is required")
-	errOAuthFieldsRequired = errors.New("client_id, client_secret, and code are required")
+	errIDRequired           = errors.New("id is required")
+	errNameRequired         = errors.New("name is required")
+	errTextRequired         = errors.New("comment text is required")
+	errWorkspaceIDRequired  = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
+	errEmailRequired        = errors.New("email is required")
+	errOAuthFieldsRequired  = errors.New("client_id, client_secret, and code are required")
+	errTaskIDRequired       = errors.New("at least one task ID is required")
+	errSourceTaskIDRequired = errors.New("at least one source task ID is required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -527,6 +529,179 @@ func (s *TasksService) Delete(ctx context.Context, taskID string) error {
 	}
 
 	return nil
+}
+
+// Search returns tasks filtered across a workspace (GetFilteredTeamTasks).
+func (s *TasksService) Search(ctx context.Context, teamID string, params FilteredTeamTasksParams) (*FilteredTeamTasksResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/team/%s/task", teamID)
+
+	// Build query string manually for array parameters
+	query := url.Values{}
+	if params.Page > 0 {
+		query.Set("page", fmt.Sprintf("%d", params.Page))
+	}
+
+	if params.OrderBy != "" {
+		query.Set("order_by", params.OrderBy)
+	}
+
+	if params.Reverse {
+		query.Set("reverse", "true")
+	}
+
+	if params.Subtasks {
+		query.Set("subtasks", "true")
+	}
+
+	for _, status := range params.Statuses {
+		query.Add("statuses[]", status)
+	}
+
+	if params.IncludeClosed {
+		query.Set("include_closed", "true")
+	}
+
+	for _, assignee := range params.Assignees {
+		query.Add("assignees[]", fmt.Sprintf("%d", assignee))
+	}
+
+	for _, tag := range params.Tags {
+		query.Add("tags[]", tag)
+	}
+
+	if params.DueDateGt > 0 {
+		query.Set("due_date_gt", fmt.Sprintf("%d", params.DueDateGt))
+	}
+
+	if params.DueDateLt > 0 {
+		query.Set("due_date_lt", fmt.Sprintf("%d", params.DueDateLt))
+	}
+
+	if params.DateCreatedGt > 0 {
+		query.Set("date_created_gt", fmt.Sprintf("%d", params.DateCreatedGt))
+	}
+
+	if params.DateCreatedLt > 0 {
+		query.Set("date_created_lt", fmt.Sprintf("%d", params.DateCreatedLt))
+	}
+
+	if params.DateUpdatedGt > 0 {
+		query.Set("date_updated_gt", fmt.Sprintf("%d", params.DateUpdatedGt))
+	}
+
+	if params.DateUpdatedLt > 0 {
+		query.Set("date_updated_lt", fmt.Sprintf("%d", params.DateUpdatedLt))
+	}
+
+	if len(query) > 0 {
+		path += "?" + query.Encode()
+	}
+
+	var result FilteredTeamTasksResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("search tasks: %w", err)
+	}
+
+	return &result, nil
+}
+
+// TimeInStatus returns time-in-status data for a single task.
+func (s *TasksService) TimeInStatus(ctx context.Context, taskID string) (*TimeInStatusResponse, error) {
+	if taskID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/time_in_status", taskID)
+
+	var result TimeInStatusResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get time in status: %w", err)
+	}
+
+	return &result, nil
+}
+
+// BulkTimeInStatus returns time-in-status data for multiple tasks.
+func (s *TasksService) BulkTimeInStatus(ctx context.Context, taskIDs []string) (BulkTimeInStatusResponse, error) {
+	if len(taskIDs) == 0 {
+		return nil, errTaskIDRequired
+	}
+
+	// Build query string with task_ids
+	query := url.Values{}
+	for _, id := range taskIDs {
+		query.Add("task_ids", id)
+	}
+
+	path := "/v2/task/bulk_time_in_status/task_ids?" + query.Encode()
+
+	var result BulkTimeInStatusResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get bulk time in status: %w", err)
+	}
+
+	return result, nil
+}
+
+// Merge merges source tasks into a target task.
+func (s *TasksService) Merge(ctx context.Context, targetTaskID string, sourceTaskIDs []string) (*MergeTasksResponse, error) {
+	if targetTaskID == "" {
+		return nil, errIDRequired
+	}
+
+	if len(sourceTaskIDs) == 0 {
+		return nil, errSourceTaskIDRequired
+	}
+
+	req := MergeTasksRequest{MergedTaskIDs: sourceTaskIDs}
+
+	var result MergeTasksResponse
+
+	path := fmt.Sprintf("/v2/task/%s/merge", targetTaskID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("merge tasks: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Move moves a task to a different list (v3 API).
+func (s *TasksService) Move(ctx context.Context, taskID, listID string) (*MoveTaskResponse, error) {
+	if taskID == "" || listID == "" {
+		return nil, errIDRequired
+	}
+
+	path, err := s.client.v3Path(fmt.Sprintf("/tasks/%s/home_list/%s", taskID, listID))
+	if err != nil {
+		return nil, err
+	}
+
+	var result MoveTaskResponse
+	if err := s.client.Put(ctx, path, nil, &result); err != nil {
+		return nil, fmt.Errorf("move task: %w", err)
+	}
+
+	return &result, nil
+}
+
+// CreateFromTemplate creates a new task from a template.
+func (s *TasksService) CreateFromTemplate(ctx context.Context, listID, templateID string, req CreateTaskFromTemplateRequest) (*Task, error) {
+	if listID == "" || templateID == "" {
+		return nil, errIDRequired
+	}
+
+	var result Task
+
+	path := fmt.Sprintf("/v2/list/%s/taskTemplate/%s", listID, templateID)
+	if err := s.client.Post(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("create task from template: %w", err)
+	}
+
+	return &result, nil
 }
 
 // --- SpacesService ---

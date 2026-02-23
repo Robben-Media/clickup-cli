@@ -2219,6 +2219,472 @@ func TestListsGet_RequiresListID(t *testing.T) {
 	}
 }
 
+// --- TasksService extended tests ---
+
+func TestTasksSearch_ReturnsFilteredTasks(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/team/team-1/task" {
+			t.Fatalf("expected path /v2/team/team-1/task, got %s", r.URL.Path)
+		}
+
+		// Check query parameters
+		if r.URL.Query().Get("statuses[]") != "open" {
+			t.Fatalf("expected statuses[]=open, got %s", r.URL.Query().Get("statuses[]"))
+		}
+
+		if r.URL.Query().Get("include_closed") != "true" {
+			t.Fatalf("expected include_closed=true, got %s", r.URL.Query().Get("include_closed"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(FilteredTeamTasksResponse{
+			Tasks: []Task{
+				{ID: "task-1", Name: "Fix bug", Status: TaskStatus{Status: "open"}},
+				{ID: "task-2", Name: "Write docs", Status: TaskStatus{Status: "open"}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	params := FilteredTeamTasksParams{
+		Statuses:      []string{"open"},
+		IncludeClosed: true,
+	}
+
+	result, err := client.Tasks().Search(context.Background(), "team-1", params)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Tasks) != 2 {
+		t.Fatalf("expected 2 tasks, got %d", len(result.Tasks))
+	}
+
+	if result.Tasks[0].Name != "Fix bug" {
+		t.Fatalf("expected first task name Fix bug, got %s", result.Tasks[0].Name)
+	}
+}
+
+func TestTasksSearch_WithPagination(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("page") != "2" {
+			t.Fatalf("expected page=2, got %s", r.URL.Query().Get("page"))
+		}
+
+		if r.URL.Query().Get("order_by") != "due_date" {
+			t.Fatalf("expected order_by=due_date, got %s", r.URL.Query().Get("order_by"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(FilteredTeamTasksResponse{Tasks: []Task{}})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	params := FilteredTeamTasksParams{
+		Page:    2,
+		OrderBy: "due_date",
+	}
+
+	result, err := client.Tasks().Search(context.Background(), "team-1", params)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Tasks) != 0 {
+		t.Fatalf("expected 0 tasks, got %d", len(result.Tasks))
+	}
+}
+
+func TestTasksSearch_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Tasks().Search(context.Background(), "", FilteredTeamTasksParams{})
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestTasksTimeInStatus_ReturnsData(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1/time_in_status" {
+			t.Fatalf("expected path /v2/task/task-1/time_in_status, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(TimeInStatusResponse{
+			CurrentStatus: &StatusTime{
+				Status: "in progress",
+				Color:  "#4194f6",
+				TotalTime: TimeValue{
+					ByMinute: 120,
+					Since:    "1700000000000",
+				},
+			},
+			StatusHistory: []StatusTime{
+				{
+					Status: "open",
+					TotalTime: TimeValue{
+						ByMinute: 60,
+						Since:    "1699900000000",
+					},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Tasks().TimeInStatus(context.Background(), "task-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.CurrentStatus == nil {
+		t.Fatal("expected current status, got nil")
+	}
+
+	if result.CurrentStatus.Status != "in progress" {
+		t.Fatalf("expected status in progress, got %s", result.CurrentStatus.Status)
+	}
+
+	if result.CurrentStatus.TotalTime.ByMinute != 120 {
+		t.Fatalf("expected 120 minutes, got %d", result.CurrentStatus.TotalTime.ByMinute)
+	}
+
+	if len(result.StatusHistory) != 1 {
+		t.Fatalf("expected 1 status history entry, got %d", len(result.StatusHistory))
+	}
+}
+
+func TestTasksTimeInStatus_RequiresTaskID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Tasks().TimeInStatus(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+}
+
+func TestTasksBulkTimeInStatus_ReturnsMap(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/bulk_time_in_status/task_ids" {
+			t.Fatalf("expected path /v2/task/bulk_time_in_status/task_ids, got %s", r.URL.Path)
+		}
+
+		// Check that task_ids are passed
+		taskIDs := r.URL.Query()["task_ids"]
+		if len(taskIDs) != 2 {
+			t.Fatalf("expected 2 task_ids, got %d", len(taskIDs))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(BulkTimeInStatusResponse{
+			"task-1": {
+				CurrentStatus: &StatusTime{
+					Status:    "in progress",
+					TotalTime: TimeValue{ByMinute: 120},
+				},
+			},
+			"task-2": {
+				CurrentStatus: &StatusTime{
+					Status:    "done",
+					TotalTime: TimeValue{ByMinute: 30},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Tasks().BulkTimeInStatus(context.Background(), []string{"task-1", "task-2"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result) != 2 {
+		t.Fatalf("expected 2 tasks in result, got %d", len(result))
+	}
+
+	if result["task-1"].CurrentStatus.Status != "in progress" {
+		t.Fatalf("expected task-1 status in progress, got %s", result["task-1"].CurrentStatus.Status)
+	}
+}
+
+func TestTasksBulkTimeInStatus_RequiresTaskIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Tasks().BulkTimeInStatus(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error for missing task IDs, got nil")
+	}
+}
+
+func TestTasksMerge_SendsSourceIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/target-1/merge" {
+			t.Fatalf("expected path /v2/task/target-1/merge, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		mergedIDs, ok := body["merged_task_ids"].([]any)
+		if !ok || len(mergedIDs) != 2 {
+			t.Fatalf("expected merged_task_ids with 2 items, got %#v", body["merged_task_ids"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(MergeTasksResponse{ID: "target-1"})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Tasks().Merge(context.Background(), "target-1", []string{"source-1", "source-2"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "target-1" {
+		t.Fatalf("expected ID target-1, got %s", result.ID)
+	}
+}
+
+func TestTasksMerge_RequiresTargetID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Tasks().Merge(context.Background(), "", []string{"source-1"})
+	if err == nil {
+		t.Fatal("expected error for missing target task ID, got nil")
+	}
+}
+
+func TestTasksMerge_RequiresSourceIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Tasks().Merge(context.Background(), "target-1", nil)
+	if err == nil {
+		t.Fatal("expected error for missing source task IDs, got nil")
+	}
+}
+
+func TestTasksMove_UsesV3Path(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v3/workspaces/workspace-1/tasks/task-1/home_list/list-1" {
+			t.Fatalf("expected path /v3/workspaces/workspace-1/tasks/task-1/home_list/list-1, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(MoveTaskResponse{
+			Status:  "success",
+			TaskID:  "task-1",
+			ListID:  "list-1",
+			Message: "Task moved",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "workspace-1"
+
+	result, err := client.Tasks().Move(context.Background(), "task-1", "list-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Status != "success" {
+		t.Fatalf("expected status success, got %s", result.Status)
+	}
+
+	if result.TaskID != "task-1" {
+		t.Fatalf("expected task ID task-1, got %s", result.TaskID)
+	}
+}
+
+func TestTasksMove_RequiresWorkspaceID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	// No workspaceID set
+
+	_, err := client.Tasks().Move(context.Background(), "task-1", "list-1")
+	if err == nil {
+		t.Fatal("expected error for missing workspace ID, got nil")
+	}
+}
+
+func TestTasksMove_RequiresTaskAndListID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "workspace-1"
+
+	_, err := client.Tasks().Move(context.Background(), "", "list-1")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+
+	_, err = client.Tasks().Move(context.Background(), "task-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing list ID, got nil")
+	}
+}
+
+func TestTasksCreateFromTemplate_ReturnsTask(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/list/list-1/taskTemplate/template-1" {
+			t.Fatalf("expected path /v2/list/list-1/taskTemplate/template-1, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if name, ok := body["name"]; ok && name != "Custom Name" {
+			t.Fatalf("expected name Custom Name, got %s", name)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Task{
+			ID:     "task-new",
+			Name:   "Custom Name",
+			Status: TaskStatus{Status: "open"},
+			URL:    "https://app.clickup.com/t/task-new",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Tasks().CreateFromTemplate(context.Background(), "list-1", "template-1", CreateTaskFromTemplateRequest{
+		Name: "Custom Name",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "task-new" {
+		t.Fatalf("expected ID task-new, got %s", result.ID)
+	}
+
+	if result.Name != "Custom Name" {
+		t.Fatalf("expected name Custom Name, got %s", result.Name)
+	}
+}
+
+func TestTasksCreateFromTemplate_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Tasks().CreateFromTemplate(context.Background(), "", "template-1", CreateTaskFromTemplateRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing list ID, got nil")
+	}
+
+	_, err = client.Tasks().CreateFromTemplate(context.Background(), "list-1", "", CreateTaskFromTemplateRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing template ID, got nil")
+	}
+}
+
 // --- FoldersService tests ---
 
 func TestFoldersGet_ReturnsDetails(t *testing.T) {

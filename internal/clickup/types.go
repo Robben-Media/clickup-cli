@@ -549,3 +549,73 @@ type OAuthTokenResponse struct {
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type"`
 }
+
+// --- Task extension types ---
+
+// FilteredTeamTasksParams contains query parameters for searching tasks across a workspace.
+type FilteredTeamTasksParams struct {
+	Page          int      `url:"page,omitempty"`
+	OrderBy       string   `url:"order_by,omitempty"`
+	Reverse       bool     `url:"reverse,omitempty"`
+	Subtasks      bool     `url:"subtasks,omitempty"`
+	Statuses      []string `url:"statuses[],omitempty"`
+	IncludeClosed bool     `url:"include_closed,omitempty"`
+	Assignees     []int    `url:"assignees[],omitempty"`
+	Tags          []string `url:"tags[],omitempty"`
+	DueDateGt     int64    `url:"due_date_gt,omitempty"`
+	DueDateLt     int64    `url:"due_date_lt,omitempty"`
+	DateCreatedGt int64    `url:"date_created_gt,omitempty"`
+	DateCreatedLt int64    `url:"date_created_lt,omitempty"`
+	DateUpdatedGt int64    `url:"date_updated_gt,omitempty"`
+	DateUpdatedLt int64    `url:"date_updated_lt,omitempty"`
+}
+
+// FilteredTeamTasksResponse is the response for filtered team tasks search.
+type FilteredTeamTasksResponse struct {
+	Tasks []Task `json:"tasks"`
+}
+
+// TimeInStatusResponse contains time-in-status data for a single task.
+type TimeInStatusResponse struct {
+	CurrentStatus *StatusTime  `json:"current_status,omitempty"`
+	StatusHistory []StatusTime `json:"status_history,omitempty"`
+}
+
+// StatusTime represents time spent in a status.
+type StatusTime struct {
+	Status    string    `json:"status"`
+	Color     string    `json:"color,omitempty"`
+	TotalTime TimeValue `json:"total_time"`
+}
+
+// TimeValue represents a duration and start time.
+type TimeValue struct {
+	ByMinute int64  `json:"by_minute"`
+	Since    string `json:"since,omitempty"`
+}
+
+// BulkTimeInStatusResponse maps task IDs to their time-in-status data.
+type BulkTimeInStatusResponse map[string]TimeInStatusResponse
+
+// MergeTasksRequest is the request body for merging tasks.
+type MergeTasksRequest struct {
+	MergedTaskIDs []string `json:"merged_task_ids"`
+}
+
+// MergeTasksResponse is the response from merging tasks.
+type MergeTasksResponse struct {
+	ID string `json:"id"`
+}
+
+// MoveTaskResponse is the response from moving a task.
+type MoveTaskResponse struct {
+	Status  string `json:"status"`
+	TaskID  string `json:"task_id"`
+	ListID  string `json:"list_id"`
+	Message string `json:"message,omitempty"`
+}
+
+// CreateTaskFromTemplateRequest is the request body for creating a task from template.
+type CreateTaskFromTemplateRequest struct {
+	Name string `json:"name,omitempty"`
+}
