@@ -875,3 +875,37 @@ All 5 planned services have been implemented:
 - Priority.Name field is JSON-tagged as "priority" (not Priority.Priority)
 
 ---
+
+## Task 17 - 2026-02-22
+### Completed: Create Webhooks Service
+
+**What was implemented:**
+- Created `WebhooksService` with List, Create, Update, Delete methods
+- Implemented `GET /v2/team/{team_id}/webhook` (list webhooks)
+- Implemented `POST /v2/team/{team_id}/webhook` (create webhook)
+- Implemented `PUT /v2/webhook/{webhook_id}` (update webhook)
+- Implemented `DELETE /v2/webhook/{webhook_id}` (delete webhook)
+- Added Webhook types: Webhook, WebhooksResponse, CreateWebhookRequest, UpdateWebhookRequest
+- Added CLI commands: `webhooks list`, `webhooks create`, `webhooks update`, `webhooks delete`
+- Added 8 comprehensive tests for all service methods
+- Added static error variables: errEndpointRequired, errEventsRequired
+
+**Files changed:**
+- `internal/clickup/client.go` — added Webhooks() accessor, errEndpointRequired, errEventsRequired, and WebhooksService with all methods
+- `internal/clickup/types.go` — added all Webhook types
+- `internal/clickup/client_test.go` — added 8 tests for Webhooks service
+- `internal/cmd/webhooks.go` — created with all CLI commands
+- `internal/cmd/root.go` — added WebhooksCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `a95976b`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Webhook creation requires endpoint URL and at least one event
+- Events are comma-separated strings (not enums) - can be scoped to space/folder/list/task
+- Webhook status can be "active" or "inactive"
+- Create endpoint path uses team ID; update/delete use webhook ID
+- This is a v2 API endpoint - workspace ID is NOT required
+
+---
