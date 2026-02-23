@@ -635,3 +635,47 @@ Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
 - formatDuration in time_legacy.go takes milliseconds, needed separate formatMinutesToDuration for minutes
 
 ---
+
+## Task 11 - 2026-02-22
+### Completed: Extend Time Service (Timer + CRUD + Tags + History)
+
+**What was implemented:**
+- Extended `TimeService` with 11 new methods:
+  - Get(ctx, teamID, entryID) - get single time entry
+  - Current(ctx, teamID) - get running timer
+  - Start(ctx, teamID, req) - start a new timer
+  - Stop(ctx, teamID) - stop the running timer
+  - Update(ctx, teamID, entryID, req) - update a time entry
+  - Delete(ctx, teamID, entryID) - delete a time entry
+  - History(ctx, teamID, entryID) - get time entry change history
+  - ListTags(ctx, teamID) - list all time entry tags
+  - AddTags(ctx, teamID, req) - add tags to entries
+  - RemoveTags(ctx, teamID, req) - remove tags from entries
+  - RenameTag(ctx, teamID, req) - rename a tag
+- Added `DeleteWithBody` method to `api.Client` for DELETE requests with JSON body
+- Added types: TimeEntryDetail, TimeEntryDetailResponse, StartTimeEntryRequest, UpdateTimeEntryRequest, TimeEntryTagsRequest, RenameTimeEntryTagRequest, TimeEntryHistoryResponse, TimeEntryHistoryItem, TimeEntryTag, TimeEntryTagsResponse
+- Added CLI commands: time get, current, start, stop, update, delete, history, tags, add-tags, remove-tags, rename-tag
+- Renamed formatDuration/formatTimestamp to formatLegacyDuration/formatLegacyTimestamp in time_legacy.go to avoid conflicts
+- Added 23 comprehensive tests for all new service methods
+
+**Files changed:**
+- `internal/api/client.go` — added DeleteWithBody method
+- `internal/clickup/client.go` — extended TimeService with all new methods
+- `internal/clickup/types.go` — added all Time extension types
+- `internal/clickup/client_test.go` — added 23 tests for new methods
+- `internal/cmd/time.go` — added all new CLI commands with output formatting
+- `internal/cmd/time_legacy.go` — renamed helper functions to avoid conflicts
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `7caa1b6`
+**PR URL:** (pending - will be added to existing PR)
+
+**Learnings:**
+- `json.Number` only accepts valid numeric strings - cannot use "entry-1" style IDs
+- Running timer has negative duration convention: duration = -start_timestamp
+- Tag operations use DELETE with request body (uncommon but supported)
+- Start/Stop/Get/Current all return same TimeEntryDetail type
+- Time entry IDs are numbers (not UUIDs like groups)
+- The gocritic linter prefers `minutes %= 60` over `minutes = minutes % 60`
+
+---

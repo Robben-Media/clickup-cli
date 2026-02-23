@@ -140,6 +140,11 @@ func (c *Client) ACLs() *ACLsService {
 	return &ACLsService{client: c}
 }
 
+// Tags provides methods for the Tags API.
+func (c *Client) Tags() *TagsService {
+	return &TagsService{client: c}
+}
+
 // Workspaces provides methods for the Workspaces API.
 func (c *Client) Workspaces() *WorkspacesService {
 	return &WorkspacesService{client: c}
@@ -1833,6 +1838,103 @@ func (s *GuestsService) RemoveFromFolder(ctx context.Context, folderID string, g
 	path := fmt.Sprintf("/v2/folder/%s/guest/%d", folderID, guestID)
 	if err := s.client.Delete(ctx, path); err != nil {
 		return fmt.Errorf("remove guest from folder: %w", err)
+	}
+
+	return nil
+}
+
+// --- TagsService ---
+
+// TagsService handles space tag operations.
+type TagsService struct {
+	client *Client
+}
+
+// List returns all tags in a space.
+func (s *TagsService) List(ctx context.Context, spaceID string) (*SpaceTagsResponse, error) {
+	if spaceID == "" {
+		return nil, errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/space/%s/tag", spaceID)
+
+	var result SpaceTagsResponse
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list space tags: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Create creates a new tag in a space.
+func (s *TagsService) Create(ctx context.Context, spaceID string, req CreateSpaceTagRequest) error {
+	if spaceID == "" {
+		return errIDRequired
+	}
+
+	if req.Tag.Name == "" {
+		return errNameRequired
+	}
+
+	path := fmt.Sprintf("/v2/space/%s/tag", spaceID)
+	if err := s.client.Post(ctx, path, req, nil); err != nil {
+		return fmt.Errorf("create space tag: %w", err)
+	}
+
+	return nil
+}
+
+// Update updates a tag in a space.
+func (s *TagsService) Update(ctx context.Context, spaceID, tagName string, req EditSpaceTagRequest) error {
+	if spaceID == "" || tagName == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/space/%s/tag/%s", spaceID, url.QueryEscape(tagName))
+	if err := s.client.Put(ctx, path, req, nil); err != nil {
+		return fmt.Errorf("update space tag: %w", err)
+	}
+
+	return nil
+}
+
+// Delete deletes a tag from a space.
+func (s *TagsService) Delete(ctx context.Context, spaceID, tagName string) error {
+	if spaceID == "" || tagName == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/space/%s/tag/%s", spaceID, url.QueryEscape(tagName))
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("delete space tag: %w", err)
+	}
+
+	return nil
+}
+
+// AddToTask adds a tag to a task.
+func (s *TagsService) AddToTask(ctx context.Context, taskID, tagName string) error {
+	if taskID == "" || tagName == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/tag/%s", taskID, url.QueryEscape(tagName))
+	if err := s.client.Post(ctx, path, nil, nil); err != nil {
+		return fmt.Errorf("add tag to task: %w", err)
+	}
+
+	return nil
+}
+
+// RemoveFromTask removes a tag from a task.
+func (s *TagsService) RemoveFromTask(ctx context.Context, taskID, tagName string) error {
+	if taskID == "" || tagName == "" {
+		return errIDRequired
+	}
+
+	path := fmt.Sprintf("/v2/task/%s/tag/%s", taskID, url.QueryEscape(tagName))
+	if err := s.client.Delete(ctx, path); err != nil {
+		return fmt.Errorf("remove tag from task: %w", err)
 	}
 
 	return nil

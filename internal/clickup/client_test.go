@@ -4085,3 +4085,321 @@ func TestTimeRenameTag_RequiresNames(t *testing.T) {
 		t.Fatal("expected error for missing team ID, got nil")
 	}
 }
+
+// Tags Service tests
+
+func TestTagsList_ReturnsTags(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/space/space-1/tag" {
+			t.Fatalf("expected path /v2/space/space-1/tag, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(SpaceTagsResponse{
+			Tags: []SpaceTag{
+				{Name: "bug", TagFg: "#fff", TagBg: "#f44336"},
+				{Name: "feature", TagFg: "#fff", TagBg: "#4caf50"},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Tags().List(context.Background(), "space-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Tags) != 2 {
+		t.Fatalf("expected 2 tags, got %d", len(result.Tags))
+	}
+
+	if result.Tags[0].Name != "bug" {
+		t.Fatalf("expected first tag bug, got %s", result.Tags[0].Name)
+	}
+
+	if result.Tags[0].TagBg != "#f44336" {
+		t.Fatalf("expected background #f44336, got %s", result.Tags[0].TagBg)
+	}
+}
+
+func TestTagsList_RequiresSpaceID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Tags().List(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing space ID, got nil")
+	}
+}
+
+func TestTagsCreate_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/space/space-1/tag" {
+			t.Fatalf("expected path /v2/space/space-1/tag, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		var req CreateSpaceTagRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.Tag.Name != "urgent" {
+			t.Fatalf("expected tag name urgent, got %s", req.Tag.Name)
+		}
+
+		if req.Tag.TagBg != "#ff0000" {
+			t.Fatalf("expected background #ff0000, got %s", req.Tag.TagBg)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateSpaceTagRequest{
+		Tag: SpaceTag{
+			Name:  "urgent",
+			TagBg: "#ff0000",
+			TagFg: "#ffffff",
+		},
+	}
+
+	if err := client.Tags().Create(context.Background(), "space-1", req); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestTagsCreate_RequiresSpaceIDAndName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Tags().Create(context.Background(), "", CreateSpaceTagRequest{Tag: SpaceTag{Name: "test"}})
+	if err == nil {
+		t.Fatal("expected error for missing space ID, got nil")
+	}
+
+	err = client.Tags().Create(context.Background(), "space-1", CreateSpaceTagRequest{Tag: SpaceTag{}})
+	if err == nil {
+		t.Fatal("expected error for missing tag name, got nil")
+	}
+}
+
+func TestTagsUpdate_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Tag name should be URL encoded in the path
+		if r.URL.Path != "/v2/space/space-1/tag/old+tag" {
+			t.Fatalf("expected path /v2/space/space-1/tag/old+tag, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		var req EditSpaceTagRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.Tag.Name != "new tag" {
+			t.Fatalf("expected tag name 'new tag', got %s", req.Tag.Name)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := EditSpaceTagRequest{
+		Tag: SpaceTag{
+			Name:  "new tag",
+			TagBg: "#00ff00",
+		},
+	}
+
+	if err := client.Tags().Update(context.Background(), "space-1", "old tag", req); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestTagsUpdate_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Tags().Update(context.Background(), "", "tag", EditSpaceTagRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing space ID, got nil")
+	}
+
+	err = client.Tags().Update(context.Background(), "space-1", "", EditSpaceTagRequest{})
+	if err == nil {
+		t.Fatal("expected error for missing tag name, got nil")
+	}
+}
+
+func TestTagsDelete_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/space/space-1/tag/bug" {
+			t.Fatalf("expected path /v2/space/space-1/tag/bug, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Tags().Delete(context.Background(), "space-1", "bug"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestTagsDelete_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Tags().Delete(context.Background(), "", "tag")
+	if err == nil {
+		t.Fatal("expected error for missing space ID, got nil")
+	}
+
+	err = client.Tags().Delete(context.Background(), "space-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing tag name, got nil")
+	}
+}
+
+func TestTagsAddToTask_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/task/task-1/tag/bug" {
+			t.Fatalf("expected path /v2/task/task-1/tag/bug, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Tags().AddToTask(context.Background(), "task-1", "bug"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestTagsAddToTask_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Tags().AddToTask(context.Background(), "", "tag")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+
+	err = client.Tags().AddToTask(context.Background(), "task-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing tag name, got nil")
+	}
+}
+
+func TestTagsRemoveFromTask_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/task/task-1/tag/bug" {
+			t.Fatalf("expected path /v2/task/task-1/tag/bug, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Tags().RemoveFromTask(context.Background(), "task-1", "bug"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestTagsRemoveFromTask_RequiresIDs(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Tags().RemoveFromTask(context.Background(), "", "tag")
+	if err == nil {
+		t.Fatal("expected error for missing task ID, got nil")
+	}
+
+	err = client.Tags().RemoveFromTask(context.Background(), "task-1", "")
+	if err == nil {
+		t.Fatal("expected error for missing tag name, got nil")
+	}
+}

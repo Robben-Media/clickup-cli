@@ -733,3 +733,27 @@ type TimeEntryTag struct {
 type TimeEntryTagsResponse struct {
 	Data []TimeEntryTag `json:"data"`
 }
+
+// --- Space Tag types ---
+
+// SpaceTag represents a tag in a space with colors.
+type SpaceTag struct {
+	Name  string `json:"name"`
+	TagFg string `json:"tag_fg,omitempty"`
+	TagBg string `json:"tag_bg,omitempty"`
+}
+
+// SpaceTagsResponse is the response for listing space tags.
+type SpaceTagsResponse struct {
+	Tags []SpaceTag `json:"tags"`
+}
+
+// CreateSpaceTagRequest is the request body for creating a space tag.
+type CreateSpaceTagRequest struct {
+	Tag SpaceTag `json:"tag"`
+}
+
+// EditSpaceTagRequest is the request body for editing a space tag.
+type EditSpaceTagRequest struct {
+	Tag SpaceTag `json:"tag"`
+}
