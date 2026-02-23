@@ -679,3 +679,38 @@ Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
 - The gocritic linter prefers `minutes %= 60` over `minutes = minutes % 60`
 
 ---
+
+## Task 12 - 2026-02-22
+### Completed: Create Tags Service
+
+**What was implemented:**
+- Created `TagsService` with 6 methods:
+  - List(spaceID) - list all tags in a space
+  - Create(spaceID, req) - create a new tag
+  - Update(spaceID, tagName, req) - edit a tag
+  - Delete(spaceID, tagName) - delete a tag
+  - AddToTask(taskID, tagName) - add tag to task
+  - RemoveFromTask(taskID, tagName) - remove tag from task
+- Added types: SpaceTag, SpaceTagsResponse, CreateSpaceTagRequest, EditSpaceTagRequest
+- Added CLI commands: tags list, create, update, delete, add, remove
+- Added 12 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added TagsService with all methods
+- `internal/clickup/types.go` — added SpaceTag types
+- `internal/clickup/client_test.go` — added 12 tests for Tags service
+- `internal/cmd/tags.go` — added all CLI commands
+- `internal/cmd/root.go` — added Tags command to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `267b28e`
+**PR URL:** (pending - will be added to existing PR)
+
+**Learnings:**
+- Tag names in API paths use URL encoding (not tag IDs)
+- Create/Edit endpoints wrap body in `{"tag": {...}}` envelope
+- Adding a non-existent tag to a task creates it in the space
+- Space tags have foreground (tag_fg) and background (tag_bg) colors
+- Tag paths use tag name, not ID: `/v2/space/{space_id}/tag/{tag_name}`
+
+---
