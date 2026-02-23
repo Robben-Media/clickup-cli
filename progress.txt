@@ -714,3 +714,38 @@ Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
 - Tag paths use tag name, not ID: `/v2/space/{space_id}/tag/{tag_name}`
 
 ---
+
+## Task 13 - 2026-02-22
+### Completed: Create Checklists Service
+
+**What was implemented:**
+- Created `ChecklistsService` with 6 methods:
+  - Create(taskID, req) - create a checklist on a task
+  - Update(checklistID, req) - edit a checklist
+  - Delete(checklistID) - delete a checklist
+  - AddItem(checklistID, req) - add item to checklist
+  - UpdateItem(checklistID, itemID, req) - edit checklist item
+  - DeleteItem(checklistID, itemID) - delete checklist item
+- Added types: Checklist, ChecklistItem, ChecklistResponse, CreateChecklistRequest, EditChecklistRequest, CreateChecklistItemRequest, EditChecklistItemRequest
+- Added CLI commands: checklists create, update, delete, add-item, update-item, delete-item
+- Added 12 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added ChecklistsService with all methods
+- `internal/clickup/types.go` — added Checklist types
+- `internal/clickup/client_test.go` — added 12 tests for Checklists service
+- `internal/cmd/checklists.go` — added all CLI commands
+- `internal/cmd/root.go` — added Checklists command to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `319e634`
+**PR URL:** (pending - will be added to existing PR)
+
+**Learnings:**
+- Checklist response wraps in `{"checklist": {...}}` envelope - unwrapped in service layer
+- Checklist IDs are UUIDs (not numeric like task IDs)
+- Items can be nested using the `parent` field
+- Resolved is a boolean, not a status string
+- WSL linter requires blank lines between variable declarations and if statements
+
+---
