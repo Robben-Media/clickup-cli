@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/term"
 
+	"github.com/builtbyrobben/clickup-cli/internal/clickup"
 	"github.com/builtbyrobben/clickup-cli/internal/config"
 	"github.com/builtbyrobben/clickup-cli/internal/outfmt"
 	"github.com/builtbyrobben/clickup-cli/internal/secrets"
@@ -20,6 +21,8 @@ type AuthCmd struct {
 	SetWorkspace AuthSetWorkspaceCmd `cmd:"" help:"Set ClickUp Workspace ID for v3 API"`
 	Status       AuthStatusCmd       `cmd:"" help:"Show authentication status"`
 	Remove       AuthRemoveCmd       `cmd:"" help:"Remove stored credentials"`
+	Whoami       AuthWhoamiCmd       `cmd:"" help:"Get the currently authorized user"`
+	Token        AuthTokenCmd        `cmd:"" help:"Exchange OAuth authorization code for access token"`
 }
 
 type AuthSetKeyCmd struct {
@@ -292,6 +295,85 @@ func (cmd *AuthRemoveCmd) Run(ctx context.Context) error {
 	}
 
 	fmt.Fprintln(os.Stderr, "API key removed")
+
+	return nil
+}
+
+type AuthWhoamiCmd struct{}
+
+func (cmd *AuthWhoamiCmd) Run(ctx context.Context) error {
+	client, err := getClickUpClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	result, err := client.Auth().Whoami(ctx)
+	if err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, result)
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ID", "USERNAME", "EMAIL"}
+		rows := [][]string{{
+			fmt.Sprintf("%d", result.User.ID),
+			result.User.Username,
+			result.User.Email,
+		}}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
+
+	fmt.Fprintf(os.Stderr, "Authenticated as:\n")
+	fmt.Printf("  ID: %d\n", result.User.ID)
+	fmt.Printf("  Username: %s\n", result.User.Username)
+	fmt.Printf("  Email: %s\n", result.User.Email)
+
+	if result.User.Color != "" {
+		fmt.Printf("  Color: %s\n", result.User.Color)
+	}
+
+	if result.User.ProfilePicture != "" {
+		fmt.Printf("  Profile Picture: %s\n", result.User.ProfilePicture)
+	}
+
+	return nil
+}
+
+type AuthTokenCmd struct {
+	ClientID     string `required:"" help:"OAuth client ID"`
+	ClientSecret string `required:"" help:"OAuth client secret"`
+	Code         string `required:"" help:"OAuth authorization code"`
+}
+
+func (cmd *AuthTokenCmd) Run(ctx context.Context) error {
+	client, err := getClickUpClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	result, err := client.Auth().Token(ctx, clickup.OAuthTokenRequest{
+		ClientID:     cmd.ClientID,
+		ClientSecret: cmd.ClientSecret,
+		Code:         cmd.Code,
+	})
+	if err != nil {
+		return err
+	}
+
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, result)
+	}
+	if outfmt.IsPlain(ctx) {
+		headers := []string{"ACCESS_TOKEN", "TOKEN_TYPE"}
+		rows := [][]string{{result.AccessToken, result.TokenType}}
+		return outfmt.WritePlain(os.Stdout, headers, rows)
+	}
+
+	fmt.Fprintf(os.Stderr, "Token exchange successful\n")
+	fmt.Printf("  Access Token: %s\n", result.AccessToken)
+	fmt.Printf("  Token Type: %s\n", result.TokenType)
 
 	return nil
 }

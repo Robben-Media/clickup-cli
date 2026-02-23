@@ -1,0 +1,13 @@
+implemented	delete	/task/{}	Tasks	Delete Task	DeleteTask	v2
+implemented	get	/folder/{}/list	Lists	Get Lists	GetLists	v2
+implemented	get	/list/{}/task	Tasks	Get Tasks	GetTasks	v2
+implemented	get	/space/{}/folder	Folders	Get Folders	GetFolders	v2
+implemented	get	/space/{}/list	Lists	Get Folderless Lists	GetFolderlessLists	v2
+implemented	get	/task/{}	Tasks	Get Task	GetTask	v2
+implemented	get	/task/{}/comment	Comments	Get Task Comments	GetTaskComments	v2
+implemented	get	/team/{}/space	Spaces	Get Spaces	GetSpaces	v2
+implemented	get	/team/{}/time_entries	Time Tracking	Get time entries within a date range	Gettimeentrieswithinadaterange	v2
+implemented	post	/list/{}/task	Tasks	Create Task	CreateTask	v2
+implemented	post	/task/{}/comment	Comments	Create Task Comment	CreateTaskComment	v2
+implemented	post	/team/{}/time_entries	Time Tracking	Create a time entry	Createatimeentry	v2
+implemented	put	/task/{}	Tasks	Update Task	UpdateTask	v2

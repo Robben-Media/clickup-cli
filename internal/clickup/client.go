@@ -15,6 +15,7 @@ var (
 	errNameRequired        = errors.New("name is required")
 	errTextRequired        = errors.New("comment text is required")
 	errWorkspaceIDRequired = errors.New("workspace ID required for v3 API; set CLICKUP_WORKSPACE_ID or use --workspace flag")
+	errOAuthFieldsRequired = errors.New("client_id, client_secret, and code are required")
 )
 
 const defaultBaseURL = "https://api.clickup.com/api"
@@ -89,6 +90,16 @@ func (c *Client) Comments() *CommentsService {
 // Time provides methods for the Time Tracking API.
 func (c *Client) Time() *TimeService {
 	return &TimeService{client: c}
+}
+
+// Workspaces provides methods for the Workspaces API.
+func (c *Client) Workspaces() *WorkspacesService {
+	return &WorkspacesService{client: c}
+}
+
+// Auth provides methods for the Authorization API.
+func (c *Client) Auth() *AuthService {
+	return &AuthService{client: c}
 }
 
 // --- TasksService ---
@@ -389,4 +400,91 @@ func (s *TimeService) Log(ctx context.Context, teamID, taskID string, durationMs
 	}
 
 	return &result.Data, nil
+}
+
+// --- WorkspacesService ---
+
+// WorkspacesService handles workspace operations.
+type WorkspacesService struct {
+	client *Client
+}
+
+// List returns all authorized workspaces (teams).
+func (s *WorkspacesService) List(ctx context.Context) (*WorkspacesResponse, error) {
+	var result WorkspacesResponse
+
+	path := "/v2/team"
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("list workspaces: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Plan returns the workspace plan for a team.
+func (s *WorkspacesService) Plan(ctx context.Context, teamID string) (*WorkspacePlanResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	var result WorkspacePlanResponse
+
+	path := fmt.Sprintf("/v2/team/%s/plan", teamID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get workspace plan: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Seats returns the workspace seat usage for a team.
+func (s *WorkspacesService) Seats(ctx context.Context, teamID string) (*WorkspaceSeatsResponse, error) {
+	if teamID == "" {
+		return nil, errIDRequired
+	}
+
+	var result WorkspaceSeatsResponse
+
+	path := fmt.Sprintf("/v2/team/%s/seats", teamID)
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get workspace seats: %w", err)
+	}
+
+	return &result, nil
+}
+
+// --- AuthService ---
+
+// AuthService handles authorization operations.
+type AuthService struct {
+	client *Client
+}
+
+// Whoami returns the currently authorized user.
+func (s *AuthService) Whoami(ctx context.Context) (*AuthorizedUserResponse, error) {
+	var result AuthorizedUserResponse
+
+	path := "/v2/user"
+	if err := s.client.Get(ctx, path, &result); err != nil {
+		return nil, fmt.Errorf("get authorized user: %w", err)
+	}
+
+	return &result, nil
+}
+
+// Token exchanges an OAuth authorization code for an access token.
+// This endpoint does not require the Authorization header.
+func (s *AuthService) Token(ctx context.Context, req OAuthTokenRequest) (*OAuthTokenResponse, error) {
+	if req.ClientID == "" || req.ClientSecret == "" || req.Code == "" {
+		return nil, errOAuthFieldsRequired
+	}
+
+	var result OAuthTokenResponse
+
+	path := "/v2/oauth/token"
+	if err := s.client.PostNoAuth(ctx, path, req, &result); err != nil {
+		return nil, fmt.Errorf("exchange oauth token: %w", err)
+	}
+
+	return &result, nil
 }

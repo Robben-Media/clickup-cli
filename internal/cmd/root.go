@@ -28,6 +28,7 @@ type CLI struct {
 
 	Version    kong.VersionFlag `help:"Print version and exit"`
 	Auth       AuthCmd          `cmd:"" help:"Auth and credentials"`
+	Workspaces WorkspacesCmd    `cmd:"" help:"Workspace operations"`
 	Tasks      TasksCmd         `cmd:"" help:"Task operations"`
 	Spaces     SpacesCmd        `cmd:"" help:"Space operations"`
 	Lists      ListsCmd         `cmd:"" help:"List operations"`

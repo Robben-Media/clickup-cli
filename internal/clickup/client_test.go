@@ -251,3 +251,311 @@ func TestTasksUpdate_SendsAssigneesAddRem(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestWorkspacesList_ReturnsTeams(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team" {
+			t.Fatalf("expected path /v2/team, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(WorkspacesResponse{
+			Teams: []Workspace{
+				{ID: "team-1", Name: "Team One", Members: []Member{{User: User{ID: 1, Username: "alice"}}}},
+				{ID: "team-2", Name: "Team Two", Members: []Member{{User: User{ID: 2, Username: "bob"}}}},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Workspaces().List(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Teams) != 2 {
+		t.Fatalf("expected two teams, got %d", len(result.Teams))
+	}
+
+	if result.Teams[0].ID != "team-1" || result.Teams[0].Name != "Team One" {
+		t.Fatalf("expected team-1/Team One, got %s/%s", result.Teams[0].ID, result.Teams[0].Name)
+	}
+}
+
+func TestWorkspacesPlan_ReturnsPlanInfo(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/plan" {
+			t.Fatalf("expected path /v2/team/team-1/plan, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(WorkspacePlanResponse{
+			TeamID:   "team-1",
+			PlanID:   3,
+			PlanName: "Business",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Workspaces().Plan(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.TeamID != "team-1" {
+		t.Fatalf("expected team-1, got %s", result.TeamID)
+	}
+
+	if result.PlanID != 3 {
+		t.Fatalf("expected plan ID 3, got %d", result.PlanID)
+	}
+
+	if result.PlanName != "Business" {
+		t.Fatalf("expected plan name Business, got %s", result.PlanName)
+	}
+}
+
+func TestWorkspacesSeats_ReturnsSeatInfo(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/seats" {
+			t.Fatalf("expected path /v2/team/team-1/seats, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(WorkspaceSeatsResponse{
+			Members: SeatInfo{FilledSeats: 5, TotalSeats: 10, EmptySeats: 5},
+			Guests:  SeatInfo{FilledSeats: 2, TotalSeats: 5, EmptySeats: 3},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Workspaces().Seats(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Members.FilledSeats != 5 {
+		t.Fatalf("expected 5 filled member seats, got %d", result.Members.FilledSeats)
+	}
+
+	if result.Members.TotalSeats != 10 {
+		t.Fatalf("expected 10 total member seats, got %d", result.Members.TotalSeats)
+	}
+
+	if result.Guests.FilledSeats != 2 {
+		t.Fatalf("expected 2 filled guest seats, got %d", result.Guests.FilledSeats)
+	}
+}
+
+func TestWorkspacesPlan_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	// Create client without server since this test doesn't make HTTP requests
+	client := &Client{
+		Client: api.NewClient("test-api-key"),
+	}
+
+	_, err := client.Workspaces().Plan(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty team ID, got nil")
+	}
+
+	if !errors.Is(err, errIDRequired) {
+		t.Fatalf("expected errIDRequired, got %v", err)
+	}
+}
+
+func TestWorkspacesSeats_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	// Create client without server since this test doesn't make HTTP requests
+	client := &Client{
+		Client: api.NewClient("test-api-key"),
+	}
+
+	_, err := client.Workspaces().Seats(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for empty team ID, got nil")
+	}
+
+	if !errors.Is(err, errIDRequired) {
+		t.Fatalf("expected errIDRequired, got %v", err)
+	}
+}
+
+func TestAuthServiceWhoami_ReturnsUser(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/user" {
+			t.Fatalf("expected path /v2/user, got %s", r.URL.Path)
+		}
+
+		// Verify Authorization header is set
+		if r.Header.Get("Authorization") != "test-api-key" {
+			t.Fatalf("expected Authorization header, got %s", r.Header.Get("Authorization"))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(AuthorizedUserResponse{
+			User: AuthUser{
+				ID:             123,
+				Username:       "testuser",
+				Email:          "test@example.com",
+				Color:          "#4194f6",
+				ProfilePicture: "https://example.com/pic.jpg",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Auth().Whoami(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.User.ID != 123 {
+		t.Fatalf("expected user ID 123, got %d", result.User.ID)
+	}
+
+	if result.User.Username != "testuser" {
+		t.Fatalf("expected username testuser, got %s", result.User.Username)
+	}
+
+	if result.User.Email != "test@example.com" {
+		t.Fatalf("expected email test@example.com, got %s", result.User.Email)
+	}
+}
+
+func TestAuthServiceToken_ReturnsToken(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/oauth/token" {
+			t.Fatalf("expected path /v2/oauth/token, got %s", r.URL.Path)
+		}
+
+		// Verify Authorization header is NOT set
+		if r.Header.Get("Authorization") != "" {
+			t.Fatalf("expected no Authorization header, got %s", r.Header.Get("Authorization"))
+		}
+
+		// Decode and verify request body
+		var req OAuthTokenRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.ClientID != "client-123" {
+			t.Fatalf("expected client_id client-123, got %s", req.ClientID)
+		}
+
+		if req.ClientSecret != "mock_client_secret_xyz" {
+			t.Fatalf("expected client_secret mock_client_secret_xyz, got %s", req.ClientSecret)
+		}
+
+		if req.Code != "auth-code-789" {
+			t.Fatalf("expected code auth-code-789, got %s", req.Code)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(OAuthTokenResponse{
+			AccessToken: "mock_access_xyz",
+			TokenType:   "Bearer",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Auth().Token(context.Background(), OAuthTokenRequest{
+		ClientID:     "client-123",
+		ClientSecret: "mock_client_secret_xyz",
+		Code:         "auth-code-789",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.AccessToken != "mock_access_xyz" {
+		t.Fatalf("expected access token mock_access_xyz, got %s", result.AccessToken)
+	}
+
+	if result.TokenType != "Bearer" {
+		t.Fatalf("expected token type Bearer, got %s", result.TokenType)
+	}
+}
+
+func TestAuthServiceToken_RequiresAllFields(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		req     OAuthTokenRequest
+		wantErr bool
+	}{
+		{
+			name:    "missing client_id",
+			req:     OAuthTokenRequest{ClientSecret: "mock_value_xyz", Code: "code"},
+			wantErr: true,
+		},
+		{
+			name:    "missing client_secret",
+			req:     OAuthTokenRequest{ClientID: "id", Code: "code"},
+			wantErr: true,
+		},
+		{
+			name:    "missing code",
+			req:     OAuthTokenRequest{ClientID: "id", ClientSecret: "mock_value_xyz"},
+			wantErr: true,
+		},
+		{
+			name:    "all fields present",
+			req:     OAuthTokenRequest{ClientID: "id", ClientSecret: "mock_value_xyz", Code: "code"},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// We need a server for the valid case, but won't reach it for validation errors
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(OAuthTokenResponse{})
+			}))
+			defer server.Close()
+
+			testClient := newTestClient(server)
+
+			_, err := testClient.Auth().Token(context.Background(), tt.req)
+
+			if tt.wantErr && err == nil {
+				t.Fatal("expected error, got nil")
+			}
+
+			if !tt.wantErr && err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}

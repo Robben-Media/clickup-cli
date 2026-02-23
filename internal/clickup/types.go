@@ -182,3 +182,67 @@ type TimeEntriesListResponse struct {
 type MembersListResponse struct {
 	Members []Member `json:"members"`
 }
+
+// --- Workspace types ---
+
+// WorkspacesResponse is the response for listing authorized workspaces.
+type WorkspacesResponse struct {
+	Teams []Workspace `json:"teams"`
+}
+
+// Workspace represents a ClickUp workspace (team).
+type Workspace struct {
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	Color   string   `json:"color,omitempty"`
+	Members []Member `json:"members,omitempty"`
+}
+
+// WorkspacePlanResponse is the response for getting workspace plan.
+type WorkspacePlanResponse struct {
+	TeamID   string `json:"team_id"`
+	PlanID   int    `json:"plan_id"`
+	PlanName string `json:"plan_name"`
+}
+
+// WorkspaceSeatsResponse is the response for getting workspace seats.
+type WorkspaceSeatsResponse struct {
+	Members SeatInfo `json:"members"`
+	Guests  SeatInfo `json:"guests"`
+}
+
+// SeatInfo contains seat information for members or guests.
+type SeatInfo struct {
+	FilledSeats int `json:"filled_member_seats"`
+	TotalSeats  int `json:"total_member_seats"`
+	EmptySeats  int `json:"empty_member_seats"`
+}
+
+// --- Auth types ---
+
+// AuthorizedUserResponse is the response for getting the authorized user.
+type AuthorizedUserResponse struct {
+	User AuthUser `json:"user"`
+}
+
+// AuthUser represents an authenticated ClickUp user.
+type AuthUser struct {
+	ID             int    `json:"id"`
+	Username       string `json:"username"`
+	Email          string `json:"email"`
+	Color          string `json:"color,omitempty"`
+	ProfilePicture string `json:"profilePicture,omitempty"` //nolint:tagliatelle // ClickUp API uses camelCase
+}
+
+// OAuthTokenRequest is the request body for OAuth token exchange.
+type OAuthTokenRequest struct {
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	Code         string `json:"code"`
+}
+
+// OAuthTokenResponse is the response for OAuth token exchange.
+type OAuthTokenResponse struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+}
