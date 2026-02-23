@@ -7247,3 +7247,378 @@ func TestAttachmentsCreate_RequiresFilePath(t *testing.T) {
 		t.Fatal("expected error for empty file path")
 	}
 }
+
+// --- ChatService tests ---
+
+func TestChatListChannels_ReturnsChannels(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/chat/channels"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChatChannelsResponse{
+			Channels: []ChatChannel{
+				{ID: "chan-1", Name: "General", Type: "public", MemberCount: 10},
+				{ID: "chan-2", Name: "Engineering", Type: "private", MemberCount: 5},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Chat().ListChannels(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Channels) != 2 {
+		t.Fatalf("expected 2 channels, got %d", len(result.Channels))
+	}
+
+	if result.Channels[0].Name != "General" {
+		t.Fatalf("expected name General, got %s", result.Channels[0].Name)
+	}
+}
+
+func TestChatGetChannel_ReturnsChannel(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/chat/channels/chan-1"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChatChannelResponse{
+			Channel: ChatChannel{ID: "chan-1", Name: "General", Type: "public"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Chat().GetChannel(context.Background(), "chan-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "General" {
+		t.Fatalf("expected name General, got %s", result.Name)
+	}
+}
+
+func TestChatCreateChannel_SendsName(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/chat/channels"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		var req CreateChatChannelRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.Name != "New Channel" {
+			t.Fatalf("expected name New Channel, got %s", req.Name)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChatChannelResponse{
+			Channel: ChatChannel{ID: "chan-new", Name: "New Channel", Type: "public"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Chat().CreateChannel(context.Background(), CreateChatChannelRequest{Name: "New Channel"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "chan-new" {
+		t.Fatalf("expected ID chan-new, got %s", result.ID)
+	}
+}
+
+func TestChatUpdateChannel_UsesPatch(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPatch {
+			t.Fatalf("expected PATCH, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/chat/channels/chan-1"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChatChannelResponse{
+			Channel: ChatChannel{ID: "chan-1", Name: "Updated Name", Type: "public"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Chat().UpdateChannel(context.Background(), "chan-1", UpdateChannelRequest{Name: "Updated Name"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Name != "Updated Name" {
+		t.Fatalf("expected name Updated Name, got %s", result.Name)
+	}
+}
+
+func TestChatDeleteChannel_SendsDelete(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/chat/channels/chan-1"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	err := client.Chat().DeleteChannel(context.Background(), "chan-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestChatListMessages_ReturnsWithPagination(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/chat/channels/chan-1/messages"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChatMessagesResponse{
+			Data: []ChatMessage{
+				{ID: "msg-1", Content: "Hello!", UserID: "1", Type: "message", RepliesCount: 2},
+			},
+			Pagination: &ChatPagination{NextPageToken: "token-abc"},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Chat().ListMessages(context.Background(), "chan-1", 0, "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Data) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(result.Data))
+	}
+
+	if result.Pagination.NextPageToken != "token-abc" {
+		t.Fatalf("expected next page token token-abc, got %s", result.Pagination.NextPageToken)
+	}
+}
+
+func TestChatSendMessage_SendsContent(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/chat/channels/chan-1/messages"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		var req SendMessageRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.Content != "Test message" {
+			t.Fatalf("expected content Test message, got %s", req.Content)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChatMessage{
+			ID: "msg-new", Content: "Test message", UserID: "1",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Chat().SendMessage(context.Background(), "chan-1", SendMessageRequest{Content: "Test message"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "msg-new" {
+		t.Fatalf("expected ID msg-new, got %s", result.ID)
+	}
+}
+
+func TestChatUpdateMessage_UsesPatch(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPatch {
+			t.Fatalf("expected PATCH, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/chat/messages/msg-1"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChatMessage{
+			ID: "msg-1", Content: "Updated content",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Chat().UpdateMessage(context.Background(), "msg-1", UpdateMessageRequest{Content: "Updated content"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Content != "Updated content" {
+		t.Fatalf("expected content Updated content, got %s", result.Content)
+	}
+}
+
+func TestChatCreateReaction_SendsEmoji(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/chat/messages/msg-1/reactions"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		var req CreateReactionRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.Reaction != "👍" {
+			t.Fatalf("expected reaction 👍, got %s", req.Reaction)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChatReaction{
+			ID: "react-1", MessageID: "msg-1", Reaction: "👍",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Chat().CreateReaction(context.Background(), "msg-1", CreateReactionRequest{Reaction: "👍"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Reaction != "👍" {
+		t.Fatalf("expected reaction 👍, got %s", result.Reaction)
+	}
+}
+
+func TestChatCreateReply_SendsContent(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		expectedPath := "/v3/workspaces/ws-1/chat/messages/msg-1/replies"
+		if r.URL.Path != expectedPath {
+			t.Fatalf("expected path %s, got %s", expectedPath, r.URL.Path)
+		}
+
+		var req SendMessageRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if req.Content != "Reply text" {
+			t.Fatalf("expected content Reply text, got %s", req.Content)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(ChatMessage{
+			ID: "reply-1", Content: "Reply text", ParentMessage: "msg-1",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	client.workspaceID = "ws-1"
+
+	result, err := client.Chat().CreateReply(context.Background(), "msg-1", SendMessageRequest{Content: "Reply text"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ParentMessage != "msg-1" {
+		t.Fatalf("expected parent message msg-1, got %s", result.ParentMessage)
+	}
+}

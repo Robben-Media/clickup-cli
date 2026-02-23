@@ -440,7 +440,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/8-v3-domains` | PR → fix/plain-output
 
 ### 22. Create Chat Service (v3)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 2
 - **Spec**: specs/features/chat.md
 - **Description**:

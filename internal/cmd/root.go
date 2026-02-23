@@ -54,6 +54,7 @@ type CLI struct {
 	Goals         GoalsCmd         `cmd:"" help:"Goal and key result operations"`
 	Users         UsersCmd         `cmd:"" help:"User management operations"`
 	Attachments   AttachmentsCmd   `cmd:"" help:"File attachment operations"`
+	Chat          ChatCmd          `cmd:"" help:"Chat operations (v3 API)"`
 	VersionCmd    VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

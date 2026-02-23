@@ -377,6 +377,107 @@ type AttachmentsResponse struct {
 	Attachments []Attachment `json:"attachments"`
 }
 
+// --- Chat types (v3) ---
+
+// ChatChannel represents a ClickUp chat channel.
+type ChatChannel struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Type        string `json:"type"` // public, private, direct_message
+	MemberCount int    `json:"member_count,omitempty"`
+}
+
+// ChatMessage represents a chat message.
+type ChatMessage struct {
+	ID            string      `json:"id"`
+	Content       string      `json:"content"`
+	UserID        string      `json:"user_id"`
+	Type          string      `json:"type"` // message, post
+	DateCreated   json.Number `json:"date_created"`
+	DateUpdated   json.Number `json:"date_updated"`
+	ParentChannel string      `json:"parent_channel"`
+	ParentMessage string      `json:"parent_message,omitempty"`
+	Resolved      bool        `json:"resolved"`
+	RepliesCount  int         `json:"replies_count"`
+}
+
+// ChatReaction represents a message reaction.
+type ChatReaction struct {
+	ID          string      `json:"id"`
+	MessageID   string      `json:"message_id"`
+	UserID      string      `json:"user_id"`
+	Reaction    string      `json:"reaction"`
+	DateCreated json.Number `json:"date_created"`
+}
+
+// ChatChannelsResponse is the response for listing channels.
+type ChatChannelsResponse struct {
+	Channels []ChatChannel `json:"channels"`
+}
+
+// ChatChannelResponse is the response for getting a single channel.
+type ChatChannelResponse struct {
+	Channel ChatChannel `json:"channel"`
+}
+
+// ChatMessagesResponse is the response for listing messages.
+type ChatMessagesResponse struct {
+	Data       []ChatMessage   `json:"data"`
+	Pagination *ChatPagination `json:"pagination,omitempty"`
+}
+
+// ChatPagination represents cursor-based pagination.
+type ChatPagination struct {
+	NextPageToken string `json:"next_page_token,omitempty"`
+}
+
+// ChatReactionsResponse is the response for listing reactions.
+type ChatReactionsResponse struct {
+	Reactions []ChatReaction `json:"reactions"`
+}
+
+// ChatTaggedUsersResponse is the response for getting tagged users.
+type ChatTaggedUsersResponse struct {
+	Users []MemberUser `json:"users"`
+}
+
+// CreateChatChannelRequest is the request body for creating a channel.
+type CreateChatChannelRequest struct {
+	Name string `json:"name"`
+}
+
+// CreateDMRequest is the request body for creating a direct message.
+type CreateDMRequest struct {
+	Members []string `json:"members"` // user IDs
+}
+
+// CreateLocationChannelRequest is the request body for creating a location channel.
+type CreateLocationChannelRequest struct {
+	Name       string `json:"name"`
+	ParentType string `json:"parent_type"` // space, folder, list
+	ParentID   string `json:"parent_id"`
+}
+
+// SendMessageRequest is the request body for sending a message.
+type SendMessageRequest struct {
+	Content string `json:"content"`
+}
+
+// CreateReactionRequest is the request body for creating a reaction.
+type CreateReactionRequest struct {
+	Reaction string `json:"reaction"`
+}
+
+// UpdateChannelRequest is the request body for updating a channel.
+type UpdateChannelRequest struct {
+	Name string `json:"name,omitempty"`
+}
+
+// UpdateMessageRequest is the request body for updating a message.
+type UpdateMessageRequest struct {
+	Content string `json:"content,omitempty"`
+}
+
 // --- User Group types ---
 
 // UserGroup represents a ClickUp user group.

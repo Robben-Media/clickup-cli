@@ -1043,3 +1043,43 @@ All 5 planned services have been implemented:
 
 ---
 
+## Task 22 - 2026-02-23
+### Completed: Create Chat Service (v3)
+
+**What was implemented:**
+- Created `ChatService` with 19 methods for all Chat v3 API endpoints:
+  - ListChannels, GetChannel, GetFollowers, GetMembers
+  - CreateChannel, CreateDM, CreateLocationChannel
+  - UpdateChannel, DeleteChannel
+  - ListMessages, SendMessage, UpdateMessage, DeleteMessage
+  - ListReactions, CreateReaction, DeleteReaction
+  - ListReplies, CreateReply
+  - GetTaggedUsers
+- Added Chat types: ChatChannel, ChatMessage, ChatReaction, ChatPagination
+- Added request/response types for all operations
+- Added 11 tests for ChatService (key functionality)
+- Added 20 CLI commands: chat channels, channel, channel-followers, channel-members, create-channel, create-dm, create-loc-channel, update-channel, delete-channel, messages, send, update-message, delete-message, reactions, react, unreact, replies, reply, tagged-users
+- Added static error variables: errMemberRequired, errContentRequired, errReactionRequired
+- All v3 endpoints use PATCH for updates (not PUT)
+- Delete commands warn user unless --force is used
+
+**Files changed:**
+- `internal/clickup/client.go` — added Chat() accessor, error variables, and ChatService with all 19 methods
+- `internal/clickup/types.go` — added all Chat types
+- `internal/clickup/client_test.go` — added 11 tests for Chat service
+- `internal/cmd/chat.go` — created with 20 CLI commands
+- `internal/cmd/root.go` — added ChatCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** (pending)
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Chat is the largest v3 domain with 19 endpoints
+- Cursor-based pagination with `next_page_token`
+- Location channels are tied to a space/folder/list
+- Message replies use same SendMessageRequest type as regular messages
+- Reactions use emoji strings directly (not codes)
+
+---
+
