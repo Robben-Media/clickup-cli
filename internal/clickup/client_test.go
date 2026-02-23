@@ -5838,3 +5838,254 @@ func TestViewsDelete_RequiresID(t *testing.T) {
 		t.Fatal("expected error for missing view ID, got nil")
 	}
 }
+
+// --- WebhooksService tests ---
+
+func TestWebhooksList_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/webhook" {
+			t.Fatalf("expected path /v2/team/team-1/webhook, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(WebhooksResponse{
+			Webhooks: []Webhook{
+				{
+					ID:       "wh-1",
+					Endpoint: "https://example.com/hook",
+					Events:   []string{"taskCreated", "taskUpdated"},
+					Status:   "active",
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Webhooks().List(context.Background(), "team-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Webhooks) != 1 {
+		t.Fatalf("expected 1 webhook, got %d", len(result.Webhooks))
+	}
+
+	if result.Webhooks[0].Endpoint != "https://example.com/hook" {
+		t.Fatalf("expected endpoint https://example.com/hook, got %s", result.Webhooks[0].Endpoint)
+	}
+}
+
+func TestWebhooksList_RequiresTeamID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Webhooks().List(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing team ID, got nil")
+	}
+}
+
+func TestWebhooksCreate_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/team/team-1/webhook" {
+			t.Fatalf("expected path /v2/team/team-1/webhook, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+
+		var req CreateWebhookRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.Endpoint != "https://example.com/hook" {
+			t.Fatalf("expected endpoint https://example.com/hook, got %s", req.Endpoint)
+		}
+
+		if len(req.Events) != 2 {
+			t.Fatalf("expected 2 events, got %d", len(req.Events))
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Webhook{
+			ID:       "wh-new",
+			Endpoint: "https://example.com/hook",
+			Events:   []string{"taskCreated", "taskUpdated"},
+			Status:   "active",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateWebhookRequest{
+		Endpoint: "https://example.com/hook",
+		Events:   []string{"taskCreated", "taskUpdated"},
+	}
+
+	result, err := client.Webhooks().Create(context.Background(), "team-1", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.ID != "wh-new" {
+		t.Fatalf("expected ID wh-new, got %s", result.ID)
+	}
+}
+
+func TestWebhooksCreate_RequiresEndpoint(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateWebhookRequest{
+		Events: []string{"taskCreated"},
+	}
+
+	_, err := client.Webhooks().Create(context.Background(), "team-1", req)
+	if err == nil {
+		t.Fatal("expected error for missing endpoint, got nil")
+	}
+}
+
+func TestWebhooksCreate_RequiresEvents(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := CreateWebhookRequest{
+		Endpoint: "https://example.com/hook",
+	}
+
+	_, err := client.Webhooks().Create(context.Background(), "team-1", req)
+	if err == nil {
+		t.Fatal("expected error for missing events, got nil")
+	}
+}
+
+func TestWebhooksUpdate_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/webhook/wh-123" {
+			t.Fatalf("expected path /v2/webhook/wh-123, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		var req UpdateWebhookRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("failed to decode request: %v", err)
+		}
+
+		if req.Status != "inactive" {
+			t.Fatalf("expected status inactive, got %s", req.Status)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Webhook{
+			ID:       "wh-123",
+			Endpoint: "https://example.com/hook",
+			Status:   "inactive",
+		})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	req := UpdateWebhookRequest{Status: "inactive"}
+
+	result, err := client.Webhooks().Update(context.Background(), "wh-123", req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Status != "inactive" {
+		t.Fatalf("expected status inactive, got %s", result.Status)
+	}
+}
+
+func TestWebhooksUpdate_RequiresID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	_, err := client.Webhooks().Update(context.Background(), "", UpdateWebhookRequest{Status: "inactive"})
+	if err == nil {
+		t.Fatal("expected error for missing webhook ID, got nil")
+	}
+}
+
+func TestWebhooksDelete_SendsRequest(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/webhook/wh-123" {
+			t.Fatalf("expected path /v2/webhook/wh-123, got %s", r.URL.Path)
+		}
+
+		if r.Method != http.MethodDelete {
+			t.Fatalf("expected DELETE, got %s", r.Method)
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if err := client.Webhooks().Delete(context.Background(), "wh-123"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestWebhooksDelete_RequiresID(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	err := client.Webhooks().Delete(context.Background(), "")
+	if err == nil {
+		t.Fatal("expected error for missing webhook ID, got nil")
+	}
+}

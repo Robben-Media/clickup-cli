@@ -50,6 +50,7 @@ type CLI struct {
 	Relationships RelationshipsCmd `cmd:"" help:"Task relationship operations"`
 	Fields        FieldsCmd        `cmd:"" help:"Custom field operations"`
 	Views         ViewsCmd         `cmd:"" help:"View operations"`
+	Webhooks      WebhooksCmd      `cmd:"" help:"Webhook operations"`
 	VersionCmd    VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 

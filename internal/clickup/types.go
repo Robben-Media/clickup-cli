@@ -879,3 +879,41 @@ type CreateViewRequest struct {
 type UpdateViewRequest struct {
 	Name string `json:"name,omitempty"`
 }
+
+// --- Webhook types ---
+
+// Webhook represents a ClickUp webhook.
+type Webhook struct {
+	ID       string   `json:"id"`
+	UserID   int      `json:"userid"`
+	TeamID   string   `json:"team_id"`
+	Endpoint string   `json:"endpoint"`
+	Events   []string `json:"events"`
+	Status   string   `json:"status"`
+	SpaceID  string   `json:"space_id,omitempty"`
+	FolderID string   `json:"folder_id,omitempty"`
+	ListID   string   `json:"list_id,omitempty"`
+	TaskID   string   `json:"task_id,omitempty"`
+}
+
+// WebhooksResponse is the response for listing webhooks.
+type WebhooksResponse struct {
+	Webhooks []Webhook `json:"webhooks"`
+}
+
+// CreateWebhookRequest is the request body for creating a webhook.
+type CreateWebhookRequest struct {
+	Endpoint string   `json:"endpoint"`
+	Events   []string `json:"events"`
+	SpaceID  string   `json:"space_id,omitempty"`
+	FolderID string   `json:"folder_id,omitempty"`
+	ListID   string   `json:"list_id,omitempty"`
+	TaskID   string   `json:"task_id,omitempty"`
+}
+
+// UpdateWebhookRequest is the request body for updating a webhook.
+type UpdateWebhookRequest struct {
+	Endpoint string   `json:"endpoint,omitempty"`
+	Events   []string `json:"events,omitempty"`
+	Status   string   `json:"status,omitempty"` // "active" or "inactive"
+}
