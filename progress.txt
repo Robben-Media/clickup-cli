@@ -406,6 +406,42 @@ All 9 P2 Completeness tasks are complete:
 Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
 
 
+## Task 10 - 2026-02-22
+### Completed: Extend Comments Service
+
+**What was implemented:**
+- Extended `CommentsService` with Delete, Update, Replies, Reply, ListComments, AddList, ViewComments, AddView, Subtypes methods
+- Implemented `DELETE /v2/comment/{comment_id}` (delete comment)
+- Implemented `PUT /v2/comment/{comment_id}` (update comment)
+- Implemented `GET /v2/comment/{comment_id}/reply` (get threaded replies)
+- Implemented `POST /v2/comment/{comment_id}/reply` (create threaded reply)
+- Implemented `GET /v2/list/{list_id}/comment` (get list comments)
+- Implemented `POST /v2/list/{list_id}/comment` (create list comment)
+- Implemented `GET /v2/view/{view_id}/comment` (get view comments with pagination)
+- Implemented `POST /v2/view/{view_id}/comment` (create view comment)
+- Implemented `GET /v3/workspaces/{wid}/comments/types/{type_id}/subtypes` (v3 - get post subtypes)
+- Added types: UpdateCommentRequest, CreateListCommentRequest, CreateViewCommentRequest, ThreadedCommentsResponse, PostSubtype, PostSubtypesResponse
+- Added CLI commands: `comments delete`, `comments update`, `comments replies`, `comments reply`, `comments list-comments`, `comments add-list`, `comments view-comments`, `comments add-view`, `comments subtypes`
+- Added 18 comprehensive tests for all new service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — extended CommentsService with all methods
+- `internal/clickup/types.go` — added all Comment extension types
+- `internal/clickup/client_test.go` — added 18 tests for Comments service
+- `internal/cmd/comments.go` — added all CLI commands with output formatting
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `8c61ba7`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- The dupword linter catches duplicate words like "list list" in error messages
+- Delete command requires --force flag to confirm destructive operation
+- v3 Subtypes endpoint requires workspace ID (uses v3Path helper)
+- View comments support cursor-based pagination with `start` and `start_id` params
+
+---
+
 ## Task 4 - 2026-02-22
 ### Completed: Implement Workspaces Service
 
