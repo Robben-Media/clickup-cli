@@ -909,3 +909,43 @@ All 5 planned services have been implemented:
 - This is a v2 API endpoint - workspace ID is NOT required
 
 ---
+
+## Task 18 - 2026-02-22
+### Completed: Create Goals Service
+
+**What was implemented:**
+- Created `GoalsService` with 8 methods:
+  - List(teamID, includeCompleted) - list goals for a team
+  - Get(goalID) - get goal with key results
+  - Create(teamID, req) - create a new goal
+  - Update(goalID, req) - update a goal
+  - Delete(goalID) - delete a goal (and all key results)
+  - CreateKeyResult(goalID, req) - add key result to goal
+  - UpdateKeyResult(keyResultID, req) - update key result progress
+  - DeleteKeyResult(keyResultID) - delete a key result
+- Added Goal types: Goal, KeyResult, GoalsResponse, GoalResponse, KeyResultResponse, CreateGoalRequest, UpdateGoalRequest, CreateKeyResultRequest, EditKeyResultRequest
+- Added CLI commands: `goals list`, `goals get`, `goals create`, `goals update`, `goals delete`, `goals add-key-result`, `goals update-key-result`, `goals delete-key-result`
+- Added 16 comprehensive tests for all service methods
+- Added static error variable: errKeyResultTypeRequired
+
+**Files changed:**
+- `internal/clickup/client.go` — added Goals() accessor, errKeyResultTypeRequired, and GoalsService with all methods
+- `internal/clickup/types.go` — added all Goal and KeyResult types
+- `internal/clickup/client_test.go` — added 16 tests for Goals service
+- `internal/cmd/goals.go` — created with all CLI commands
+- `internal/cmd/root.go` — added GoalsCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `a6324d8`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Goal and KeyResult IDs are strings (UUIDs)
+- List supports `?include_closed=true` query param for completed goals
+- Key result types: number, currency, boolean, percentage, automatic
+- Progress is calculated from steps_start, steps_end, steps_current
+- Boolean key results have steps_start=0, steps_end=1
+- Deleting a goal cascades to delete all its key results
+- The err113 linter requires static errors (added errKeyResultTypeRequired)
+
+---
