@@ -135,18 +135,19 @@ func (c *Client) Delete(ctx context.Context, path string) error {
 	return nil
 }
 
-// PostNoAuth sends a POST request without the Authorization header.
-// This is used for endpoints like OAuth token exchange that don't require auth.
-func (c *Client) PostNoAuth(ctx context.Context, path string, body, result any) error {
-	// Create a temporary client without API key for unauthenticated requests
-	noAuthClient := &Client{
-		httpClient: c.httpClient,
-		baseURL:    c.baseURL,
-		apiKey:     "", // No API key - won't set Authorization header
-		userAgent:  c.userAgent,
+// DeleteWithBody sends a DELETE request with a JSON body.
+func (c *Client) DeleteWithBody(ctx context.Context, path string, body any) error {
+	resp, err := c.Do(ctx, Request{Method: http.MethodDelete, Path: path, Body: body})
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return parseAPIError(resp)
 	}
 
-	return noAuthClient.doJSON(ctx, Request{Method: http.MethodPost, Path: path, Body: body}, result)
+	return nil
 }
 
 // PostMultipart sends a multipart/form-data POST request for file uploads.

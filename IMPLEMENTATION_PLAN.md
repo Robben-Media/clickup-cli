@@ -110,7 +110,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/3-core-crud` | PR → fix/plain-output
 
 ### 6. Extend Spaces Service (Get, Create, Update, Delete)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/spaces.md
 - **Description**:
@@ -127,7 +127,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; CRUD commands work
 
 ### 7. Create Folders Service (Full CRUD)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/folders.md
 - **Description**:
@@ -145,7 +145,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; all folder commands work
 
 ### 8. Extend Lists Service (Get, Create, Update, Delete)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/lists.md
 - **Description**:
@@ -165,7 +165,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; all list commands work
 
 ### 9. Extend Tasks Service (Search, Time-in-Status, Merge, Move)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/tasks.md
 - **Description**:
@@ -184,7 +184,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; all task commands work
 
 ### 10. Extend Comments Service (Full CRUD + Threaded + List/View)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/comments.md
 - **Description**:
@@ -211,7 +211,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/4-time-tracking` | PR → fix/plain-output
 
 ### 11. Extend Time Service (Timer + CRUD + Tags + History)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/time-tracking.md
 - **Description**:
@@ -240,7 +240,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/5-task-extensions` | PR → fix/plain-output
 
 ### 12. Create Tags Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/tags.md
 - **Description**:
@@ -259,7 +259,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; tag CRUD works
 
 ### 13. Create Checklists Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/task-checklists.md
 - **Description**:
@@ -278,7 +278,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; checklist CRUD works
 
 ### 14. Create Relationships Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/task-relationships.md
 - **Description**:
@@ -295,7 +295,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; dependency/link CRUD works
 
 ### 15. Create Custom Fields Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/custom-fields.md
 - **Description**:
@@ -319,7 +319,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/6-views-webhooks-goals` | PR → fix/plain-output
 
 ### 16. Create Views Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/views.md
 - **Description**:
@@ -344,7 +344,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; view CRUD works
 
 ### 17. Create Webhooks Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/webhooks.md
 - **Description**:
@@ -361,7 +361,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; webhook CRUD works
 
 ### 18. Create Goals Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/goals.md
 - **Description**:
@@ -387,7 +387,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/7-users-members` | PR → fix/plain-output
 
 ### 19. Create Users Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/users.md
 - **Description**:
@@ -404,7 +404,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; user CRUD works
 
 ### 20. Extend Members Service (List/Task Members)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/members.md
 - **Description**:
@@ -419,7 +419,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; member listing works
 
 ### 21. Create Attachments Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1, 2
 - **Spec**: specs/features/attachments.md
 - **Description**:
@@ -440,7 +440,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/8-v3-domains` | PR → fix/plain-output
 
 ### 22. Create Chat Service (v3)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 2
 - **Spec**: specs/features/chat.md
 - **Description**:
@@ -459,7 +459,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes; chat commands work
 
 ### 23. Create Docs Service (v3)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 2
 - **Spec**: specs/features/docs.md
 - **Description**:
@@ -485,7 +485,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 > Branch: `phase/9-p2-completeness` | PR → fix/plain-output
 
 ### 24. Create User Groups Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/user-groups.md
 - **Description**:
@@ -502,7 +502,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes
 
 ### 25. Create Roles Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/roles.md
 - **Description**:
@@ -516,7 +516,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes
 
 ### 26. Create Guests Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/guests.md
 - **Description**:
@@ -531,7 +531,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes
 
 ### 27. Create Shared Hierarchy Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/shared-hierarchy.md
 - **Description**:
@@ -545,7 +545,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes
 
 ### 28. Create Templates Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/templates.md
 - **Description**:
@@ -559,7 +559,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes
 
 ### 29. Create Custom Task Types Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/custom-task-types.md
 - **Description**:
@@ -573,7 +573,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes
 
 ### 30. Create Legacy Time Service
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 1
 - **Spec**: specs/features/time-tracking-legacy.md
 - **Description**:
@@ -591,7 +591,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes
 
 ### 31. Create Audit Logs Service (v3)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 2
 - **Spec**: specs/features/auditlogs.md
 - **Description**:
@@ -605,7 +605,7 @@ Achieve full ClickUp API parity by implementing 155 missing endpoints across v2 
 - **Verification**: `make ci` passes
 
 ### 32. Create ACLs Service (v3)
-- **Status**: pending
+- **Status**: complete
 - **Depends on**: 2
 - **Spec**: specs/features/acls.md
 - **Description**:

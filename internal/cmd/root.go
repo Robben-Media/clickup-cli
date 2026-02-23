@@ -26,16 +26,37 @@ type RootFlags struct {
 type CLI struct {
 	RootFlags `embed:""`
 
-	Version    kong.VersionFlag `help:"Print version and exit"`
-	Auth       AuthCmd          `cmd:"" help:"Auth and credentials"`
-	Workspaces WorkspacesCmd    `cmd:"" help:"Workspace operations"`
-	Tasks      TasksCmd         `cmd:"" help:"Task operations"`
-	Spaces     SpacesCmd        `cmd:"" help:"Space operations"`
-	Lists      ListsCmd         `cmd:"" help:"List operations"`
-	Members    MembersCmd       `cmd:"" help:"Team member operations"`
-	Comments   CommentsCmd      `cmd:"" help:"Comment operations"`
-	Time       TimeCmd          `cmd:"" help:"Time tracking"`
-	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
+	Version       kong.VersionFlag `help:"Print version and exit"`
+	Auth          AuthCmd          `cmd:"" help:"Auth and credentials"`
+	Workspaces    WorkspacesCmd    `cmd:"" help:"Workspace operations"`
+	Tasks         TasksCmd         `cmd:"" help:"Task operations"`
+	Spaces        SpacesCmd        `cmd:"" help:"Space operations"`
+	Folders       FoldersCmd       `cmd:"" help:"Folder operations"`
+	Lists         ListsCmd         `cmd:"" help:"List operations"`
+	Members       MembersCmd       `cmd:"" help:"Team member operations"`
+	Comments      CommentsCmd      `cmd:"" help:"Comment operations"`
+	Time          TimeCmd          `cmd:"" help:"Time tracking"`
+	Groups        GroupsCmd        `cmd:"" help:"User group operations"`
+	Roles         RolesCmd         `cmd:"" help:"Custom role operations"`
+	Guests        GuestsCmd        `cmd:"" help:"Guest operations"`
+	Shared        SharedCmd        `cmd:"" help:"Shared hierarchy operations"`
+	Templates     TemplatesCmd     `cmd:"" help:"Task template operations"`
+	TaskTypes     TaskTypesCmd     `cmd:"" help:"Custom task type operations"`
+	TimeLegacy    TimeLegacyCmd    `cmd:"" help:"Legacy time tracking operations"`
+	AuditLogs     AuditLogsCmd     `cmd:"" help:"Audit log operations"`
+	ACLs          ACLsCmd          `cmd:"" help:"Access control operations"`
+	Tags          TagsCmd          `cmd:"" help:"Tag operations"`
+	Checklists    ChecklistsCmd    `cmd:"" help:"Checklist operations"`
+	Relationships RelationshipsCmd `cmd:"" help:"Task relationship operations"`
+	Fields        FieldsCmd        `cmd:"" help:"Custom field operations"`
+	Views         ViewsCmd         `cmd:"" help:"View operations"`
+	Webhooks      WebhooksCmd      `cmd:"" help:"Webhook operations"`
+	Goals         GoalsCmd         `cmd:"" help:"Goal and key result operations"`
+	Users         UsersCmd         `cmd:"" help:"User management operations"`
+	Attachments   AttachmentsCmd   `cmd:"" help:"File attachment operations"`
+	Chat          ChatCmd          `cmd:"" help:"Chat operations (v3 API)"`
+	Docs          DocsCmd          `cmd:"" help:"Docs operations (v3 API)"`
+	VersionCmd    VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 
 type exitPanic struct{ code int }
