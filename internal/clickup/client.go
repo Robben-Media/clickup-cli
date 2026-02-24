@@ -1174,7 +1174,10 @@ func (s *MembersService) List(ctx context.Context, teamID string) (*MembersListR
 		return nil, errIDRequired
 	}
 
-	// The ClickUp v2 API returns members as part of the team endpoint
+	// Note: This uses an undocumented endpoint GET /v2/team/{team_id}.
+	// ClickUp's official docs expose GET /v2/team and GET /v2/team/{team_id}/user,
+	// but not GET /v2/team/{team_id}. This works but may be fragile if the API changes.
+	// Consider migrating to GET /v2/team/{team_id}/user if the response is compatible.
 	path := fmt.Sprintf("/v2/team/%s", teamID)
 
 	// The /team/{team_id} endpoint returns a team object with members
