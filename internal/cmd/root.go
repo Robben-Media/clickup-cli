@@ -63,6 +63,8 @@ type exitPanic struct{ code int }
 
 type workspaceIDKey struct{}
 
+type rootFlagsKey struct{}
+
 func withWorkspaceID(ctx context.Context, workspaceID string) context.Context {
 	return context.WithValue(ctx, workspaceIDKey{}, workspaceID)
 }
@@ -72,6 +74,22 @@ func getWorkspaceIDFromContext(ctx context.Context) string {
 		return v
 	}
 	return ""
+}
+
+func withRootFlags(ctx context.Context, flags *RootFlags) context.Context {
+	return context.WithValue(ctx, rootFlagsKey{}, flags)
+}
+
+func getRootFlags(ctx context.Context) *RootFlags {
+	if v, ok := ctx.Value(rootFlagsKey{}).(*RootFlags); ok {
+		return v
+	}
+	return nil
+}
+
+func forceEnabled(ctx context.Context) bool {
+	rf := getRootFlags(ctx)
+	return rf != nil && rf.Force
 }
 
 func Execute(args []string) (err error) {
@@ -119,6 +137,7 @@ func Execute(args []string) (err error) {
 	ctx := context.Background()
 	ctx = outfmt.WithMode(ctx, mode)
 	ctx = withWorkspaceID(ctx, cli.Workspace)
+	ctx = withRootFlags(ctx, &cli.RootFlags)
 
 	kctx.BindTo(ctx, (*context.Context)(nil))
 	kctx.Bind(&cli.RootFlags)

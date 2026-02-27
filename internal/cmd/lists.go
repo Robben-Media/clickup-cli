@@ -291,7 +291,6 @@ func (cmd *ListsUpdateCmd) Run(ctx context.Context) error {
 
 type ListsDeleteCmd struct {
 	ListID string `arg:"" required:"" help:"List ID"`
-	Force  bool   `help:"Skip confirmation"`
 }
 
 func (cmd *ListsDeleteCmd) Run(ctx context.Context) error {
@@ -300,7 +299,7 @@ func (cmd *ListsDeleteCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !cmd.Force && !outfmt.IsPlain(ctx) && !outfmt.IsJSON(ctx) {
+	if !forceEnabled(ctx) && !outfmt.IsPlain(ctx) && !outfmt.IsJSON(ctx) {
 		fmt.Fprintf(os.Stderr, "WARNING: Deleting a list will delete all tasks in it.\n")
 		fmt.Fprintf(os.Stderr, "List ID: %s\n\n", cmd.ListID)
 		fmt.Fprintf(os.Stderr, "Use --force to skip this confirmation.\n")

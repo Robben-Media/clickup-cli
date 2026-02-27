@@ -180,7 +180,7 @@ type GoalsCreateCmd struct {
 	DueDate     int64  `help:"Due date in milliseconds"`
 	Description string `help:"Goal description"`
 	Owners      string `help:"Comma-separated list of owner user IDs"`
-	Color       string `help:"Goal color (hex)"`
+	Color       string `name:"goal-color" help:"Goal color (hex)"`
 }
 
 func (cmd *GoalsCreateCmd) Run(ctx context.Context) error {
@@ -245,7 +245,7 @@ type GoalsUpdateCmd struct {
 	Name         string `help:"New goal name"`
 	Description  string `help:"New goal description"`
 	DueDate      int64  `help:"New due date in milliseconds"`
-	Color        string `help:"New goal color (hex)"`
+	Color        string `name:"goal-color" help:"New goal color (hex)"`
 	AddOwners    string `help:"Comma-separated list of owner IDs to add"`
 	RemoveOwners string `help:"Comma-separated list of owner IDs to remove"`
 }
@@ -323,7 +323,6 @@ func (cmd *GoalsUpdateCmd) Run(ctx context.Context) error {
 
 type GoalsDeleteCmd struct {
 	GoalID string `arg:"" required:"" help:"Goal ID"`
-	Force  bool   `help:"Skip confirmation"`
 }
 
 func (cmd *GoalsDeleteCmd) Run(ctx context.Context) error {
@@ -332,7 +331,7 @@ func (cmd *GoalsDeleteCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !cmd.Force {
+	if !forceEnabled(ctx) {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete goal %s and all its key results\n", cmd.GoalID)
 		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
 
@@ -486,7 +485,6 @@ func (cmd *GoalsUpdateKeyResultCmd) Run(ctx context.Context) error {
 
 type GoalsDeleteKeyResultCmd struct {
 	KeyResultID string `arg:"" required:"" help:"Key result ID"`
-	Force       bool   `help:"Skip confirmation"`
 }
 
 func (cmd *GoalsDeleteKeyResultCmd) Run(ctx context.Context) error {
@@ -495,7 +493,7 @@ func (cmd *GoalsDeleteKeyResultCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !cmd.Force {
+	if !forceEnabled(ctx) {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete key result %s\n", cmd.KeyResultID)
 		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
 

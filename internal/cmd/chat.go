@@ -312,11 +312,10 @@ func (cmd *ChatUpdateChannelCmd) Run(ctx context.Context) error {
 
 type ChatDeleteChannelCmd struct {
 	ChannelID string `arg:"" help:"Channel ID" required:""`
-	Force     bool   `name:"force" short:"f" help:"Skip confirmation"`
 }
 
 func (cmd *ChatDeleteChannelCmd) Run(ctx context.Context) error {
-	if !cmd.Force {
+	if !forceEnabled(ctx) {
 		fmt.Fprintf(os.Stderr, "Warning: This will delete channel %s and all its messages.\n", cmd.ChannelID)
 		fmt.Fprint(os.Stderr, "Use --force to confirm deletion.\n")
 
@@ -442,11 +441,10 @@ func (cmd *ChatUpdateMessageCmd) Run(ctx context.Context) error {
 
 type ChatDeleteMessageCmd struct {
 	MessageID string `arg:"" help:"Message ID" required:""`
-	Force     bool   `name:"force" short:"f" help:"Skip confirmation"`
 }
 
 func (cmd *ChatDeleteMessageCmd) Run(ctx context.Context) error {
-	if !cmd.Force {
+	if !forceEnabled(ctx) {
 		fmt.Fprintf(os.Stderr, "Warning: This will delete message %s.\n", cmd.MessageID)
 		fmt.Fprint(os.Stderr, "Use --force to confirm deletion.\n")
 
