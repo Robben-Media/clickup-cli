@@ -129,7 +129,6 @@ func (cmd *FoldersUpdateCmd) Run(ctx context.Context) error {
 
 type FoldersDeleteCmd struct {
 	FolderID string `arg:"" required:"" help:"Folder ID"`
-	Force    bool   `help:"Skip confirmation"`
 }
 
 func (cmd *FoldersDeleteCmd) Run(ctx context.Context) error {
@@ -138,7 +137,7 @@ func (cmd *FoldersDeleteCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !cmd.Force && !outfmt.IsPlain(ctx) && !outfmt.IsJSON(ctx) {
+	if !forceEnabled(ctx) && !outfmt.IsPlain(ctx) && !outfmt.IsJSON(ctx) {
 		fmt.Fprintf(os.Stderr, "WARNING: Deleting a folder will move its lists to folderless.\n")
 		fmt.Fprintf(os.Stderr, "Folder ID: %s\n\n", cmd.FolderID)
 		fmt.Fprintf(os.Stderr, "Use --force to skip this confirmation.\n")

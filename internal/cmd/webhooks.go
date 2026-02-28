@@ -169,7 +169,6 @@ func (cmd *WebhooksUpdateCmd) Run(ctx context.Context) error {
 
 type WebhooksDeleteCmd struct {
 	WebhookID string `arg:"" required:"" help:"Webhook ID"`
-	Force     bool   `help:"Skip confirmation"`
 }
 
 func (cmd *WebhooksDeleteCmd) Run(ctx context.Context) error {
@@ -178,7 +177,7 @@ func (cmd *WebhooksDeleteCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !cmd.Force {
+	if !forceEnabled(ctx) {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete webhook %s\n", cmd.WebhookID)
 		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
 

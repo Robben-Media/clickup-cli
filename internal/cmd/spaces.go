@@ -133,7 +133,7 @@ type SpacesCreateCmd struct {
 	TeamID            string `arg:"" required:"" help:"Team (workspace) ID"`
 	Name              string `arg:"" required:"" help:"Space name"`
 	Private           bool   `help:"Make space private"`
-	Color             string `help:"Space color (hex)"`
+	Color             string `name:"space-color" help:"Space color (hex)"`
 	MultipleAssignees bool   `help:"Enable multiple assignees"`
 }
 
@@ -173,7 +173,7 @@ func (cmd *SpacesCreateCmd) Run(ctx context.Context) error {
 type SpacesUpdateCmd struct {
 	SpaceID           string `arg:"" required:"" help:"Space ID"`
 	Name              string `help:"New space name"`
-	Color             string `help:"Space color (hex)"`
+	Color             string `name:"space-color" help:"Space color (hex)"`
 	Private           bool   `help:"Make space private"`
 	Public            bool   `help:"Make space public"`
 	MultipleAssignees bool   `help:"Enable multiple assignees"`
@@ -227,7 +227,6 @@ func (cmd *SpacesUpdateCmd) Run(ctx context.Context) error {
 
 type SpacesDeleteCmd struct {
 	SpaceID string `arg:"" required:"" help:"Space ID"`
-	Force   bool   `help:"Skip confirmation"`
 }
 
 func (cmd *SpacesDeleteCmd) Run(ctx context.Context) error {
@@ -236,7 +235,7 @@ func (cmd *SpacesDeleteCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !cmd.Force && !outfmt.IsPlain(ctx) && !outfmt.IsJSON(ctx) {
+	if !forceEnabled(ctx) && !outfmt.IsPlain(ctx) && !outfmt.IsJSON(ctx) {
 		fmt.Fprintf(os.Stderr, "WARNING: Deleting a space will delete all folders, lists, and tasks within it.\n")
 		fmt.Fprintf(os.Stderr, "Space ID: %s\n\n", cmd.SpaceID)
 		fmt.Fprintf(os.Stderr, "Use --force to skip this confirmation.\n")
