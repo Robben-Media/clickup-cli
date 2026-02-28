@@ -1,0 +1,48 @@
+delete	/comment/{}	Comments	Delete Comment	v2
+delete	/folder/{}	Folders	Delete Folder	v2
+delete	/list/{}	Lists	Delete List	v2
+delete	/list/{}/task/{}	Lists	Remove Task From List	v2
+delete	/space/{}	Spaces	Delete Space	v2
+delete	/task/{}/time/{}	Time Tracking (Legacy)	Delete time tracked	v2
+delete	/team/{}/time_entries/tags	Time Tracking	Remove tags from time entries	v2
+delete	/team/{}/time_entries/{}	Time Tracking	Delete a time Entry	v2
+get	/api/v3/workspaces/{}/comments/types/{}/subtypes	Comments	Get Post Subtype IDs	v3
+get	/comment/{}/reply	Comments	Get Threaded Comments	v2
+get	/folder/{}	Folders	Get Folder	v2
+get	/list/{}	Lists	Get List	v2
+get	/list/{}/comment	Comments	Get List Comments	v2
+get	/space/{}	Spaces	Get Space	v2
+get	/task/bulk_time_in_status/task_ids	Tasks	Get Bulk Tasks' Time in Status	v2
+get	/task/{}/time	Time Tracking (Legacy)	Get tracked time	v2
+get	/task/{}/time_in_status	Tasks	Get Task's Time in Status	v2
+get	/team/{}/task	Tasks	Get Filtered Team Tasks	v2
+get	/team/{}/time_entries/current	Time Tracking	Get running time entry	v2
+get	/team/{}/time_entries/tags	Time Tracking	Get all tags from time entries	v2
+get	/team/{}/time_entries/{}	Time Tracking	Get singular time entry	v2
+get	/team/{}/time_entries/{}/history	Time Tracking	Get time entry history	v2
+get	/view/{}/comment	Comments	Get Chat View Comments	v2
+post	/comment/{}/reply	Comments	Create Threaded Comment	v2
+post	/folder/{}/list	Lists	Create List	v2
+post	/folder/{}/list_template/{}	Lists	Create List From Template in Folder	v2
+post	/list/{}/comment	Comments	Create List Comment	v2
+post	/list/{}/task/{}	Lists	Add Task To List	v2
+post	/list/{}/taskTemplate/{}	Tasks	Create Task From Template	v2
+post	/space/{}/folder	Folders	Create Folder	v2
+post	/space/{}/folder_template/{}	Folders	Create Folder from template	v2
+post	/space/{}/list	Lists	Create Folderless List	v2
+post	/space/{}/list_template/{}	Lists	Create List From Template in Space.	v2
+post	/task/{}/merge	Tasks	Merge Tasks	v2
+post	/task/{}/time	Time Tracking (Legacy)	Track time	v2
+post	/team/{}/space	Spaces	Create Space	v2
+post	/team/{}/time_entries/start	Time Tracking	Start a time Entry	v2
+post	/team/{}/time_entries/stop	Time Tracking	Stop a time Entry	v2
+post	/team/{}/time_entries/tags	Time Tracking	Add tags from time entries	v2
+post	/view/{}/comment	Comments	Create Chat View Comment	v2
+put	/api/v3/workspaces/{}/tasks/{}/home_list/{}	Tasks	Move a task to a new List	v3
+put	/comment/{}	Comments	Update Comment	v2
+put	/folder/{}	Folders	Update Folder	v2
+put	/list/{}	Lists	Update List	v2
+put	/space/{}	Spaces	Update Space	v2
+put	/task/{}/time/{}	Time Tracking (Legacy)	Edit time tracked	v2
+put	/team/{}/time_entries/tags	Time Tracking	Change tag names from time entries	v2
+put	/team/{}/time_entries/{}	Time Tracking	Update a time Entry	v2

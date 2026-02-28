@@ -1,0 +1,1118 @@
+# Build Progress Log
+
+## Task 1 - 2026-02-21
+### Completed: Migrate to Dynamic v2/v3 Base URL
+
+**What was implemented:**
+- Changed `defaultBaseURL` from `https://api.clickup.com/api/v2` to `https://api.clickup.com/api` in both `api/client.go` and `clickup/client.go`
+- Updated ALL existing service method paths to include `/v2/` prefix (e.g., `/task/{id}` → `/v2/task/{id}`)
+- Added `workspaceID` field to `clickup.Client` struct
+- Added `ClientOption` functional options pattern for configuring the client
+- Added `WithWorkspaceID` option for future v3 endpoint support
+- Added `v3Path()` helper method to build v3 API paths with workspace ID prefix
+- Added `Patch()` method to `api.Client` for v3 PATCH endpoints
+- Added `PostMultipart()` method to `api.Client` for file upload endpoints
+- Added comprehensive tests for all new functionality:
+  - `TestV3Path_BuildsCorrectPath` - verifies v3 path construction
+  - `TestV3Path_MissingWorkspaceID` - verifies error handling for missing workspace ID
+  - `TestPatch_SendsJSONBody` - verifies PATCH method sends correct HTTP method and body
+  - `TestPatch_PropagatesAPIError` - verifies PATCH error handling
+  - `TestPostMultipart_SendsFile` - verifies multipart file upload
+  - `TestPostMultipart_SetsAuthHeader` - verifies auth header is set
+  - `TestPostMultipart_PropagatesAPIError` - verifies multipart error handling
+  - `TestBaseURLConstruction` - verifies new base URL structure
+
+**Files changed:**
+- `internal/api/client.go` — modified (base URL, Patch, PostMultipart methods)
+- `internal/api/client_test.go` — modified (added tests for Patch, PostMultipart, base URL)
+- `internal/clickup/client.go` — modified (base URL, workspaceID, v3Path helper, all paths with /v2/)
+- `internal/clickup/client_test.go` — modified (v3Path tests, updated path expectations)
+- `internal/clickup/types.go` — minor formatting fixes from linter
+
+**Branch:** `phase/1-foundation`
+**Commit:** `086de16`
+
+**Learnings for future iterations:**
+- The linter (wsl_v5) requires blank lines before return statements after if/else blocks
+- Variable shadowing (`err`) triggers govet shadow check - use different variable names
+- The `make ci` target runs `fmt-check` which checks for uncommitted changes - must commit before passing
+- Functional options pattern is the idiomatic way to configure clients in Go
+
+---
+
+## Task 2 - 2026-02-21
+### Completed: Add Workspace ID Configuration
+
+**What was implemented:**
+- Added `--workspace` global flag to CLI root command with help text explaining it's required for v3 API
+- Added `CLICKUP_WORKSPACE_ID` environment variable support via Kong vars binding
+- Added workspace ID to config file (`config.json`) with `GetWorkspaceID()` and `SetWorkspaceID()` functions
+- Updated `getClickUpClient()` to resolve workspace ID from: context (flag) > env var > config
+- Added `withWorkspaceID()` and `getWorkspaceIDFromContext()` helpers to pass workspace ID via context
+- Added `auth set-workspace` command to configure workspace ID
+- Updated `auth status` command to display workspace ID configuration status
+- Workspace ID is passed to the ClickUp client via `WithWorkspaceID()` option (implemented in Task 1)
+
+**Files changed:**
+- `internal/cmd/root.go` — modified (added Workspace flag, workspace context helpers, kong vars)
+- `internal/cmd/helpers.go` — modified (getClickUpClient now takes context, resolves workspace ID)
+- `internal/cmd/auth.go` — modified (added AuthSetWorkspaceCmd, updated AuthStatusCmd)
+- `internal/config/config.go` — modified (added WorkspaceID to configData, GetWorkspaceID, SetWorkspaceID)
+- All command files (tasks.go, comments.go, members.go, lists.go, time.go, spaces.go) — updated to pass context to getClickUpClient
+
+**Branch:** `phase/1-foundation`
+
+**Learnings for future iterations:**
+- When adding global flags to Kong CLI, do NOT embed RootFlags in subcommands - it creates duplicate flags
+- Use context to pass global flag values down to helper functions instead of adding fields to every command struct
+- The Kong vars mechanism allows environment variable defaults for flags via `${varname}` syntax in default tag
+- Workspace ID is optional for v2 endpoints - only v3 endpoints require it (error handled in v3Path helper from Task 1)
+
+---
+
+## Task 3 - 2026-02-21
+### Completed: Add Contract Tests for v3 Infrastructure
+
+**What was implemented:**
+- Contract tests for v3 infrastructure were already implemented as part of Tasks 1 and 2
+- Tests verify:
+  - `TestBaseURLConstruction` - base URL construction for v2 paths
+  - `TestV3Path_BuildsCorrectPath` - v3Path helper builds correct workspace-prefixed paths
+  - `TestV3Path_MissingWorkspaceID` - error handling for missing workspace ID
+  - `TestPatch_SendsJSONBody` - PATCH method sends correct HTTP method and JSON body
+  - `TestPatch_PropagatesAPIError` - PATCH error handling matches existing patterns
+  - `TestPostMultipart_SendsFile` - multipart file upload with correct content type
+  - `TestPostMultipart_SetsAuthHeader` - auth header set on multipart requests
+  - `TestPostMultipart_PropagatesAPIError` - multipart error handling
+
+**Files changed:**
+- No new files - tests were already in place from Tasks 1 and 2
+
+**Branch:** `phase/1-foundation`
+**PR URL:** (pending - Phase 1 complete, ready for PR creation)
+
+**Learnings for future iterations:**
+- When implementing infrastructure changes, include tests as part of the same task for atomic verification
+- The spec recommended separate test task, but implementing tests alongside infrastructure is more efficient
+
+---
+
+## Phase 1 Complete
+
+All 3 foundation architecture tasks are complete:
+1. ✅ Migrate to Dynamic v2/v3 Base URL
+2. ✅ Add Workspace ID Configuration
+3. ✅ Add Contract Tests for v3 Infrastructure
+
+Next: Open PR from `phase/1-foundation` to `fix/plain-output`, then start Phase 2 (Workspaces & Authorization)
+
+---
+
+## Task 24 - 2026-02-22
+### Completed: Create User Groups Service
+
+**What was implemented:**
+- Created `UserGroupsService` with List, Create, Update, Delete methods
+- Implemented `GET /v2/group` (list all groups)
+- Implemented `POST /v2/team/{team_id}/group` (create group)
+- Implemented `PUT /v2/group/{group_id}` (update group)
+- Implemented `DELETE /v2/group/{group_id}` (delete group)
+- Added UserGroup types: UserGroup, CreateUserGroupRequest, UpdateUserGroupRequest, UserGroupMembersUpdate, UserGroupsResponse
+- Added CLI commands: `groups list`, `groups create`, `groups update`, `groups delete`
+- Support add/remove members pattern for group updates (same as task assignees pattern)
+- Added 6 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added UserGroups() accessor and UserGroupsService with all methods
+- `internal/clickup/types.go` — added all UserGroup types
+- `internal/clickup/client_test.go` — added tests for UserGroups service
+- `internal/cmd/groups.go` — created with all CLI commands
+- `internal/cmd/root.go` — added GroupsCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `5683ef5`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Variable shadowing (`err`) inside if blocks triggers govet shadow check - use different variable names like `parseErr`
+- Group IDs are strings (UUIDs) unlike user IDs which are integers
+- Update members uses add/rem pattern (same as task assignees)
+
+---
+
+## Task 25 - 2026-02-22
+### Completed: Create Roles Service
+
+**What was implemented:**
+- Created `RolesService` with List method
+- Implemented `GET /v2/team/{team_id}/customroles` (list custom roles)
+- Added CustomRole types: CustomRole, CustomRolesResponse
+- Added CLI command: `roles list`
+- Added 2 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added Roles() accessor and RolesService with List method
+- `internal/clickup/types.go` — added all CustomRole types
+- `internal/clickup/client_test.go` — added tests for Roles service
+- `internal/cmd/roles.go` — created with CLI command
+- `internal/cmd/root.go` — added RolesCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `7084499`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Roles endpoint returns integer IDs (not UUIDs like groups)
+- The pattern is consistent with other services: simple service struct, accessor method, types, and tests
+- `make ci` includes fmt-check which requires files to be formatted before committing
+- All tests pass with new service implementation
+
+---
+
+## Task 26 - 2026-02-22
+### Completed: Create Guests Service
+
+**What was implemented:**
+- Created `GuestsService` with 10 methods for guest management
+- Implemented workspace-level guest CRUD:
+  - `GET /v2/team/{team_id}/guest/{guest_id}` (get guest)
+  - `POST /v2/team/{team_id}/guest` (invite guest)
+  - `PUT /v2/team/{team_id}/guest/{guest_id}` (update guest)
+  - `DELETE /v2/team/{team_id}/guest/{guest_id}` (remove guest)
+- Implemented guest-to-resource assignments:
+  - `POST /v2/task/{task_id}/guest/{guest_id}` (add to task)
+  - `DELETE /v2/task/{task_id}/guest/{guest_id}` (remove from task)
+  - `POST /v2/list/{list_id}/guest/{guest_id}` (add to list)
+  - `DELETE /v2/list/{list_id}/guest/{guest_id}` (remove from list)
+  - `POST /v2/folder/{folder_id}/guest/{guest_id}` (add to folder)
+  - `DELETE /v2/folder/{folder_id}/guest/{guest_id}` (remove from folder)
+- Added Guest types: Guest, GuestResponse, InviteGuestRequest, EditGuestRequest, AddGuestToResourceRequest
+- Added CLI commands: `guests get`, `guests invite`, `guests update`, `guests remove`, `guests add-to-task`, `guests remove-from-task`, `guests add-to-list`, `guests remove-from-list`, `guests add-to-folder`, `guests remove-from-folder`
+- Added 12 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added Guests() accessor, errEmailRequired, and GuestsService with all methods
+- `internal/clickup/types.go` — added all Guest types
+- `internal/clickup/client_test.go` — added tests for Guests service
+- `internal/cmd/guests.go` — created with all CLI commands
+- `internal/cmd/root.go` — added GuestsCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `e88f284`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Guest IDs are integers (not UUIDs like groups)
+- Permission levels for adding guests: read, comment, edit, create
+- The err113 linter requires static error variables instead of dynamic errors.New()
+- wsl_v5 linter requires blank lines before variable declarations after short statements
+- Guests have resource counts (tasks_count, lists_count, folders_count) for tracking access
+
+---
+---
+
+## Task 27 - 2026-02-22
+### Completed: Create Shared Hierarchy Service
+
+**What was implemented:**
+- Created `SharedHierarchyService` with List method
+- Implemented `GET /v2/team/{team_id}/shared` (list shared hierarchy)
+- Added SharedHierarchy types: SharedHierarchyResponse, SharedResources
+- Reused existing TaskRef, ListRef, and FolderRef types
+- Added CLI command: `shared list`
+- Added 2 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added SharedHierarchy() accessor and SharedHierarchyService with List method
+- `internal/clickup/types.go` — added SharedHierarchyResponse and SharedResources types
+- `internal/clickup/client_test.go` — added tests for SharedHierarchy service
+- `internal/cmd/shared.go` — created with CLI command
+- `internal/cmd/root.go` — added SharedCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `ef87dfe`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Shared hierarchy reuses existing TaskRef, ListRef, FolderRef types (defined earlier in types.go)
+- The response structure has a `shared` object containing arrays of tasks, lists, and folders
+- Plain output format combines all three resource types with a TYPE column for differentiation
+- Human-readable output groups resources by type for clarity
+
+---
+
+## Task 28 - 2026-02-22
+### Completed: Create Templates Service
+
+**What was implemented:**
+- Created `TemplatesService` with List method
+- Implemented `GET /v2/team/{team_id}/taskTemplate` (list task templates)
+- Added TaskTemplate types: TaskTemplate, TaskTemplatesResponse
+- Added CLI command: `templates list` with optional page parameter
+- Added 3 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added Templates() accessor and TemplatesService with List method
+- `internal/clickup/types.go` — added TaskTemplate and TaskTemplatesResponse types
+- `internal/clickup/client_test.go` — added tests for Templates service
+- `internal/cmd/templates.go` — created with CLI command
+- `internal/cmd/root.go` — added TemplatesCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `c0accfb`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Templates endpoint supports pagination via `page` query parameter (0-indexed)
+- The endpoint path uses `taskTemplate` (camelCase) rather than `task_template` (snake_case)
+- Template IDs appear to be string-based (like groups)
+
+---
+
+## Task 29 - 2026-02-22
+### Completed: Create Custom Task Types Service
+
+**What was implemented:**
+- Created `CustomTaskTypesService` with List method
+- Implemented `GET /v2/team/{team_id}/custom_item` (list custom task types)
+- Added CustomTaskType types: CustomTaskType, CustomTaskTypesResponse
+- Added CLI command: `task-types list`
+- Added 2 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added CustomTaskTypes() accessor and CustomTaskTypesService with List method
+- `internal/clickup/types.go` — added CustomTaskType and CustomTaskTypesResponse types
+- `internal/clickup/client_test.go` — added tests for CustomTaskTypes service
+- `internal/cmd/tasktypes.go` — created with CLI command
+- `internal/cmd/root.go` — added TaskTypesCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `b9c1e9a`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Custom task type IDs are integers (not UUIDs)
+- The response key is `custom_items`, not `custom_task_types`
+- Command name uses `task-types` for consistency with existing CLI naming patterns
+
+---
+
+## Task 30 - 2026-02-22
+### Completed: Create Legacy Time Service
+
+**What was implemented:**
+- Created `LegacyTimeService` with List, Track, Edit, Delete methods
+- Implemented task-level time tracking endpoints:
+  - `GET /v2/task/{task_id}/time` (list intervals)
+  - `POST /v2/task/{task_id}/time` (track time)
+  - `PUT /v2/task/{task_id}/time/{interval_id}` (edit interval)
+  - `DELETE /v2/task/{task_id}/time/{interval_id}` (delete interval)
+- Added LegacyTime types: LegacyTimeInterval, LegacyTimeResponse, TrackTimeRequest, EditTimeRequest, TrackTimeResponse
+- Added CLI commands: `time-legacy list`, `time-legacy track`, `time-legacy update`, `time-legacy delete`
+- Added 8 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added LegacyTime() accessor and LegacyTimeService with all methods
+- `internal/clickup/types.go` — added all LegacyTime types
+- `internal/clickup/client_test.go` — added tests for LegacyTime service
+- `internal/cmd/time_legacy.go` — created with all CLI commands
+- `internal/cmd/root.go` — added TimeLegacyCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `7e62804`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Legacy time tracking operates at task level (not workspace level like modern Time Tracking API)
+- The gocritic linter prefers `minutes %= 60` over `minutes = minutes % 60`
+- Interval IDs are strings (not integers)
+- List endpoint supports optional `custom_task_ids` and `team_id` query params
+
+---
+
+## Task 31 - 2026-02-22
+### Completed: Create Audit Logs Service (v3)
+
+**What was implemented:**
+- Created `AuditLogsService` with Query method
+- Implemented `POST /v3/workspaces/{workspace_id}/auditlogs` (query audit logs)
+- This is a v3 endpoint - uses v3Path() helper for path construction
+- Added AuditLog types: AuditLogQuery, AuditLogEntry, AuditLogsResponse
+- Added CLI command: `auditlogs query` with filter options (start-date, end-date, event-type, user-id, limit)
+- Added 2 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added AuditLogs() accessor and AuditLogsService with Query method
+- `internal/clickup/types.go` — added all AuditLog types
+- `internal/clickup/client_test.go` — added tests for AuditLogs service
+- `internal/cmd/auditlogs.go` — created with CLI command
+- `internal/cmd/root.go` — added AuditLogsCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `a604b24`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Audit Logs endpoint uses POST for querying (not GET) due to complex filter body
+- Requires workspace ID (v3 endpoint) - returns error if not configured
+- Uses json.Number for timestamp field (can be large)
+
+---
+
+## Task 32 - 2026-02-22
+### Completed: Create ACLs Service (v3)
+
+**What was implemented:**
+- Created `ACLsService` with Update method
+- Implemented `PATCH /v3/workspaces/{workspace_id}/{object_type}/{object_id}/acls`
+- This is a v3 endpoint - uses v3Path() helper for path construction
+- Uses PATCH method (not PUT)
+- Added ACL types: UpdateACLRequest
+- Added CLI command: `acls update` with --type, --id, --private/--public, --sharing options
+- Added 3 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added ACLs() accessor and ACLsService with Update method
+- `internal/clickup/types.go` — added UpdateACLRequest type
+- `internal/clickup/client_test.go` — added tests for ACLs service
+- `internal/cmd/acls.go` — created with CLI command
+- `internal/cmd/root.go` — added ACLsCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `7f1252a`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- ACLs endpoint uses PATCH method (not PUT)
+- Object type is a path segment (space, folder, list)
+- Requires workspace ID (v3 endpoint)
+- CLI supports both --private and --public flags with mutual exclusivity check
+
+---
+
+## Phase 9 Complete
+
+All 9 P2 Completeness tasks are complete:
+1. ✅ Task 24: Create User Groups Service
+2. ✅ Task 25: Create Roles Service
+3. ✅ Task 26: Create Guests Service
+4. ✅ Task 27: Create Shared Hierarchy Service
+5. ✅ Task 28: Create Templates Service
+6. ✅ Task 29: Create Custom Task Types Service
+7. ✅ Task 30: Create Legacy Time Service
+8. ✅ Task 31: Create Audit Logs Service (v3)
+9. ✅ Task 32: Create ACLs Service (v3)
+
+Phase 9 PR: https://github.com/Robben-Media/clickup-cli/pull/16
+
+
+## Task 10 - 2026-02-22
+### Completed: Extend Comments Service
+
+**What was implemented:**
+- Extended `CommentsService` with Delete, Update, Replies, Reply, ListComments, AddList, ViewComments, AddView, Subtypes methods
+- Implemented `DELETE /v2/comment/{comment_id}` (delete comment)
+- Implemented `PUT /v2/comment/{comment_id}` (update comment)
+- Implemented `GET /v2/comment/{comment_id}/reply` (get threaded replies)
+- Implemented `POST /v2/comment/{comment_id}/reply` (create threaded reply)
+- Implemented `GET /v2/list/{list_id}/comment` (get list comments)
+- Implemented `POST /v2/list/{list_id}/comment` (create list comment)
+- Implemented `GET /v2/view/{view_id}/comment` (get view comments with pagination)
+- Implemented `POST /v2/view/{view_id}/comment` (create view comment)
+- Implemented `GET /v3/workspaces/{wid}/comments/types/{type_id}/subtypes` (v3 - get post subtypes)
+- Added types: UpdateCommentRequest, CreateListCommentRequest, CreateViewCommentRequest, ThreadedCommentsResponse, PostSubtype, PostSubtypesResponse
+- Added CLI commands: `comments delete`, `comments update`, `comments replies`, `comments reply`, `comments list-comments`, `comments add-list`, `comments view-comments`, `comments add-view`, `comments subtypes`
+- Added 18 comprehensive tests for all new service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — extended CommentsService with all methods
+- `internal/clickup/types.go` — added all Comment extension types
+- `internal/clickup/client_test.go` — added 18 tests for Comments service
+- `internal/cmd/comments.go` — added all CLI commands with output formatting
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `8c61ba7`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- The dupword linter catches duplicate words like "list list" in error messages
+- Delete command requires --force flag to confirm destructive operation
+- v3 Subtypes endpoint requires workspace ID (uses v3Path helper)
+- View comments support cursor-based pagination with `start` and `start_id` params
+
+---
+
+## Task 4 - 2026-02-22
+### Completed: Implement Workspaces Service
+
+**What was implemented:**
+- Created `WorkspacesService` with List, Plan, Seats methods
+- Implemented `GET /v2/team` (list workspaces)
+- Implemented `GET /v2/team/{team_id}/plan` (get plan)
+- Implemented `GET /v2/team/{team_id}/seats` (get seats)
+- Added Workspace types: Workspace, WorkspacesResponse, WorkspacePlanResponse, WorkspaceSeatsResponse, SeatInfo
+- Added CLI commands: `workspaces list`, `workspaces plan`, `workspaces seats`
+- Added 5 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added Workspaces() accessor and WorkspacesService with all methods
+- `internal/clickup/types.go` — added all Workspace types
+- `internal/clickup/client_test.go` — added tests for Workspaces service
+- `internal/cmd/workspaces.go` — created with all CLI commands
+- `internal/cmd/root.go` — added WorkspacesCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `694bfea`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- The prealloc linter requires slices with known capacity to be preallocated using `make([]T, 0, cap)`
+- This is a v2 API endpoint - workspace ID is NOT required (unlike v3 endpoints)
+- The workspaces list endpoint is the entry point for workspace discovery
+
+---
+
+## Task 5 - 2026-02-22
+### Completed: Implement Authorization Service
+
+**What was implemented:**
+- Created `AuthService` with Whoami and Token methods
+- Implemented `GET /v2/user` (get authorized user)
+- Implemented `POST /v2/oauth/token` (OAuth token exchange)
+- Added Auth types: AuthUser, AuthorizedUserResponse, OAuthTokenRequest, OAuthTokenResponse
+- Added CLI commands: `auth whoami`, `auth token`
+- Added 3 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added Auth() accessor and AuthService with all methods
+- `internal/clickup/types.go` — added all Auth types
+- `internal/clickup/client_test.go` — added tests for Auth service
+- `internal/cmd/auth.go` — added whoami and token commands
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `3b108a2`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- The err113 linter requires static errors instead of dynamic errors.New()
+- The tagliatelle linter wants snake_case JSON fields, but ClickUp API uses camelCase - use nolint comment
+- Droid Shield secret scanner can detect test values that look like tokens - use simple placeholder values
+
+---
+
+## Task 6 - 2026-02-22
+### Completed: Extend Spaces Service
+
+**What was implemented:**
+- Extended `SpacesService` with Get, Create, Update, Delete methods
+- Implemented `GET /v2/space/{space_id}` (get space details)
+- Implemented `POST /v2/team/{team_id}/space` (create space)
+- Implemented `PUT /v2/space/{space_id}` (update space)
+- Implemented `DELETE /v2/space/{space_id}` (delete space)
+- Added types: SpaceDetail, SpaceStatus, SpaceFeatures, FeatureToggle, CreateSpaceRequest, UpdateSpaceRequest
+- Added CLI commands: `spaces get`, `spaces create`, `spaces update`, `spaces delete`
+- Added 9 comprehensive tests for all new service methods
+- Delete warns user unless --force is used
+
+**Files changed:**
+- `internal/clickup/client.go` — extended SpacesService with Get, Create, Update, Delete
+- `internal/clickup/types.go` — added SpaceDetail and related types
+- `internal/clickup/client_test.go` — added 9 tests for new methods
+- `internal/cmd/spaces.go` — added get, create, update, delete commands
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `c1075a7`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Space features JSON is deeply nested - define proper structs for each level
+- Delete endpoint returns empty body with 200 status
+- Destructive operations should warn users unless --force is used
+
+---
+
+## Task 8 (was Task 7 in todo) - 2026-02-22
+### Completed: Extend Lists Service
+
+**What was implemented:**
+- Extended `ListsService` with Get, Create, Update, Delete, AddTask, RemoveTask, and template methods
+- Implemented `GET /v2/list/{list_id}` (get list details)
+- Implemented `POST /v2/folder/{folder_id}/list` (create list in folder)
+- Implemented `POST /v2/space/{space_id}/list` (create folderless list)
+- Implemented `PUT /v2/list/{list_id}` (update list)
+- Implemented `DELETE /v2/list/{list_id}` (delete list)
+- Implemented template creation in folder and space
+- Implemented `POST /v2/list/{list_id}/task/{task_id}` (add task to list)
+- Implemented `DELETE /v2/list/{list_id}/task/{task_id}` (remove task from list)
+- Added types: ListDetail, CreateListRequest, UpdateListRequest, CreateListFromTemplateRequest
+- Added CLI commands: lists get, create, update, delete, from-template, add-task, remove-task
+- Added 9 comprehensive tests for all new service methods
+- Delete warns user unless --force is used
+
+**Files changed:**
+- `internal/clickup/client.go` — extended ListsService with all new methods
+- `internal/clickup/types.go` — added ListDetail and related types, added Name to SpaceRef
+- `internal/clickup/client_test.go` — added 9 tests for new methods
+- `internal/cmd/lists.go` — added get, create, update, delete, from-template, add-task, remove-task commands
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `21a41ee`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Add/Remove task endpoints return empty body with 200
+- SpaceRef needed Name field for list detail output
+- CLI needs to validate exactly one of --folder or --space for create commands
+- Template creation requires both location (folder/space) AND template ID
+
+---
+
+## Task 7 (Folders) - 2026-02-22
+### Completed: Create Folders Service
+
+**What was implemented:**
+- Created `FoldersService` as a new top-level service for full folder management
+- Implemented `GET /v2/folder/{folder_id}` (get folder details)
+- Implemented `POST /v2/space/{space_id}/folder` (create folder)
+- Implemented `PUT /v2/folder/{folder_id}` (update folder)
+- Implemented `DELETE /v2/folder/{folder_id}` (delete folder)
+- Implemented `POST /v2/space/{space_id}/folder_template/{template_id}` (create from template)
+- Added types: FolderDetail, CreateFolderRequest, UpdateFolderRequest, CreateFolderFromTemplateRequest
+- Added CLI commands: folders get, create, update, delete, from-template
+- Added 6 comprehensive tests for all service methods
+- Delete warns user unless --force is used
+
+**Files changed:**
+- `internal/clickup/client.go` — added FoldersService with all methods
+- `internal/clickup/types.go` — added FolderDetail and related types
+- `internal/clickup/client_test.go` — added 6 tests for Folders service
+- `internal/cmd/folders.go` — created with all CLI commands
+- `internal/cmd/root.go` — added FoldersCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `258bb61`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Folder `task_count` is returned as string, not number (API quirk)
+- Deleting a folder moves its lists to folderless, doesn't delete them
+- Template creation endpoint requires space ID AND template ID
+
+---
+
+## Task 9 - 2026-02-22
+### Completed: Extend Tasks Service (Search, Time-in-Status, Merge, Move)
+
+**What was implemented:**
+- Extended `TasksService` with Search, TimeInStatus, BulkTimeInStatus, Merge, Move, CreateFromTemplate methods
+- Implemented `GET /v2/team/{team_id}/task` (GetFilteredTeamTasks - workspace search with filters)
+- Implemented `GET /v2/task/{task_id}/time_in_status` (time in status for single task)
+- Implemented `GET /v2/task/bulk_time_in_status/task_ids` (bulk time in status)
+- Implemented `POST /v2/task/{task_id}/merge` (merge tasks)
+- Implemented `PUT /v3/workspaces/{workspace_id}/tasks/{task_id}/home_list/{list_id}` (move task - v3)
+- Implemented `POST /v2/list/{list_id}/taskTemplate/{template_id}` (create from template)
+- Added types: FilteredTeamTasksParams, FilteredTeamTasksResponse, TimeInStatusResponse, StatusTime, TimeValue, BulkTimeInStatusResponse, MergeTasksRequest, MergeTasksResponse, MoveTaskResponse, CreateTaskFromTemplateRequest
+- Added CLI commands: tasks search, time-in-status, bulk-time-in-status, merge, move, from-template
+- Added 16 comprehensive tests for all new service methods
+- Added static error variables: errTaskIDRequired, errSourceTaskIDRequired
+
+**Files changed:**
+- `internal/clickup/client.go` — extended TasksService with all new methods
+- `internal/clickup/types.go` — added all Task extension types
+- `internal/clickup/client_test.go` — added 16 tests for new methods
+- `internal/cmd/tasks.go` — added all new CLI commands with output formatting
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `abd68e5`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- GetFilteredTeamTasks uses query string arrays (`statuses[]=&statuses[]=`)
+- BulkTimeInStatus uses repeated query params (`?task_ids=abc&task_ids=def`)
+- Move task is v3 only - requires workspace ID via v3Path()
+- Time-in-status returns minutes (not milliseconds)
+- Must use static error variables (err113 linter)
+- formatDuration in time_legacy.go takes milliseconds, needed separate formatMinutesToDuration for minutes
+
+---
+
+## Task 11 - 2026-02-22
+### Completed: Extend Time Service (Timer + CRUD + Tags + History)
+
+**What was implemented:**
+- Extended `TimeService` with 11 new methods:
+  - Get(ctx, teamID, entryID) - get single time entry
+  - Current(ctx, teamID) - get running timer
+  - Start(ctx, teamID, req) - start a new timer
+  - Stop(ctx, teamID) - stop the running timer
+  - Update(ctx, teamID, entryID, req) - update a time entry
+  - Delete(ctx, teamID, entryID) - delete a time entry
+  - History(ctx, teamID, entryID) - get time entry change history
+  - ListTags(ctx, teamID) - list all time entry tags
+  - AddTags(ctx, teamID, req) - add tags to entries
+  - RemoveTags(ctx, teamID, req) - remove tags from entries
+  - RenameTag(ctx, teamID, req) - rename a tag
+- Added `DeleteWithBody` method to `api.Client` for DELETE requests with JSON body
+- Added types: TimeEntryDetail, TimeEntryDetailResponse, StartTimeEntryRequest, UpdateTimeEntryRequest, TimeEntryTagsRequest, RenameTimeEntryTagRequest, TimeEntryHistoryResponse, TimeEntryHistoryItem, TimeEntryTag, TimeEntryTagsResponse
+- Added CLI commands: time get, current, start, stop, update, delete, history, tags, add-tags, remove-tags, rename-tag
+- Renamed formatDuration/formatTimestamp to formatLegacyDuration/formatLegacyTimestamp in time_legacy.go to avoid conflicts
+- Added 23 comprehensive tests for all new service methods
+
+**Files changed:**
+- `internal/api/client.go` — added DeleteWithBody method
+- `internal/clickup/client.go` — extended TimeService with all new methods
+- `internal/clickup/types.go` — added all Time extension types
+- `internal/clickup/client_test.go` — added 23 tests for new methods
+- `internal/cmd/time.go` — added all new CLI commands with output formatting
+- `internal/cmd/time_legacy.go` — renamed helper functions to avoid conflicts
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `7caa1b6`
+**PR URL:** (pending - will be added to existing PR)
+
+**Learnings:**
+- `json.Number` only accepts valid numeric strings - cannot use "entry-1" style IDs
+- Running timer has negative duration convention: duration = -start_timestamp
+- Tag operations use DELETE with request body (uncommon but supported)
+- Start/Stop/Get/Current all return same TimeEntryDetail type
+- Time entry IDs are numbers (not UUIDs like groups)
+- The gocritic linter prefers `minutes %= 60` over `minutes = minutes % 60`
+
+---
+
+## Task 12 - 2026-02-22
+### Completed: Create Tags Service
+
+**What was implemented:**
+- Created `TagsService` with 6 methods:
+  - List(spaceID) - list all tags in a space
+  - Create(spaceID, req) - create a new tag
+  - Update(spaceID, tagName, req) - edit a tag
+  - Delete(spaceID, tagName) - delete a tag
+  - AddToTask(taskID, tagName) - add tag to task
+  - RemoveFromTask(taskID, tagName) - remove tag from task
+- Added types: SpaceTag, SpaceTagsResponse, CreateSpaceTagRequest, EditSpaceTagRequest
+- Added CLI commands: tags list, create, update, delete, add, remove
+- Added 12 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added TagsService with all methods
+- `internal/clickup/types.go` — added SpaceTag types
+- `internal/clickup/client_test.go` — added 12 tests for Tags service
+- `internal/cmd/tags.go` — added all CLI commands
+- `internal/cmd/root.go` — added Tags command to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `267b28e`
+**PR URL:** (pending - will be added to existing PR)
+
+**Learnings:**
+- Tag names in API paths use URL encoding (not tag IDs)
+- Create/Edit endpoints wrap body in `{"tag": {...}}` envelope
+- Adding a non-existent tag to a task creates it in the space
+- Space tags have foreground (tag_fg) and background (tag_bg) colors
+- Tag paths use tag name, not ID: `/v2/space/{space_id}/tag/{tag_name}`
+
+---
+
+## Task 13 - 2026-02-22
+### Completed: Create Checklists Service
+
+**What was implemented:**
+- Created `ChecklistsService` with 6 methods:
+  - Create(taskID, req) - create a checklist on a task
+  - Update(checklistID, req) - edit a checklist
+  - Delete(checklistID) - delete a checklist
+  - AddItem(checklistID, req) - add item to checklist
+  - UpdateItem(checklistID, itemID, req) - edit checklist item
+  - DeleteItem(checklistID, itemID) - delete checklist item
+- Added types: Checklist, ChecklistItem, ChecklistResponse, CreateChecklistRequest, EditChecklistRequest, CreateChecklistItemRequest, EditChecklistItemRequest
+- Added CLI commands: checklists create, update, delete, add-item, update-item, delete-item
+- Added 12 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added ChecklistsService with all methods
+- `internal/clickup/types.go` — added Checklist types
+- `internal/clickup/client_test.go` — added 12 tests for Checklists service
+- `internal/cmd/checklists.go` — added all CLI commands
+- `internal/cmd/root.go` — added Checklists command to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `319e634`
+**PR URL:** (pending - will be added to existing PR)
+
+**Learnings:**
+- Checklist response wraps in `{"checklist": {...}}` envelope - unwrapped in service layer
+- Checklist IDs are UUIDs (not numeric like task IDs)
+- Items can be nested using the `parent` field
+- Resolved is a boolean, not a status string
+- WSL linter requires blank lines between variable declarations and if statements
+
+---
+
+## Task 14 - 2026-02-22
+### Completed: Create Relationships Service
+
+**What was implemented:**
+- Created `RelationshipsService` with 4 methods:
+  - AddDependency(taskID, req) - add a dependency to a task
+  - DeleteDependency(taskID, req) - remove a dependency from a task
+  - AddLink(taskID, linkedTaskID) - link two tasks
+  - DeleteLink(taskID, linkedTaskID) - unlink two tasks
+- Added type: AddDependencyRequest with DependsOn and DependencyOf fields
+- Added CLI commands: relationships add-dep, remove-dep, link, unlink
+- Added 8 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added RelationshipsService with all methods
+- `internal/clickup/types.go` — added AddDependencyRequest type
+- `internal/clickup/client_test.go` — added 8 tests for Relationships service
+- `internal/cmd/relationships.go` — added all CLI commands
+- `internal/cmd/root.go` — added Relationships command to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `3e2ec48`
+**PR URL:** (pending - will be added to existing PR)
+
+**Learnings:**
+- Delete dependency uses query params (`depends_on` or `dependency_of`), not request body
+- `depends_on` = this task waits for other; `dependency_of` = this task blocks other
+- Links are bidirectional relationships (not dependencies)
+- Linked task ID goes in the URL path for link operations
+
+---
+
+## Task 15 - 2026-02-22
+### Completed: Create Custom Fields Service
+
+**What was implemented:**
+- Created `CustomFieldsService` with 6 methods:
+  - ListByList(listID) - list custom fields for a list
+  - ListByFolder(folderID) - list custom fields for a folder
+  - ListBySpace(spaceID) - list custom fields for a space
+  - ListByTeam(teamID) - list custom fields for a workspace
+  - Set(taskID, fieldID, value) - set a custom field value
+  - Remove(taskID, fieldID) - remove a custom field value
+- Added types: CustomField, CustomFieldsResponse, SetCustomFieldRequest
+- Added CLI commands: fields list, set, remove
+- Added 12 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added CustomFieldsService with all methods
+- `internal/clickup/types.go` — added CustomField types
+- `internal/clickup/client_test.go` — added 12 tests for CustomFields service
+- `internal/cmd/fields.go` — added all CLI commands
+- `internal/cmd/root.go` — added Fields command to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `4e3ecb0`
+**PR URL:** (pending - will be added to existing PR)
+
+**Learnings:**
+- Field listing supports list/folder/space/team scope - exactly one required
+- Custom field types: text, number, currency, dropdown, checkbox, date, email, phone, url, labels, etc.
+- Dropdown values require option UUID, not label text
+- Set value: POST with `{"value": <any>}` body - field ID in URL path
+- Remove value: DELETE - field ID in URL path, no body
+
+---
+
+## Summary - Phase 9 Part 2 Completeness
+
+All 5 planned services have been implemented:
+
+1. **Time Service Extension** (Task 11) - 11 new methods for timer management, CRUD, and tags
+2. **Tags Service** (Task 12) - 6 methods for space-level tag and task-tag operations
+3. **Checklists Service** (Task 13) - 6 methods for checklist and checklist item management
+4. **Relationships Service** (Task 14) - 4 methods for task dependencies and links
+5. **Custom Fields Service** (Task 15) - 6 methods for custom field discovery and value management
+
+**Total new service methods:** 33
+**Total new tests added:** 67
+**Total new CLI commands:** 31
+
+---
+
+## Task 16 - 2026-02-22
+### Completed: Create Views Service
+
+**What was implemented:**
+- Created `ViewsService` with 12 methods:
+  - ListByTeam(teamID) - list views in workspace
+  - ListBySpace(spaceID) - list views in space
+  - ListByFolder(folderID) - list views in folder
+  - ListByList(listID) - list views in list
+  - Get(viewID) - get view details
+  - Tasks(viewID, page) - get tasks matching view filters
+  - CreateInTeam(teamID, req) - create view in workspace
+  - CreateInSpace(spaceID, req) - create view in space
+  - CreateInFolder(folderID, req) - create view in folder
+  - CreateInList(listID, req) - create view in list
+  - Update(viewID, req) - update view
+  - Delete(viewID) - delete view
+- Added types: View, ViewParent, ViewsResponse, ViewResponse, ViewTasksResponse, CreateViewRequest, UpdateViewRequest
+- Added CLI commands: views list (with --team/--space/--folder/--list), get, tasks, create, update, delete
+- Added 22 comprehensive tests for all service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — added ViewsService with all methods
+- `internal/clickup/types.go` — added View types
+- `internal/clickup/client_test.go` — added 22 tests for Views service
+- `internal/cmd/views.go` — added all CLI commands
+- `internal/cmd/root.go` — added Views command to CLI struct
+- `IMPLEMENTATION_PLAN.md` — updated Tasks 11-16 status to complete
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** (pending)
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- View listing supports 4 scopes: team, space, folder, list - exactly one required
+- View types: list, board, calendar, gantt, activity, map, workload, table
+- ViewParent.Type is an integer enum (7=space, 5=folder, 6=list)
+- Protected views cannot be edited/deleted
+- Tasks endpoint supports pagination via `page` query parameter
+- Priority.Name field is JSON-tagged as "priority" (not Priority.Priority)
+
+---
+
+## Task 17 - 2026-02-22
+### Completed: Create Webhooks Service
+
+**What was implemented:**
+- Created `WebhooksService` with List, Create, Update, Delete methods
+- Implemented `GET /v2/team/{team_id}/webhook` (list webhooks)
+- Implemented `POST /v2/team/{team_id}/webhook` (create webhook)
+- Implemented `PUT /v2/webhook/{webhook_id}` (update webhook)
+- Implemented `DELETE /v2/webhook/{webhook_id}` (delete webhook)
+- Added Webhook types: Webhook, WebhooksResponse, CreateWebhookRequest, UpdateWebhookRequest
+- Added CLI commands: `webhooks list`, `webhooks create`, `webhooks update`, `webhooks delete`
+- Added 8 comprehensive tests for all service methods
+- Added static error variables: errEndpointRequired, errEventsRequired
+
+**Files changed:**
+- `internal/clickup/client.go` — added Webhooks() accessor, errEndpointRequired, errEventsRequired, and WebhooksService with all methods
+- `internal/clickup/types.go` — added all Webhook types
+- `internal/clickup/client_test.go` — added 8 tests for Webhooks service
+- `internal/cmd/webhooks.go` — created with all CLI commands
+- `internal/cmd/root.go` — added WebhooksCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `a95976b`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Webhook creation requires endpoint URL and at least one event
+- Events are comma-separated strings (not enums) - can be scoped to space/folder/list/task
+- Webhook status can be "active" or "inactive"
+- Create endpoint path uses team ID; update/delete use webhook ID
+- This is a v2 API endpoint - workspace ID is NOT required
+
+---
+
+## Task 18 - 2026-02-22
+### Completed: Create Goals Service
+
+**What was implemented:**
+- Created `GoalsService` with 8 methods:
+  - List(teamID, includeCompleted) - list goals for a team
+  - Get(goalID) - get goal with key results
+  - Create(teamID, req) - create a new goal
+  - Update(goalID, req) - update a goal
+  - Delete(goalID) - delete a goal (and all key results)
+  - CreateKeyResult(goalID, req) - add key result to goal
+  - UpdateKeyResult(keyResultID, req) - update key result progress
+  - DeleteKeyResult(keyResultID) - delete a key result
+- Added Goal types: Goal, KeyResult, GoalsResponse, GoalResponse, KeyResultResponse, CreateGoalRequest, UpdateGoalRequest, CreateKeyResultRequest, EditKeyResultRequest
+- Added CLI commands: `goals list`, `goals get`, `goals create`, `goals update`, `goals delete`, `goals add-key-result`, `goals update-key-result`, `goals delete-key-result`
+- Added 16 comprehensive tests for all service methods
+- Added static error variable: errKeyResultTypeRequired
+
+**Files changed:**
+- `internal/clickup/client.go` — added Goals() accessor, errKeyResultTypeRequired, and GoalsService with all methods
+- `internal/clickup/types.go` — added all Goal and KeyResult types
+- `internal/clickup/client_test.go` — added 16 tests for Goals service
+- `internal/cmd/goals.go` — created with all CLI commands
+- `internal/cmd/root.go` — added GoalsCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `a6324d8`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Goal and KeyResult IDs are strings (UUIDs)
+- List supports `?include_closed=true` query param for completed goals
+- Key result types: number, currency, boolean, percentage, automatic
+- Progress is calculated from steps_start, steps_end, steps_current
+- Boolean key results have steps_start=0, steps_end=1
+- Deleting a goal cascades to delete all its key results
+- The err113 linter requires static errors (added errKeyResultTypeRequired)
+
+---
+
+## Task 19 - 2026-02-23
+### Completed: Create Users Service
+
+**What was implemented:**
+- Created `UsersService` with Get, Invite, Update, Remove methods
+- Implemented `GET /v2/team/{team_id}/user/{user_id}` (get user details)
+- Implemented `POST /v2/team/{team_id}/user` (invite user to workspace)
+- Implemented `PUT /v2/team/{team_id}/user/{user_id}` (update user role)
+- Implemented `DELETE /v2/team/{team_id}/user/{user_id}` (remove user from workspace)
+- Added UserDetail types: UserDetail, UserRef, UserResponse, InviteUserRequest, EditUserRequest
+- Added CLI commands: `users get`, `users invite`, `users update`, `users remove`
+- Added 8 comprehensive tests for all service methods
+- Remove warns user unless --force is used
+
+**Files changed:**
+- `internal/clickup/client.go` — added Users() accessor and UsersService with all methods
+- `internal/clickup/types.go` — added all UserDetail types
+- `internal/clickup/client_test.go` — added 8 tests for Users service
+- `internal/cmd/users.go` — created with all CLI commands
+- `internal/cmd/root.go` — added UsersCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** `7adc8fc`
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- User roles: 1=owner, 2=admin, 3=member, 4=guest
+- Invited user response includes `invited_by` reference
+- The tagliatelle linter requires nolint comment for camelCase JSON fields from ClickUp API
+- Destructive operations (remove user) should warn unless --force is used
+
+---
+
+## Task 20 - 2026-02-23
+### Completed: Extend Members Service (List/Task Members)
+
+**What was implemented:**
+- Extended `MembersService` with ListMembers and TaskMembers methods
+- Implemented `GET /v2/list/{list_id}/member` (get list members)
+- Implemented `GET /v2/task/{task_id}/member` (get task members)
+- Added MemberUser and MemberUsersResponse types (flat user objects, not wrapped like workspace members)
+- Added CLI commands: `members list-members --list <list_id>`, `members task-members --task <task_id>`
+- Added 4 comprehensive tests for all new service methods
+
+**Files changed:**
+- `internal/clickup/client.go` — extended MembersService with ListMembers, TaskMembers methods
+- `internal/clickup/types.go` — added MemberUser and MemberUsersResponse types
+- `internal/clickup/client_test.go` — added 4 tests for new methods
+- `internal/cmd/members.go` — added list-members and task-members commands
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** (pending)
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- List/Task members return flat user objects `{"id", "username", "email"}`, NOT wrapped in `{"user": {}}`
+- The existing workspace members endpoint wraps in `{"user": {...}}` structure
+- Tests requiring validation only (no HTTP call) still need mock server - can't pass nil to newTestClient
+
+---
+
+## Task 21 - 2026-02-23
+### Completed: Create Attachments Service
+
+**What was implemented:**
+- Created `AttachmentsService` with Upload, List, Create methods
+- Implemented `POST /v2/task/{task_id}/attachment` (v2 upload via multipart)
+- Implemented `GET /v3/workspaces/{wid}/{parent_type}/{parent_id}/attachments` (v3 list)
+- Implemented `POST /v3/workspaces/{wid}/{parent_type}/{parent_id}/attachments` (v3 upload)
+- Added Attachment and AttachmentsResponse types
+- Added CLI commands: `attachments upload --task <id> <file>`, `attachments list --type <type> --id <id>`, `attachments create --type <type> --id <id> <file>`
+- Added 9 comprehensive tests for all service methods
+- Added static error variables: errFilePathRequired, errParentTypeRequired, errParentIDRequired
+
+**Files changed:**
+- `internal/clickup/client.go` — added Attachments() accessor, error variables, and AttachmentsService with all methods
+- `internal/clickup/types.go` — added Attachment and AttachmentsResponse types
+- `internal/clickup/client_test.go` — added 9 tests for Attachments service
+- `internal/cmd/attachments.go` — created with all CLI commands
+- `internal/cmd/root.go` — added AttachmentsCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** (pending)
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- PostMultipart takes an io.Reader, not a file path - need to open file first
+- v2 upload is task-specific, v3 upload works for any parent type (task, list, folder, space)
+- Parent type is a path segment (not query param)
+- File path from CLI argument triggers gosec G304 warning - expected behavior, use nolint comment
+
+---
+
+## Task 22 - 2026-02-23
+### Completed: Create Chat Service (v3)
+
+**What was implemented:**
+- Created `ChatService` with 19 methods for all Chat v3 API endpoints:
+  - ListChannels, GetChannel, GetFollowers, GetMembers
+  - CreateChannel, CreateDM, CreateLocationChannel
+  - UpdateChannel, DeleteChannel
+  - ListMessages, SendMessage, UpdateMessage, DeleteMessage
+  - ListReactions, CreateReaction, DeleteReaction
+  - ListReplies, CreateReply
+  - GetTaggedUsers
+- Added Chat types: ChatChannel, ChatMessage, ChatReaction, ChatPagination
+- Added request/response types for all operations
+- Added 11 tests for ChatService (key functionality)
+- Added 20 CLI commands: chat channels, channel, channel-followers, channel-members, create-channel, create-dm, create-loc-channel, update-channel, delete-channel, messages, send, update-message, delete-message, reactions, react, unreact, replies, reply, tagged-users
+- Added static error variables: errMemberRequired, errContentRequired, errReactionRequired
+- All v3 endpoints use PATCH for updates (not PUT)
+- Delete commands warn user unless --force is used
+
+**Files changed:**
+- `internal/clickup/client.go` — added Chat() accessor, error variables, and ChatService with all 19 methods
+- `internal/clickup/types.go` — added all Chat types
+- `internal/clickup/client_test.go` — added 11 tests for Chat service
+- `internal/cmd/chat.go` — created with 20 CLI commands
+- `internal/cmd/root.go` — added ChatCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** (pending)
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Chat is the largest v3 domain with 19 endpoints
+- Cursor-based pagination with `next_page_token`
+- Location channels are tied to a space/folder/list
+- Message replies use same SendMessageRequest type as regular messages
+- Reactions use emoji strings directly (not codes)
+
+---
+
+## Task 23 - 2026-02-23
+### Completed: Create Docs Service (v3)
+
+**What was implemented:**
+- Created `DocsService` with 8 methods for all Docs v3 API endpoints:
+  - Search, Get, GetPageListing, GetPages, GetPage
+  - Create, CreatePage, EditPage
+- Added Doc types: Doc, DocPage, DocPageListingItem, DocsResponse, DocPagesResponse, DocPageListingResponse
+- Added request types: CreateDocRequest, CreatePageRequest, EditPageRequest
+- Added 8 tests for DocsService
+- Added 8 CLI commands: docs search, get, page-listing, pages, page, create, create-page, edit-page
+- Edit page uses PUT (not PATCH like other v3 updates)
+- Content can be markdown or HTML
+
+**Files changed:**
+- `internal/clickup/client.go` — added Docs() accessor and DocsService with all 8 methods
+- `internal/clickup/types.go` — added all Doc types
+- `internal/clickup/client_test.go` — added 8 tests for Docs service
+- `internal/cmd/docs.go` — created with 8 CLI commands
+- `internal/cmd/root.go` — added DocsCmd to CLI struct
+
+**Branch:** `phase/9-p2-completeness`
+**Commit:** (pending)
+**PR URL:** https://github.com/Robben-Media/clickup-cli/pull/16
+
+**Learnings:**
+- Docs API uses PUT for page edits (not PATCH like Chat API)
+- Page listing returns structure (ID + title) without content
+- Page content format can be markdown ("md") or HTML ("html")
+- Editing a page replaces entire content — no partial updates
+
+---
+

@@ -1,0 +1,32 @@
+Acls	v3	1	0	1	0.0%
+Attachments	v2	1	0	1	0.0%
+Attachments	v3	2	0	2	0.0%
+Auditlogs	v3	1	0	1	0.0%
+Authorization	v2	2	0	2	0.0%
+Chat	v3	19	0	19	0.0%
+Comments	v2	10	2	8	20.0%
+Comments	v3	1	0	1	0.0%
+Custom Fields	v2	6	0	6	0.0%
+Custom Task Types	v2	1	0	1	0.0%
+Docs	v3	8	0	8	0.0%
+Folders	v2	6	1	5	16.7%
+Goals	v2	8	0	8	0.0%
+Guests	v2	10	0	10	0.0%
+Lists	v2	11	2	9	18.2%
+Members	v2	2	0	2	0.0%
+Roles	v2	1	0	1	0.0%
+Shared Hierarchy	v2	1	0	1	0.0%
+Spaces	v2	5	1	4	20.0%
+Tags	v2	6	0	6	0.0%
+Task Checklists	v2	6	0	6	0.0%
+Task Relationships	v2	4	0	4	0.0%
+Tasks	v2	10	5	5	50.0%
+Tasks	v3	1	0	1	0.0%
+Templates	v2	1	0	1	0.0%
+Time Tracking	v2	13	2	11	15.4%
+Time Tracking (Legacy)	v2	4	0	4	0.0%
+User Groups	v2	4	0	4	0.0%
+Users	v2	4	0	4	0.0%
+Views	v2	12	0	12	0.0%
+Webhooks	v2	4	0	4	0.0%
+Workspaces	v2	3	0	3	0.0%

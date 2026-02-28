@@ -14,29 +14,65 @@ import (
 )
 
 type RootFlags struct {
-	Color   string `help:"Color output: auto|always|never" default:"${color}"`
-	JSON    bool   `help:"Output JSON to stdout (best for scripting)" default:"${json}"`
-	Plain   bool   `help:"Output stable, parseable text to stdout (TSV; no colors)" default:"${plain}"`
-	Force   bool   `help:"Skip confirmations for destructive commands"`
-	NoInput bool   `help:"Never prompt; fail instead (useful for CI)"`
-	Verbose bool   `help:"Enable verbose logging"`
+	Color     string `help:"Color output: auto|always|never" default:"${color}"`
+	JSON      bool   `help:"Output JSON to stdout (best for scripting)" default:"${json}"`
+	Plain     bool   `help:"Output stable, parseable text to stdout (TSV; no colors)" default:"${plain}"`
+	Force     bool   `help:"Skip confirmations for destructive commands"`
+	NoInput   bool   `help:"Never prompt; fail instead (useful for CI)"`
+	Verbose   bool   `help:"Enable verbose logging"`
+	Workspace string `help:"Workspace ID for v3 API calls (required for Chat, Docs, etc.)" default:"${workspace}"`
 }
 
 type CLI struct {
 	RootFlags `embed:""`
 
-	Version    kong.VersionFlag `help:"Print version and exit"`
-	Auth       AuthCmd          `cmd:"" help:"Auth and credentials"`
-	Tasks      TasksCmd         `cmd:"" help:"Task operations"`
-	Spaces     SpacesCmd        `cmd:"" help:"Space operations"`
-	Lists      ListsCmd         `cmd:"" help:"List operations"`
-	Members    MembersCmd       `cmd:"" help:"Team member operations"`
-	Comments   CommentsCmd      `cmd:"" help:"Comment operations"`
-	Time       TimeCmd          `cmd:"" help:"Time tracking"`
-	VersionCmd VersionCmd       `cmd:"" name:"version" help:"Print version"`
+	Version       kong.VersionFlag `help:"Print version and exit"`
+	Auth          AuthCmd          `cmd:"" help:"Auth and credentials"`
+	Workspaces    WorkspacesCmd    `cmd:"" help:"Workspace operations"`
+	Tasks         TasksCmd         `cmd:"" help:"Task operations"`
+	Spaces        SpacesCmd        `cmd:"" help:"Space operations"`
+	Folders       FoldersCmd       `cmd:"" help:"Folder operations"`
+	Lists         ListsCmd         `cmd:"" help:"List operations"`
+	Members       MembersCmd       `cmd:"" help:"Team member operations"`
+	Comments      CommentsCmd      `cmd:"" help:"Comment operations"`
+	Time          TimeCmd          `cmd:"" help:"Time tracking"`
+	Groups        GroupsCmd        `cmd:"" help:"User group operations"`
+	Roles         RolesCmd         `cmd:"" help:"Custom role operations"`
+	Guests        GuestsCmd        `cmd:"" help:"Guest operations"`
+	Shared        SharedCmd        `cmd:"" help:"Shared hierarchy operations"`
+	Templates     TemplatesCmd     `cmd:"" help:"Task template operations"`
+	TaskTypes     TaskTypesCmd     `cmd:"" help:"Custom task type operations"`
+	TimeLegacy    TimeLegacyCmd    `cmd:"" help:"Legacy time tracking operations"`
+	AuditLogs     AuditLogsCmd     `cmd:"" help:"Audit log operations"`
+	ACLs          ACLsCmd          `cmd:"" help:"Access control operations"`
+	Tags          TagsCmd          `cmd:"" help:"Tag operations"`
+	Checklists    ChecklistsCmd    `cmd:"" help:"Checklist operations"`
+	Relationships RelationshipsCmd `cmd:"" help:"Task relationship operations"`
+	Fields        FieldsCmd        `cmd:"" help:"Custom field operations"`
+	Views         ViewsCmd         `cmd:"" help:"View operations"`
+	Webhooks      WebhooksCmd      `cmd:"" help:"Webhook operations"`
+	Goals         GoalsCmd         `cmd:"" help:"Goal and key result operations"`
+	Users         UsersCmd         `cmd:"" help:"User management operations"`
+	Attachments   AttachmentsCmd   `cmd:"" help:"File attachment operations"`
+	Chat          ChatCmd          `cmd:"" help:"Chat operations (v3 API)"`
+	Docs          DocsCmd          `cmd:"" help:"Docs operations (v3 API)"`
+	VersionCmd    VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 
 type exitPanic struct{ code int }
+
+type workspaceIDKey struct{}
+
+func withWorkspaceID(ctx context.Context, workspaceID string) context.Context {
+	return context.WithValue(ctx, workspaceIDKey{}, workspaceID)
+}
+
+func getWorkspaceIDFromContext(ctx context.Context) string {
+	if v, ok := ctx.Value(workspaceIDKey{}).(string); ok {
+		return v
+	}
+	return ""
+}
 
 func Execute(args []string) (err error) {
 	parser, cli, err := newParser(helpDescription())
@@ -82,6 +118,7 @@ func Execute(args []string) (err error) {
 
 	ctx := context.Background()
 	ctx = outfmt.WithMode(ctx, mode)
+	ctx = withWorkspaceID(ctx, cli.Workspace)
 
 	kctx.BindTo(ctx, (*context.Context)(nil))
 	kctx.Bind(&cli.RootFlags)
@@ -128,10 +165,11 @@ func boolString(v bool) string {
 func newParser(description string) (*kong.Kong, *CLI, error) {
 	envMode := outfmt.FromEnv("CLICKUP_CLI")
 	vars := kong.Vars{
-		"color":   envOr("CLICKUP_CLI_COLOR", "auto"),
-		"json":    boolString(envMode.JSON),
-		"plain":   boolString(envMode.Plain),
-		"version": VersionString(),
+		"color":     envOr("CLICKUP_CLI_COLOR", "auto"),
+		"json":      boolString(envMode.JSON),
+		"plain":     boolString(envMode.Plain),
+		"version":   VersionString(),
+		"workspace": envOr("CLICKUP_WORKSPACE_ID", ""),
 	}
 
 	cli := &CLI{}

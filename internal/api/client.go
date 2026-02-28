@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
+	"path/filepath"
 	"time"
 )
 
@@ -44,7 +47,7 @@ func NewClient(apiKey string, opts ...ClientOption) *Client {
 		},
 		apiKey:    apiKey,
 		userAgent: "clickup-cli/1.0",
-		baseURL:   "https://api.clickup.com/api/v2",
+		baseURL:   "https://api.clickup.com/api",
 	}
 
 	for _, opt := range opts {
@@ -114,6 +117,10 @@ func (c *Client) Put(ctx context.Context, path string, body, result any) error {
 	return c.doJSON(ctx, Request{Method: http.MethodPut, Path: path, Body: body}, result)
 }
 
+func (c *Client) Patch(ctx context.Context, path string, body, result any) error {
+	return c.doJSON(ctx, Request{Method: http.MethodPatch, Path: path, Body: body}, result)
+}
+
 func (c *Client) Delete(ctx context.Context, path string) error {
 	resp, err := c.Do(ctx, Request{Method: http.MethodDelete, Path: path})
 	if err != nil {
@@ -123,6 +130,80 @@ func (c *Client) Delete(ctx context.Context, path string) error {
 
 	if resp.StatusCode >= 400 {
 		return parseAPIError(resp)
+	}
+
+	return nil
+}
+
+// DeleteWithBody sends a DELETE request with a JSON body.
+func (c *Client) DeleteWithBody(ctx context.Context, path string, body any) error {
+	resp, err := c.Do(ctx, Request{Method: http.MethodDelete, Path: path, Body: body})
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return parseAPIError(resp)
+	}
+
+	return nil
+}
+
+// PostMultipart sends a multipart/form-data POST request for file uploads.
+// The fieldName parameter specifies the form field name for the file.
+// The reader provides the file content, and fileName is the original filename.
+func (c *Client) PostMultipart(ctx context.Context, path string, fieldName string, reader io.Reader, fileName string, result any) error {
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	// Create a form file with proper Content-Type header
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition", fmt.Sprintf(`form-data; name="%s"; filename="%s"`, fieldName, filepath.Base(fileName)))
+	h.Set("Content-Type", "application/octet-stream")
+
+	part, err := writer.CreatePart(h)
+	if err != nil {
+		return fmt.Errorf("create multipart part: %w", err)
+	}
+
+	if _, copyErr := io.Copy(part, reader); copyErr != nil {
+		return fmt.Errorf("copy file content: %w", copyErr)
+	}
+
+	if closeErr := writer.Close(); closeErr != nil {
+		return fmt.Errorf("close multipart writer: %w", closeErr)
+	}
+
+	url := c.baseURL + path
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, &body)
+	if err != nil {
+		return fmt.Errorf("create request: %w", err)
+	}
+
+	// Set the Content-Type header with the boundary
+	httpReq.Header.Set("Content-Type", writer.FormDataContentType())
+	httpReq.Header.Set("User-Agent", c.userAgent)
+
+	if c.apiKey != "" {
+		httpReq.Header.Set("Authorization", c.apiKey)
+	}
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return parseAPIError(resp)
+	}
+
+	if result != nil {
+		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+			return fmt.Errorf("decode response: %w", err)
+		}
 	}
 
 	return nil
