@@ -140,11 +140,11 @@ func (cmd *UsersUpdateCmd) Run(ctx context.Context) error {
 type UsersRemoveCmd struct {
 	TeamID string `arg:"" required:"" help:"Team (workspace) ID"`
 	UserID int    `arg:"" required:"" help:"User ID"`
-	Force  bool   `help:"Skip confirmation"`
+	Yes bool `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *UsersRemoveCmd) Run(ctx context.Context) error {
-	if !cmd.Force {
+	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will remove user %d from workspace %s.\n", cmd.UserID, cmd.TeamID)
 		fmt.Fprint(os.Stderr, "Use --force to confirm.\n")
 		return nil

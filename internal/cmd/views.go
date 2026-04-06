@@ -342,7 +342,7 @@ func (cmd *ViewsUpdateCmd) Run(ctx context.Context) error {
 
 type ViewsDeleteCmd struct {
 	ViewID string `arg:"" required:"" help:"View ID"`
-	Force  bool   `help:"Skip confirmation"`
+	Yes bool `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *ViewsDeleteCmd) Run(ctx context.Context) error {
@@ -351,7 +351,7 @@ func (cmd *ViewsDeleteCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !cmd.Force {
+	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete view %s\n", cmd.ViewID)
 		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
 

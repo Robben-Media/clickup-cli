@@ -104,7 +104,7 @@ func (cmd *CommentsAddCmd) Run(ctx context.Context) error {
 
 type CommentsDeleteCmd struct {
 	CommentID string `arg:"" required:"" help:"Comment ID"`
-	Force     bool   `help:"Skip confirmation"`
+	Yes bool `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *CommentsDeleteCmd) Run(ctx context.Context) error {
@@ -113,7 +113,7 @@ func (cmd *CommentsDeleteCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !cmd.Force {
+	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete comment %s\n", cmd.CommentID)
 		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
 		return nil

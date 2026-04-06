@@ -95,7 +95,7 @@ func (cmd *ChecklistsUpdateCmd) Run(ctx context.Context) error {
 
 type ChecklistsDeleteCmd struct {
 	ChecklistID string `arg:"" required:"" help:"Checklist ID"`
-	Force       bool   `help:"Skip confirmation"`
+	Yes bool `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *ChecklistsDeleteCmd) Run(ctx context.Context) error {
@@ -104,7 +104,7 @@ func (cmd *ChecklistsDeleteCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !cmd.Force {
+	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete checklist %s and all its items\n", cmd.ChecklistID)
 		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
 
@@ -243,7 +243,7 @@ func (cmd *ChecklistsUpdateItemCmd) Run(ctx context.Context) error {
 type ChecklistsDeleteItemCmd struct {
 	ChecklistID string `arg:"" required:"" help:"Checklist ID"`
 	ItemID      string `arg:"" required:"" help:"Item ID"`
-	Force       bool   `help:"Skip confirmation"`
+	Yes bool `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *ChecklistsDeleteItemCmd) Run(ctx context.Context) error {
@@ -252,7 +252,7 @@ func (cmd *ChecklistsDeleteItemCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !cmd.Force {
+	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete item %s from checklist %s\n", cmd.ItemID, cmd.ChecklistID)
 		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
 
