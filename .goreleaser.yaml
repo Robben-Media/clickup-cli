@@ -36,26 +36,23 @@ builds:
       - darwin_arm64
 
 archives:
-  - builds:
+  - ids:
       - clickup
       - clickup_darwin
-    format: tar.gz
+    formats: ["tar.gz"]
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
-        format: zip
+        formats: ["zip"]
 
 checksum:
   name_template: checksums.txt
 
-brews:
+homebrew_casks:
   - repository:
       owner: builtbyrobben
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    folder: Formula
     homepage: "https://github.com/builtbyrobben/clickup-cli"
     description: "ClickUp project management CLI"
-    license: "MIT"
-    test: |
-      system "#{bin}/clickup-cli", "--version"
+    binary: clickup-cli
