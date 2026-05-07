@@ -318,9 +318,9 @@ type ChatDeleteChannelCmd struct {
 func (cmd *ChatDeleteChannelCmd) Run(ctx context.Context) error {
 	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will delete channel %s and all its messages.\n", cmd.ChannelID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm deletion.\n")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm deletion.\n")
 
-		return fmt.Errorf("operation cancelled: use --force to confirm")
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	client, err := getClickUpClient(ctx)
@@ -448,9 +448,9 @@ type ChatDeleteMessageCmd struct {
 func (cmd *ChatDeleteMessageCmd) Run(ctx context.Context) error {
 	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will delete message %s.\n", cmd.MessageID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm deletion.\n")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm deletion.\n")
 
-		return fmt.Errorf("operation cancelled: use --force to confirm")
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	client, err := getClickUpClient(ctx)

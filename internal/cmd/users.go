@@ -146,8 +146,8 @@ type UsersRemoveCmd struct {
 func (cmd *UsersRemoveCmd) Run(ctx context.Context) error {
 	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will remove user %d from workspace %s.\n", cmd.UserID, cmd.TeamID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm.\n")
-		return fmt.Errorf("operation cancelled: use --force to confirm")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm.\n")
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	client, err := getClickUpClient(ctx)

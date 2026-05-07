@@ -115,8 +115,8 @@ func (cmd *CommentsDeleteCmd) Run(ctx context.Context) error {
 
 	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete comment %s\n", cmd.CommentID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
-		return fmt.Errorf("operation cancelled: use --force to confirm")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm deletion\n")
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	if err := client.Comments().Delete(ctx, cmd.CommentID); err != nil {

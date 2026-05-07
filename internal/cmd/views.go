@@ -342,7 +342,7 @@ func (cmd *ViewsUpdateCmd) Run(ctx context.Context) error {
 
 type ViewsDeleteCmd struct {
 	ViewID string `arg:"" required:"" help:"View ID"`
-	Yes bool `name:"yes" short:"y" help:"Skip confirmation"`
+	Yes    bool   `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *ViewsDeleteCmd) Run(ctx context.Context) error {
@@ -353,9 +353,9 @@ func (cmd *ViewsDeleteCmd) Run(ctx context.Context) error {
 
 	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete view %s\n", cmd.ViewID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm deletion\n")
 
-		return fmt.Errorf("operation cancelled: use --force to confirm")
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	if err := client.Views().Delete(ctx, cmd.ViewID); err != nil {

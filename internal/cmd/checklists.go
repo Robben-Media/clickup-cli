@@ -95,7 +95,7 @@ func (cmd *ChecklistsUpdateCmd) Run(ctx context.Context) error {
 
 type ChecklistsDeleteCmd struct {
 	ChecklistID string `arg:"" required:"" help:"Checklist ID"`
-	Yes bool `name:"yes" short:"y" help:"Skip confirmation"`
+	Yes         bool   `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *ChecklistsDeleteCmd) Run(ctx context.Context) error {
@@ -106,9 +106,9 @@ func (cmd *ChecklistsDeleteCmd) Run(ctx context.Context) error {
 
 	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete checklist %s and all its items\n", cmd.ChecklistID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm deletion\n")
 
-		return fmt.Errorf("operation cancelled: use --force to confirm")
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	if err := client.Checklists().Delete(ctx, cmd.ChecklistID); err != nil {
@@ -243,7 +243,7 @@ func (cmd *ChecklistsUpdateItemCmd) Run(ctx context.Context) error {
 type ChecklistsDeleteItemCmd struct {
 	ChecklistID string `arg:"" required:"" help:"Checklist ID"`
 	ItemID      string `arg:"" required:"" help:"Item ID"`
-	Yes bool `name:"yes" short:"y" help:"Skip confirmation"`
+	Yes         bool   `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *ChecklistsDeleteItemCmd) Run(ctx context.Context) error {
@@ -254,9 +254,9 @@ func (cmd *ChecklistsDeleteItemCmd) Run(ctx context.Context) error {
 
 	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete item %s from checklist %s\n", cmd.ItemID, cmd.ChecklistID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm deletion\n")
 
-		return fmt.Errorf("operation cancelled: use --force to confirm")
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	if err := client.Checklists().DeleteItem(ctx, cmd.ChecklistID, cmd.ItemID); err != nil {

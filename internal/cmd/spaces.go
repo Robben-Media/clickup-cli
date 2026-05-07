@@ -227,7 +227,7 @@ func (cmd *SpacesUpdateCmd) Run(ctx context.Context) error {
 
 type SpacesDeleteCmd struct {
 	SpaceID string `arg:"" required:"" help:"Space ID"`
-	Yes bool `name:"yes" short:"y" help:"Skip confirmation"`
+	Yes     bool   `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *SpacesDeleteCmd) Run(ctx context.Context) error {
@@ -239,9 +239,9 @@ func (cmd *SpacesDeleteCmd) Run(ctx context.Context) error {
 	if !cmd.Yes && !outfmt.IsPlain(ctx) && !outfmt.IsJSON(ctx) {
 		fmt.Fprintf(os.Stderr, "WARNING: Deleting a space will delete all folders, lists, and tasks within it.\n")
 		fmt.Fprintf(os.Stderr, "Space ID: %s\n\n", cmd.SpaceID)
-		fmt.Fprintf(os.Stderr, "Use --force to skip this confirmation.\n")
+		fmt.Fprintf(os.Stderr, "Use --yes to skip this confirmation.\n")
 
-		return fmt.Errorf("operation cancelled: use --force to confirm destructive operation")
+		return fmt.Errorf("operation cancelled: use --yes to confirm destructive operation")
 	}
 
 	if err := client.Spaces().Delete(ctx, cmd.SpaceID); err != nil {
