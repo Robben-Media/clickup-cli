@@ -291,6 +291,7 @@ func (cmd *ListsUpdateCmd) Run(ctx context.Context) error {
 
 type ListsDeleteCmd struct {
 	ListID string `arg:"" required:"" help:"List ID"`
+	Yes    bool   `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *ListsDeleteCmd) Run(ctx context.Context) error {
@@ -299,12 +300,12 @@ func (cmd *ListsDeleteCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !forceEnabled(ctx) && !outfmt.IsPlain(ctx) && !outfmt.IsJSON(ctx) {
+	if !cmd.Yes && !outfmt.IsPlain(ctx) && !outfmt.IsJSON(ctx) {
 		fmt.Fprintf(os.Stderr, "WARNING: Deleting a list will delete all tasks in it.\n")
 		fmt.Fprintf(os.Stderr, "List ID: %s\n\n", cmd.ListID)
-		fmt.Fprintf(os.Stderr, "Use --force to skip this confirmation.\n")
+		fmt.Fprintf(os.Stderr, "Use --yes to skip this confirmation.\n")
 
-		return fmt.Errorf("operation cancelled: use --force to confirm destructive operation")
+		return fmt.Errorf("operation cancelled: use --yes to confirm destructive operation")
 	}
 
 	if err := client.Lists().Delete(ctx, cmd.ListID); err != nil {

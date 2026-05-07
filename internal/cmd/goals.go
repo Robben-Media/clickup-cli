@@ -180,7 +180,7 @@ type GoalsCreateCmd struct {
 	DueDate     int64  `help:"Due date in milliseconds"`
 	Description string `help:"Goal description"`
 	Owners      string `help:"Comma-separated list of owner user IDs"`
-	Color       string `name:"goal-color" help:"Goal color (hex)"`
+	GoalColor   string `name:"goal-color" help:"Goal color (hex)"`
 }
 
 func (cmd *GoalsCreateCmd) Run(ctx context.Context) error {
@@ -193,7 +193,7 @@ func (cmd *GoalsCreateCmd) Run(ctx context.Context) error {
 		Name:        cmd.Name,
 		DueDate:     cmd.DueDate,
 		Description: cmd.Description,
-		Color:       cmd.Color,
+		Color:       cmd.GoalColor,
 	}
 
 	if cmd.Owners != "" {
@@ -245,7 +245,7 @@ type GoalsUpdateCmd struct {
 	Name         string `help:"New goal name"`
 	Description  string `help:"New goal description"`
 	DueDate      int64  `help:"New due date in milliseconds"`
-	Color        string `name:"goal-color" help:"New goal color (hex)"`
+	GoalColor    string `name:"goal-color" help:"New goal color (hex)"`
 	AddOwners    string `help:"Comma-separated list of owner IDs to add"`
 	RemoveOwners string `help:"Comma-separated list of owner IDs to remove"`
 }
@@ -260,7 +260,7 @@ func (cmd *GoalsUpdateCmd) Run(ctx context.Context) error {
 		Name:        cmd.Name,
 		Description: cmd.Description,
 		DueDate:     cmd.DueDate,
-		Color:       cmd.Color,
+		Color:       cmd.GoalColor,
 	}
 
 	if cmd.AddOwners != "" {
@@ -323,6 +323,7 @@ func (cmd *GoalsUpdateCmd) Run(ctx context.Context) error {
 
 type GoalsDeleteCmd struct {
 	GoalID string `arg:"" required:"" help:"Goal ID"`
+	Yes    bool   `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *GoalsDeleteCmd) Run(ctx context.Context) error {
@@ -331,11 +332,11 @@ func (cmd *GoalsDeleteCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !forceEnabled(ctx) {
+	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete goal %s and all its key results\n", cmd.GoalID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm deletion\n")
 
-		return fmt.Errorf("operation cancelled: use --force to confirm")
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	if err := client.Goals().Delete(ctx, cmd.GoalID); err != nil {
@@ -485,6 +486,7 @@ func (cmd *GoalsUpdateKeyResultCmd) Run(ctx context.Context) error {
 
 type GoalsDeleteKeyResultCmd struct {
 	KeyResultID string `arg:"" required:"" help:"Key result ID"`
+	Yes         bool   `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *GoalsDeleteKeyResultCmd) Run(ctx context.Context) error {
@@ -493,11 +495,11 @@ func (cmd *GoalsDeleteKeyResultCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !forceEnabled(ctx) {
+	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete key result %s\n", cmd.KeyResultID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm deletion\n")
 
-		return fmt.Errorf("operation cancelled: use --force to confirm")
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	if err := client.Goals().DeleteKeyResult(ctx, cmd.KeyResultID); err != nil {

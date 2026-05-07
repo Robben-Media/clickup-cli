@@ -312,14 +312,15 @@ func (cmd *ChatUpdateChannelCmd) Run(ctx context.Context) error {
 
 type ChatDeleteChannelCmd struct {
 	ChannelID string `arg:"" help:"Channel ID" required:""`
+	Yes       bool   `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *ChatDeleteChannelCmd) Run(ctx context.Context) error {
-	if !forceEnabled(ctx) {
+	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will delete channel %s and all its messages.\n", cmd.ChannelID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm deletion.\n")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm deletion.\n")
 
-		return nil
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	client, err := getClickUpClient(ctx)
@@ -441,14 +442,15 @@ func (cmd *ChatUpdateMessageCmd) Run(ctx context.Context) error {
 
 type ChatDeleteMessageCmd struct {
 	MessageID string `arg:"" help:"Message ID" required:""`
+	Yes       bool   `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *ChatDeleteMessageCmd) Run(ctx context.Context) error {
-	if !forceEnabled(ctx) {
+	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will delete message %s.\n", cmd.MessageID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm deletion.\n")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm deletion.\n")
 
-		return nil
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	client, err := getClickUpClient(ctx)

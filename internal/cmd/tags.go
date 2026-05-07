@@ -191,6 +191,7 @@ func (cmd *TagsUpdateCmd) Run(ctx context.Context) error {
 type TagsDeleteCmd struct {
 	SpaceID string `required:"" help:"Space ID"`
 	Name    string `arg:"" required:"" help:"Tag name"`
+	Yes     bool   `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *TagsDeleteCmd) Run(ctx context.Context) error {
@@ -199,11 +200,11 @@ func (cmd *TagsDeleteCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !forceEnabled(ctx) {
+	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete tag '%s' from space %s\n", cmd.Name, cmd.SpaceID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm deletion\n")
 
-		return fmt.Errorf("operation cancelled: use --force to confirm")
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	if err := client.Tags().Delete(ctx, cmd.SpaceID, cmd.Name); err != nil {

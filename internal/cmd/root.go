@@ -17,7 +17,6 @@ type RootFlags struct {
 	Color     string `help:"Color output: auto|always|never" default:"${color}"`
 	JSON      bool   `help:"Output JSON to stdout (best for scripting)" default:"${json}"`
 	Plain     bool   `help:"Output stable, parseable text to stdout (TSV; no colors)" default:"${plain}"`
-	Force     bool   `help:"Skip confirmations for destructive commands"`
 	NoInput   bool   `help:"Never prompt; fail instead (useful for CI)"`
 	Verbose   bool   `help:"Enable verbose logging"`
 	Workspace string `help:"Workspace ID for v3 API calls (required for Chat, Docs, etc.)" default:"${workspace}"`
@@ -78,18 +77,6 @@ func getWorkspaceIDFromContext(ctx context.Context) string {
 
 func withRootFlags(ctx context.Context, flags *RootFlags) context.Context {
 	return context.WithValue(ctx, rootFlagsKey{}, flags)
-}
-
-func getRootFlags(ctx context.Context) *RootFlags {
-	if v, ok := ctx.Value(rootFlagsKey{}).(*RootFlags); ok {
-		return v
-	}
-	return nil
-}
-
-func forceEnabled(ctx context.Context) bool {
-	rf := getRootFlags(ctx)
-	return rf != nil && rf.Force
 }
 
 func Execute(args []string) (err error) {

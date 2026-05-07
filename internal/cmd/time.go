@@ -454,6 +454,7 @@ func (cmd *TimeUpdateCmd) Run(ctx context.Context) error {
 
 type TimeDeleteCmd struct {
 	EntryID string `arg:"" required:"" help:"Time entry ID"`
+	Yes     bool   `name:"yes" short:"y" help:"Skip confirmation"`
 }
 
 func (cmd *TimeDeleteCmd) Run(ctx context.Context) error {
@@ -467,11 +468,11 @@ func (cmd *TimeDeleteCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	if !forceEnabled(ctx) {
+	if !cmd.Yes {
 		fmt.Fprintf(os.Stderr, "Warning: This will permanently delete time entry %s\n", cmd.EntryID)
-		fmt.Fprint(os.Stderr, "Use --force to confirm deletion\n")
+		fmt.Fprint(os.Stderr, "Use --yes to confirm deletion\n")
 
-		return fmt.Errorf("operation cancelled: use --force to confirm")
+		return fmt.Errorf("operation cancelled: use --yes to confirm")
 	}
 
 	if err := client.Time().Delete(ctx, teamID, cmd.EntryID); err != nil {
