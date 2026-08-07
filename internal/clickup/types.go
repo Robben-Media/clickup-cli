@@ -293,10 +293,12 @@ type TaskAssigneesUpdate struct {
 
 // UpdateTaskRequest is the request body for updating a task.
 type UpdateTaskRequest struct {
-	Name      string               `json:"name,omitempty"`
-	Status    string               `json:"status,omitempty"`
-	Assignees *TaskAssigneesUpdate `json:"assignees,omitempty"`
-	Priority  *int                 `json:"priority,omitempty"`
+	Name        string               `json:"name,omitempty"`
+	Status      string               `json:"status,omitempty"`
+	Assignees   *TaskAssigneesUpdate `json:"assignees,omitempty"`
+	Priority    *int                 `json:"priority,omitempty"`
+	DueDate     string               `json:"due_date,omitempty"`
+	DueDateTime *bool                `json:"due_date_time,omitempty"`
 }
 
 // CreateCommentRequest is the request body for creating a comment.

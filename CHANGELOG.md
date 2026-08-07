@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `tasks update --due` to set task due date (unix ms), matching `tasks create --due`
+
 ## [0.1.0] - 2026-02-15
 
 ### Added

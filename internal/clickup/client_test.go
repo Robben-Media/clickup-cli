@@ -370,6 +370,48 @@ func TestTasksUpdate_SendsAssigneesAddRem(t *testing.T) {
 	}
 }
 
+func TestTasksUpdate_SendsDueDate(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Fatalf("expected PUT, got %s", r.Method)
+		}
+
+		if r.URL.Path != "/v2/task/task-1" {
+			t.Fatalf("expected path /v2/task/task-1, got %s", r.URL.Path)
+		}
+
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if body["due_date"] != "1786140000000" {
+			t.Fatalf("expected due_date 1786140000000, got %#v", body["due_date"])
+		}
+
+		if body["due_date_time"] != true {
+			t.Fatalf("expected due_date_time true, got %#v", body["due_date_time"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(Task{ID: "task-1", Name: "Task 1", DueDate: "1786140000000"})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+	dueDateTime := true
+
+	_, err := client.Tasks().Update(context.Background(), "task-1", UpdateTaskRequest{
+		DueDate:     "1786140000000",
+		DueDateTime: &dueDateTime,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 // UserGroups Service Tests
 
 func TestUserGroupsList_ReturnsGroups(t *testing.T) {
