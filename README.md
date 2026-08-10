@@ -84,6 +84,21 @@ clickup-cli auth status
 clickup-cli auth remove
 ```
 
+### update
+
+Check the installed version against the latest GitHub release. This reports update availability but does not install anything.
+
+```bash
+# Check release status
+clickup-cli update status
+
+# Equivalent alias
+clickup-cli update check
+
+# Machine-readable output
+clickup-cli --json update status
+```
+
 ### tasks
 
 Create, read, update, and delete tasks.
