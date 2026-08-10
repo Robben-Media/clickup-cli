@@ -55,6 +55,7 @@ type CLI struct {
 	Attachments   AttachmentsCmd   `cmd:"" help:"File attachment operations"`
 	Chat          ChatCmd          `cmd:"" help:"Chat operations (v3 API)"`
 	Docs          DocsCmd          `cmd:"" help:"Docs operations (v3 API)"`
+	Update        UpdateCmd        `cmd:"" help:"Check clickup-cli release status"`
 	VersionCmd    VersionCmd       `cmd:"" name:"version" help:"Print version"`
 }
 
