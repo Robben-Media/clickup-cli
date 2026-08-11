@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"runtime"
 	"strings"
 )
 
@@ -169,11 +168,6 @@ func responseError(kind error, resp *http.Response) error {
 // NormalizeVersion removes a release tag's optional leading v.
 func NormalizeVersion(version string) string {
 	return strings.TrimPrefix(strings.TrimSpace(version), "v")
-}
-
-// AssetNameFor returns the current platform's GoReleaser asset name.
-func AssetNameFor(version string) string {
-	return AssetNameForPlatform(version, runtime.GOOS, runtime.GOARCH)
 }
 
 // AssetNameForPlatform returns a platform's GoReleaser asset name.

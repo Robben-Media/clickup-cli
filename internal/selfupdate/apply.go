@@ -52,31 +52,6 @@ type CheckResult struct {
 	Asset      string
 }
 
-// Check reports whether the latest release is newer than current.
-func Check(ctx context.Context, client *Client, current string) (CheckResult, error) {
-	return checkPlatform(ctx, client, current, runtime.GOOS, runtime.GOARCH)
-}
-
-func checkPlatform(ctx context.Context, client *Client, current, goos, goarch string) (CheckResult, error) {
-	client = defaultClient(client)
-
-	release, err := client.LatestRelease(ctx)
-	if err != nil {
-		return CheckResult{}, err
-	}
-
-	result := CheckResult{
-		Current: current,
-		Latest:  NormalizeVersion(release.TagName),
-		Asset:   AssetNameForPlatform(release.TagName, goos, goarch),
-	}
-	comparison, versionsComparable := compareVersions(current, release.TagName)
-	result.Comparable = versionsComparable
-	result.Update = versionsComparable && comparison < 0
-
-	return result, nil
-}
-
 // Apply downloads, verifies, extracts, and installs the latest release.
 func Apply(ctx context.Context, opts ApplyOptions) (CheckResult, error) {
 	goos, goarch := opts.GOOS, opts.GOARCH
@@ -208,7 +183,8 @@ type semanticVersion struct {
 	prerelease []string
 }
 
-func compareVersions(left, right string) (int, bool) {
+// CompareVersions compares two semantic release versions.
+func CompareVersions(left, right string) (int, bool) {
 	leftVersion, leftOK := parseVersion(left)
 
 	rightVersion, rightOK := parseVersion(right)
@@ -579,7 +555,9 @@ func replaceExecutableWindows(temporaryName, destination string) error {
 	}
 
 	if hasBackup {
-		_ = removeFile(backup)
+		if err := removeFile(backup); err != nil {
+			return fmt.Errorf("remove executable backup: %w", err)
+		}
 	}
 
 	return nil

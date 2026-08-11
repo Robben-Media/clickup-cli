@@ -24,6 +24,7 @@ import (
 var (
 	errTestReplace  = errors.New("test replace failure")
 	errTestRollback = errors.New("test rollback failure")
+	errTestCleanup  = errors.New("test cleanup failure")
 )
 
 func TestApplyInstallsTarAndZipReleaseAssets(t *testing.T) {
@@ -213,22 +214,11 @@ func TestCheckUsesSemanticVersionOrdering(t *testing.T) {
 		{name: "dirty uncomparable", current: "v1.2.3+dirty", latest: "v1.2.4"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if r.URL.Path != "/repos/Robben-Media/clickup-cli/releases/latest" {
-					http.NotFound(w, r)
-					return
-				}
-				_ = json.NewEncoder(w).Encode(Release{TagName: test.latest})
-			}))
-			t.Cleanup(server.Close)
+			comparison, versionsComparable := CompareVersions(test.current, test.latest)
 
-			result, err := Check(context.Background(), &Client{HTTP: server.Client(), BaseURL: server.URL}, test.current)
-			if err != nil {
-				t.Fatalf("Check: %v", err)
-			}
-
-			if result.Update != test.update || result.Comparable != test.comparable {
-				t.Fatalf("result = %#v, want update=%t comparable=%t", result, test.update, test.comparable)
+			update := versionsComparable && comparison < 0
+			if update != test.update || versionsComparable != test.comparable {
+				t.Fatalf("CompareVersions() = (%d, %t), want update=%t comparable=%t", comparison, versionsComparable, test.update, test.comparable)
 			}
 		})
 	}
@@ -447,6 +437,36 @@ func TestWindowsReplaceRollsBackFailedReplacement(t *testing.T) {
 
 	installed, readErr := os.ReadFile(destination)
 	if readErr != nil || string(installed) != "original" {
+		t.Fatalf("installed = %q, err = %v", installed, readErr)
+	}
+}
+
+func TestWindowsReplaceReportsBackupCleanupFailure(t *testing.T) {
+	originalRemove := removeFile
+
+	t.Cleanup(func() { removeFile = originalRemove })
+
+	destination := filepath.Join(t.TempDir(), "clickup-cli.exe")
+	if err := os.WriteFile(destination, []byte("original"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	removeFile = func(path string) error {
+		if path == destination+".bak" {
+			if _, err := os.Stat(path); err == nil {
+				return errTestCleanup
+			}
+		}
+
+		return os.Remove(path)
+	}
+
+	err := replaceExecutable(destination, []byte("replacement"), windows)
+	if !errors.Is(err, errTestCleanup) {
+		t.Fatalf("error = %v, want %v", err, errTestCleanup)
+	}
+
+	installed, readErr := os.ReadFile(destination)
+	if readErr != nil || string(installed) != "replacement" {
 		t.Fatalf("installed = %q, err = %v", installed, readErr)
 	}
 }

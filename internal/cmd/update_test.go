@@ -168,6 +168,61 @@ func TestUpdateCheckFlagDoesNotApply(t *testing.T) {
 	}
 }
 
+func TestUpdateInstallSupportsMachineOutput(t *testing.T) {
+	oldApply := applySelfUpdate
+	defer func() { applySelfUpdate = oldApply }()
+	applySelfUpdate = func(context.Context, selfupdate.ApplyOptions) (selfupdate.CheckResult, error) {
+		return selfupdate.CheckResult{
+			Current: "v1.1.0",
+			Latest:  "1.2.0",
+			Update:  true,
+			Applied: true,
+			Asset:   "clickup-cli_1.2.0_linux_amd64.tar.gz",
+		}, nil
+	}
+
+	jsonOutput := captureStdout(t, func() error {
+		ctx := outfmt.WithMode(context.Background(), outfmt.Mode{JSON: true})
+		return (&UpdateCmd{Timeout: time.Second}).Run(ctx)
+	})
+	if !strings.Contains(jsonOutput, `"applied": true`) || !strings.Contains(jsonOutput, `"latest_version": "1.2.0"`) {
+		t.Fatalf("JSON output = %q", jsonOutput)
+	}
+
+	plainOutput := captureStdout(t, func() error {
+		ctx := outfmt.WithMode(context.Background(), outfmt.Mode{Plain: true})
+		return (&UpdateCmd{Timeout: time.Second}).Run(ctx)
+	})
+	if !strings.HasPrefix(plainOutput, "CURRENT_VERSION\tLATEST_VERSION\tUPDATE_AVAILABLE\tAPPLIED\tPLATFORM_ASSET") {
+		t.Fatalf("plain output = %q", plainOutput)
+	}
+}
+
+func TestUpdateCheckUsesRepositoryOverrideAndToken(t *testing.T) {
+	t.Setenv("CLICKUP_UPDATE_REPO", "example/clickup-cli")
+	t.Setenv("GITHUB_TOKEN", "github-token")
+
+	client := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		if request.URL.String() != "https://api.github.com/repos/example/clickup-cli/releases/latest" {
+			return nil, fmt.Errorf("unexpected HTTP request: %s", request.URL)
+		}
+		if request.Header.Get("Authorization") != "Bearer github-token" {
+			return nil, fmt.Errorf("Authorization = %q", request.Header.Get("Authorization"))
+		}
+		return testHTTPResponse(http.StatusOK, `{"tag_name":"v1.2.0","assets":[]}`, ""), nil
+	})}
+	restore := setUpdateTestState(t, client, updateDefaultLatestReleaseURL, updateDefaultLatestWebURL)
+	defer restore()
+
+	report, err := buildUpdateStatusReport(context.Background(), time.Second)
+	if err != nil {
+		t.Fatalf("build report: %v", err)
+	}
+	if report.LatestVersion != "v1.2.0" {
+		t.Fatalf("latest_version = %q", report.LatestVersion)
+	}
+}
+
 func TestNewSelfUpdateClientUsesRepositoryAndTokenEnvironment(t *testing.T) {
 	t.Setenv("CLICKUP_UPDATE_REPO", "example/clickup-cli")
 	t.Setenv("GITHUB_TOKEN", "github-token")
