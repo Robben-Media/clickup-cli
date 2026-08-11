@@ -131,7 +131,7 @@ func Apply(ctx context.Context, opts ApplyOptions) (CheckResult, error) {
 		return result, fmt.Errorf("%w for %s", errChecksumMismatch, archiveAsset.Name)
 	}
 
-	binary, err := extractBinary(archive.Bytes(), archiveAsset.Name)
+	binary, err := extractBinary(archive.Bytes(), archiveAsset.Name, goos)
 	if err != nil {
 		return result, err
 	}
@@ -400,15 +400,20 @@ func checksumFor(manifest, assetName string) (string, error) {
 	return matchingDigest, nil
 }
 
-func extractBinary(archive []byte, assetName string) ([]byte, error) {
-	if strings.HasSuffix(assetName, ".zip") {
-		return extractZipBinary(archive)
+func extractBinary(archive []byte, assetName, goos string) ([]byte, error) {
+	executableName := "clickup-cli"
+	if goos == windows {
+		executableName = "clickup-cli.exe"
 	}
 
-	return extractTarGzBinary(archive)
+	if strings.HasSuffix(assetName, ".zip") {
+		return extractZipBinary(archive, executableName)
+	}
+
+	return extractTarGzBinary(archive, executableName)
 }
 
-func extractTarGzBinary(archive []byte) ([]byte, error) {
+func extractTarGzBinary(archive []byte, executableName string) ([]byte, error) {
 	gzipReader, err := gzip.NewReader(bytes.NewReader(archive))
 	if err != nil {
 		return nil, fmt.Errorf("open gzip archive: %w", err)
@@ -441,7 +446,7 @@ func extractTarGzBinary(archive []byte) ([]byte, error) {
 			return nil, fmt.Errorf("read tar archive: %w", err)
 		}
 
-		if header.Typeflag != tar.TypeReg || !isBinaryName(filepath.Base(header.Name)) {
+		if header.Typeflag != tar.TypeReg || filepath.Base(header.Name) != executableName {
 			continue
 		}
 
@@ -456,14 +461,14 @@ func extractTarGzBinary(archive []byte) ([]byte, error) {
 	}
 }
 
-func extractZipBinary(archive []byte) ([]byte, error) {
+func extractZipBinary(archive []byte, executableName string) ([]byte, error) {
 	zipReader, err := zip.NewReader(bytes.NewReader(archive), int64(len(archive)))
 	if err != nil {
 		return nil, fmt.Errorf("open zip archive: %w", err)
 	}
 
 	for _, file := range zipReader.File {
-		if !file.Mode().IsRegular() || !isBinaryName(filepath.Base(file.Name)) {
+		if !file.Mode().IsRegular() || filepath.Base(file.Name) != executableName {
 			continue
 		}
 
@@ -486,10 +491,6 @@ func extractZipBinary(archive []byte) ([]byte, error) {
 	}
 
 	return nil, errArchiveNoBinary
-}
-
-func isBinaryName(name string) bool {
-	return name == "clickup-cli" || name == "clickup-cli.exe"
 }
 
 func replaceExecutable(destination string, binary []byte, goos string) error {

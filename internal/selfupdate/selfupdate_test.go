@@ -321,6 +321,37 @@ func TestApplyRejectsMissingBinaryAndMalformedArchive(t *testing.T) {
 	}
 }
 
+func TestExtractRejectsWrongPlatformExecutable(t *testing.T) {
+	tests := []struct {
+		name      string
+		archive   []byte
+		assetName string
+		goos      string
+	}{
+		{
+			name:      "Windows executable in Linux archive",
+			archive:   buildTarGzNamed(t, "clickup-cli.exe", []byte("wrong platform")),
+			assetName: AssetNameForPlatform("v2.0.0", "linux", "amd64"),
+			goos:      "linux",
+		},
+		{
+			name:      "Unix executable in Windows archive",
+			archive:   buildZipNamed(t, "clickup-cli", []byte("wrong platform")),
+			assetName: AssetNameForPlatform("v2.0.0", windows, "amd64"),
+			goos:      windows,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := extractBinary(test.archive, test.assetName, test.goos)
+			if !errors.Is(err, errArchiveNoBinary) {
+				t.Fatalf("error = %v, want %v", err, errArchiveNoBinary)
+			}
+		})
+	}
+}
+
 func TestApplyUsesOnlyListedReleaseAssetURLs(t *testing.T) {
 	assetName := AssetNameForPlatform("v2.0.0", "linux", "amd64")
 	downloads := 0
@@ -593,9 +624,14 @@ func buildTarGzNamed(t *testing.T, name string, contents []byte) []byte {
 
 func buildZip(t *testing.T, binary []byte) []byte {
 	t.Helper()
+	return buildZipNamed(t, "clickup-cli.exe", binary)
+}
+
+func buildZipNamed(t *testing.T, name string, binary []byte) []byte {
+	t.Helper()
 	var output bytes.Buffer
 	zipWriter := zip.NewWriter(&output)
-	header := &zip.FileHeader{Name: "clickup-cli.exe", Method: zip.Deflate}
+	header := &zip.FileHeader{Name: name, Method: zip.Deflate}
 	header.SetMode(0o755)
 
 	entry, err := zipWriter.CreateHeader(header)
