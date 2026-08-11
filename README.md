@@ -52,6 +52,8 @@ clickup-cli auth set-team YOUR_TEAM_ID
 | `CLICKUP_TEAM_ID` | Team ID (overrides config file) |
 | `CLICKUP_CLI_COLOR` | Color output: `auto`, `always`, `never` |
 | `CLICKUP_CLI_OUTPUT` | Default output mode: `json`, `plain` |
+| `CLICKUP_UPDATE_REPO` | Override the update repository (`owner/repository`) |
+| `GITHUB_TOKEN` / `GH_TOKEN` | Optional GitHub token for update requests |
 
 ## Global Flags
 
@@ -86,18 +88,27 @@ clickup-cli auth remove
 
 ### update
 
-Check the installed version against the latest GitHub release. This reports update availability but does not install anything.
+Install the latest `Robben-Media/clickup-cli` release. The updater downloads the archive for the current platform, requires `checksums.txt`, verifies its SHA-256 checksum, and then safely replaces the current executable.
 
 ```bash
-# Check release status
-clickup-cli update status
+# Install the latest verified release
+clickup-cli update
 
-# Equivalent alias
+# Check without changing the executable
+clickup-cli update --check
+
+# Replace a development or dirty build
+clickup-cli update --force-binary
+
+# Preserved read-only forms
+clickup-cli update status
 clickup-cli update check
 
-# Machine-readable output
-clickup-cli --json update status
+# Machine-readable check output
+clickup-cli --json update --check
 ```
+
+The updater does not run Homebrew, Docker, or another package manager. Set `GITHUB_TOKEN` or `GH_TOKEN` when authenticated GitHub requests are needed. `CLICKUP_UPDATE_REPO=owner/repository` can select a different release repository for controlled use.
 
 ### tasks
 

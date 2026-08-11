@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/builtbyrobben/clickup-cli/internal/outfmt"
+	"github.com/builtbyrobben/clickup-cli/internal/selfupdate"
 )
 
 func TestUpdateStatusReportsAvailableReleaseAsJSON(t *testing.T) {
@@ -94,6 +95,152 @@ func setUpdateTestState(t *testing.T, client *http.Client, latestURL, webURL str
 		version = oldVersion
 		commit = oldCommit
 		date = oldDate
+	}
+}
+
+func TestUpdateInstallsByDefault(t *testing.T) {
+	restore := setUpdateTestState(t, http.DefaultClient, updateDefaultLatestReleaseURL, updateDefaultLatestWebURL)
+	defer restore()
+
+	oldApply := applySelfUpdate
+	defer func() { applySelfUpdate = oldApply }()
+
+	called := false
+	applySelfUpdate = func(_ context.Context, opts selfupdate.ApplyOptions) (selfupdate.CheckResult, error) {
+		called = true
+		if opts.CurrentVer != "v1.1.0" || opts.Force {
+			t.Fatalf("options = %#v", opts)
+		}
+		return selfupdate.CheckResult{Current: "v1.1.0", Latest: "1.2.0", Update: true, Applied: true}, nil
+	}
+
+	stderr := captureStderr(t, func() error {
+		return Execute([]string{"update"})
+	})
+	if !called {
+		t.Fatal("self-update was not applied")
+	}
+	if !strings.Contains(stderr, "Updated clickup-cli: v1.1.0 -> 1.2.0") {
+		t.Fatalf("stderr = %q", stderr)
+	}
+}
+
+func TestUpdateForceBinaryIsPassedToInstaller(t *testing.T) {
+	restore := setUpdateTestState(t, http.DefaultClient, updateDefaultLatestReleaseURL, updateDefaultLatestWebURL)
+	defer restore()
+
+	oldApply := applySelfUpdate
+	defer func() { applySelfUpdate = oldApply }()
+
+	applySelfUpdate = func(_ context.Context, opts selfupdate.ApplyOptions) (selfupdate.CheckResult, error) {
+		if !opts.Force {
+			t.Fatal("Force = false, want true")
+		}
+		return selfupdate.CheckResult{Current: opts.CurrentVer, Latest: "1.2.0", Update: true, Applied: true}, nil
+	}
+
+	_ = captureStderr(t, func() error {
+		return Execute([]string{"update", "--force-binary"})
+	})
+}
+
+func TestUpdateCheckFlagDoesNotApply(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = fmt.Fprint(w, `{"tag_name":"v1.1.0","assets":[]}`)
+	}))
+	defer server.Close()
+
+	restore := setUpdateTestState(t, server.Client(), server.URL, server.URL)
+	defer restore()
+
+	oldApply := applySelfUpdate
+	defer func() { applySelfUpdate = oldApply }()
+	applySelfUpdate = func(context.Context, selfupdate.ApplyOptions) (selfupdate.CheckResult, error) {
+		t.Fatal("check mode attempted to apply an update")
+		return selfupdate.CheckResult{}, nil
+	}
+
+	stdout := captureStdout(t, func() error {
+		return Execute([]string{"--json", "update", "--check"})
+	})
+	if !strings.Contains(stdout, `"update_available": false`) {
+		t.Fatalf("check output = %q", stdout)
+	}
+}
+
+func TestUpdateInstallSupportsMachineOutput(t *testing.T) {
+	oldApply := applySelfUpdate
+	defer func() { applySelfUpdate = oldApply }()
+	applySelfUpdate = func(context.Context, selfupdate.ApplyOptions) (selfupdate.CheckResult, error) {
+		return selfupdate.CheckResult{
+			Current: "v1.1.0",
+			Latest:  "1.2.0",
+			Update:  true,
+			Applied: true,
+			Asset:   "clickup-cli_1.2.0_linux_amd64.tar.gz",
+		}, nil
+	}
+
+	jsonOutput := captureStdout(t, func() error {
+		ctx := outfmt.WithMode(context.Background(), outfmt.Mode{JSON: true})
+		return (&UpdateCmd{Timeout: time.Second}).Run(ctx)
+	})
+	if !strings.Contains(jsonOutput, `"applied": true`) || !strings.Contains(jsonOutput, `"latest_version": "1.2.0"`) {
+		t.Fatalf("JSON output = %q", jsonOutput)
+	}
+
+	plainOutput := captureStdout(t, func() error {
+		ctx := outfmt.WithMode(context.Background(), outfmt.Mode{Plain: true})
+		return (&UpdateCmd{Timeout: time.Second}).Run(ctx)
+	})
+	if !strings.HasPrefix(plainOutput, "CURRENT_VERSION\tLATEST_VERSION\tUPDATE_AVAILABLE\tAPPLIED\tPLATFORM_ASSET") {
+		t.Fatalf("plain output = %q", plainOutput)
+	}
+}
+
+func TestUpdateCheckUsesRepositoryOverrideAndToken(t *testing.T) {
+	t.Setenv("CLICKUP_UPDATE_REPO", "example/clickup-cli")
+	t.Setenv("GITHUB_TOKEN", "github-token")
+
+	client := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		if request.URL.String() != "https://api.github.com/repos/example/clickup-cli/releases/latest" {
+			return nil, fmt.Errorf("unexpected HTTP request: %s", request.URL)
+		}
+		if request.Header.Get("Authorization") != "Bearer github-token" {
+			return nil, fmt.Errorf("Authorization = %q", request.Header.Get("Authorization"))
+		}
+		return testHTTPResponse(http.StatusOK, `{"tag_name":"v1.2.0","assets":[]}`, ""), nil
+	})}
+	restore := setUpdateTestState(t, client, updateDefaultLatestReleaseURL, updateDefaultLatestWebURL)
+	defer restore()
+
+	report, err := buildUpdateStatusReport(context.Background(), time.Second)
+	if err != nil {
+		t.Fatalf("build report: %v", err)
+	}
+	if report.LatestVersion != "v1.2.0" {
+		t.Fatalf("latest_version = %q", report.LatestVersion)
+	}
+}
+
+func TestNewSelfUpdateClientUsesRepositoryAndTokenEnvironment(t *testing.T) {
+	t.Setenv("CLICKUP_UPDATE_REPO", "example/clickup-cli")
+	t.Setenv("GITHUB_TOKEN", "github-token")
+	t.Setenv("GH_TOKEN", "gh-token")
+
+	client := newSelfUpdateClient(time.Second)
+	if client.Repo != "example/clickup-cli" {
+		t.Fatalf("Repo = %q", client.Repo)
+	}
+	if client.Token != "github-token" {
+		t.Fatalf("Token = %q, want GITHUB_TOKEN precedence", client.Token)
+	}
+}
+
+func TestUpdateRejectsUnknownAction(t *testing.T) {
+	err := Execute([]string{"update", "install"})
+	if err == nil || !strings.Contains(err.Error(), `unknown update action "install"`) {
+		t.Fatalf("error = %v", err)
 	}
 }
 

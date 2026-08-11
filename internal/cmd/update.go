@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,9 +20,11 @@ import (
 	"time"
 
 	"github.com/builtbyrobben/clickup-cli/internal/outfmt"
+	"github.com/builtbyrobben/clickup-cli/internal/selfupdate"
 )
 
 const (
+	updateDefaultRepository       = "Robben-Media/clickup-cli"
 	updateDefaultLatestReleaseURL = "https://api.github.com/repos/Robben-Media/clickup-cli/releases/latest"
 	updateDefaultLatestWebURL     = "https://github.com/Robben-Media/clickup-cli/releases/latest"
 	updateDefaultTimeout          = 10 * time.Second
@@ -29,17 +32,30 @@ const (
 )
 
 var (
-	updateHTTPClient       = http.DefaultClient
-	updateLatestReleaseURL = updateDefaultLatestReleaseURL
-	updateLatestWebURL     = updateDefaultLatestWebURL
+	errInvalidUpdateRepository = errors.New("invalid update repository")
+	updateHTTPClient           = http.DefaultClient
+	updateLatestReleaseURL     = updateDefaultLatestReleaseURL
+	updateLatestWebURL         = updateDefaultLatestWebURL
+	applySelfUpdate            = selfupdate.Apply
 )
 
 type UpdateCmd struct {
-	Status UpdateStatusCmd `cmd:"" name:"status" aliases:"check" help:"Show installed and latest clickup-cli release status"`
+	Action      string        `arg:"" optional:"" help:"Optional read-only action: status or check"`
+	Check       bool          `help:"Only check for an update; do not install"`
+	ForceBinary bool          `name:"force-binary" help:"Allow replacing a development or dirty binary"`
+	Timeout     time.Duration `name:"timeout" help:"HTTP timeout for GitHub release requests" default:"10s"`
 }
 
 type UpdateStatusCmd struct {
-	Timeout time.Duration `name:"timeout" help:"HTTP timeout for GitHub release metadata" default:"10s"`
+	Timeout time.Duration
+}
+
+type updateApplyReport struct {
+	CurrentVersion  string `json:"current_version"`
+	LatestVersion   string `json:"latest_version"`
+	UpdateAvailable bool   `json:"update_available"`
+	Applied         bool   `json:"applied"`
+	PlatformAsset   string `json:"platform_asset,omitempty"`
 }
 
 type updateStatusReport struct {
@@ -65,12 +81,97 @@ type githubRelease struct {
 	TagName         string               `json:"tag_name"`
 	HTMLURL         string               `json:"html_url"`
 	Assets          []githubReleaseAsset `json:"assets"`
+	Repository      string               `json:"-"`
 	SyntheticAssets bool                 `json:"-"`
 }
 
 type githubReleaseAsset struct {
 	Name               string `json:"name"`
 	BrowserDownloadURL string `json:"browser_download_url"`
+}
+
+func (cmd *UpdateCmd) Run(ctx context.Context) error {
+	if cmd.Action != "" && cmd.Action != "status" && cmd.Action != "check" {
+		return newUsageError(fmt.Errorf("unknown update action %q (expected status or check)", cmd.Action))
+	}
+
+	readOnly := cmd.Check || cmd.Action != ""
+	if readOnly {
+		if cmd.ForceBinary {
+			return newUsageError(fmt.Errorf("--force-binary cannot be used with check mode"))
+		}
+		return (&UpdateStatusCmd{Timeout: cmd.Timeout}).Run(ctx)
+	}
+
+	result, err := applySelfUpdate(ctx, selfupdate.ApplyOptions{
+		Client:     newSelfUpdateClient(cmd.Timeout),
+		CurrentVer: VersionString(),
+		Force:      cmd.ForceBinary,
+	})
+	if err != nil {
+		return fmt.Errorf("update clickup-cli: %w", err)
+	}
+
+	report := updateApplyReport{
+		CurrentVersion:  result.Current,
+		LatestVersion:   result.Latest,
+		UpdateAvailable: result.Update,
+		Applied:         result.Applied,
+		PlatformAsset:   result.Asset,
+	}
+	if outfmt.IsJSON(ctx) {
+		return outfmt.WriteJSON(os.Stdout, report)
+	}
+	if outfmt.IsPlain(ctx) {
+		return writeUpdateApplyPlain(report)
+	}
+
+	if result.Applied {
+		_, err = fmt.Fprintf(os.Stderr, "Updated clickup-cli: %s -> %s\n", result.Current, result.Latest)
+	} else {
+		_, err = fmt.Fprintf(os.Stderr, "No update needed: current %s, latest %s\n", result.Current, result.Latest)
+	}
+	if err != nil {
+		return fmt.Errorf("write update result: %w", err)
+	}
+	return nil
+}
+
+func writeUpdateApplyPlain(report updateApplyReport) error {
+	headers := []string{"CURRENT_VERSION", "LATEST_VERSION", "UPDATE_AVAILABLE", "APPLIED", "PLATFORM_ASSET"}
+	rows := [][]string{{
+		report.CurrentVersion,
+		report.LatestVersion,
+		strconv.FormatBool(report.UpdateAvailable),
+		strconv.FormatBool(report.Applied),
+		report.PlatformAsset,
+	}}
+	return outfmt.WritePlain(os.Stdout, headers, rows)
+}
+
+func newSelfUpdateClient(timeout time.Duration) *selfupdate.Client {
+	return &selfupdate.Client{
+		HTTP:  updateClient(timeout),
+		Repo:  strings.TrimSpace(os.Getenv("CLICKUP_UPDATE_REPO")),
+		Token: updateGitHubToken(),
+	}
+}
+
+func updateGitHubToken() string {
+	if token := strings.TrimSpace(os.Getenv("GITHUB_TOKEN")); token != "" {
+		return token
+	}
+	return strings.TrimSpace(os.Getenv("GH_TOKEN"))
+}
+
+func setUpdateRequestHeaders(request *http.Request, acceptJSON bool) {
+	request.Header.Set("User-Agent", "clickup-cli/"+VersionString())
+	if acceptJSON {
+		request.Header.Set("Accept", "application/vnd.github+json")
+	}
+	if token := updateGitHubToken(); token != "" {
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
 }
 
 func (cmd *UpdateStatusCmd) Run(ctx context.Context) error {
@@ -102,7 +203,11 @@ func buildUpdateStatusReport(ctx context.Context, timeout time.Duration) (update
 	}
 
 	client := updateClient(timeout)
-	release, err := fetchLatestGitHubRelease(ctx, client, updateLatestReleaseURL)
+	latestURL, latestWebURL, repository, err := updateStatusEndpoints()
+	if err != nil {
+		return updateStatusReport{}, err
+	}
+	release, err := fetchLatestGitHubReleaseForRepo(ctx, client, latestURL, latestWebURL, repository)
 	if err != nil {
 		return updateStatusReport{}, err
 	}
@@ -142,7 +247,7 @@ func buildUpdateStatusReport(ctx context.Context, timeout time.Duration) (update
 			} else {
 				report.PlatformAssetSHA256 = sum
 				if release.SyntheticAssets {
-					report.PlatformAssetURL = updateReleaseAssetURL(release.TagName, report.PlatformAsset)
+					report.PlatformAssetURL = updateReleaseAssetURLForRepo(release.Repository, release.TagName, report.PlatformAsset)
 				}
 			}
 		}
@@ -204,6 +309,25 @@ func writeUpdateStatusHuman(report updateStatusReport) error {
 	return nil
 }
 
+func updateStatusEndpoints() (latestURL, latestWebURL, repository string, err error) {
+	repository = strings.TrimSpace(os.Getenv("CLICKUP_UPDATE_REPO"))
+	if repository == "" {
+		return updateLatestReleaseURL, updateLatestWebURL, updateDefaultRepository, nil
+	}
+
+	parts := strings.Split(repository, "/")
+	if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" || strings.TrimSpace(parts[1]) == "" {
+		return "", "", "", fmt.Errorf("%w %q (expected owner/repository)", errInvalidUpdateRepository, repository)
+	}
+	repository = parts[0] + "/" + parts[1]
+	escapedRepository := url.PathEscape(parts[0]) + "/" + url.PathEscape(parts[1])
+
+	return "https://api.github.com/repos/" + escapedRepository + "/releases/latest",
+		"https://github.com/" + escapedRepository + "/releases/latest",
+		repository,
+		nil
+}
+
 func updateClient(timeout time.Duration) *http.Client {
 	if timeout <= 0 {
 		timeout = updateDefaultTimeout
@@ -220,13 +344,24 @@ func updateClient(timeout time.Duration) *http.Client {
 }
 
 func fetchLatestGitHubRelease(ctx context.Context, client *http.Client, endpoint string) (githubRelease, error) {
+	return fetchLatestGitHubReleaseForRepo(ctx, client, endpoint, updateLatestWebURL, updateDefaultRepository)
+}
+
+func fetchLatestGitHubReleaseForRepo(
+	ctx context.Context,
+	client *http.Client,
+	endpoint,
+	latestWebURL,
+	repository string,
+) (githubRelease, error) {
 	var release githubRelease
 	apiErr := fetchUpdateJSON(ctx, client, endpoint, &release)
 	if apiErr == nil {
+		release.Repository = repository
 		return release, nil
 	}
 
-	fallback, fallbackErr := fetchLatestGitHubReleaseRedirect(ctx, client, updateLatestWebURL)
+	fallback, fallbackErr := fetchLatestGitHubReleaseRedirectForRepo(ctx, client, latestWebURL, repository)
 	if fallbackErr != nil {
 		return githubRelease{}, fmt.Errorf("fetch latest release: API: %s; web fallback: %w", apiErr.Error(), fallbackErr)
 	}
@@ -234,11 +369,20 @@ func fetchLatestGitHubRelease(ctx context.Context, client *http.Client, endpoint
 }
 
 func fetchLatestGitHubReleaseRedirect(ctx context.Context, client *http.Client, latestURL string) (githubRelease, error) {
+	return fetchLatestGitHubReleaseRedirectForRepo(ctx, client, latestURL, updateDefaultRepository)
+}
+
+func fetchLatestGitHubReleaseRedirectForRepo(
+	ctx context.Context,
+	client *http.Client,
+	latestURL,
+	repository string,
+) (githubRelease, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, latestURL, nil)
 	if err != nil {
 		return githubRelease{}, err
 	}
-	req.Header.Set("User-Agent", "clickup-cli/"+VersionString())
+	setUpdateRequestHeaders(req, false)
 
 	redirectClient := *client
 	redirectClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
@@ -265,7 +409,11 @@ func fetchLatestGitHubReleaseRedirect(ctx context.Context, client *http.Client, 
 		return githubRelease{}, fmt.Errorf("unexpected github redirect host %q", resolved.Hostname())
 	}
 
-	const tagPath = "/Robben-Media/clickup-cli/releases/tag/"
+	parts := strings.Split(repository, "/")
+	if len(parts) != 2 {
+		return githubRelease{}, fmt.Errorf("%w %q", errInvalidUpdateRepository, repository)
+	}
+	tagPath := "/" + url.PathEscape(parts[0]) + "/" + url.PathEscape(parts[1]) + "/releases/tag/"
 	if !strings.HasPrefix(resolved.EscapedPath(), tagPath) {
 		return githubRelease{}, fmt.Errorf("unexpected github release redirect path %q", resolved.EscapedPath())
 	}
@@ -277,16 +425,21 @@ func fetchLatestGitHubReleaseRedirect(ctx context.Context, client *http.Client, 
 	return githubRelease{
 		TagName:         tag,
 		HTMLURL:         resolved.String(),
+		Repository:      repository,
 		SyntheticAssets: true,
 		Assets: []githubReleaseAsset{{
 			Name:               "checksums.txt",
-			BrowserDownloadURL: updateReleaseAssetURL(tag, "checksums.txt"),
+			BrowserDownloadURL: updateReleaseAssetURLForRepo(repository, tag, "checksums.txt"),
 		}},
 	}, nil
 }
 
-func updateReleaseAssetURL(tag, assetName string) string {
-	return "https://github.com/Robben-Media/clickup-cli/releases/download/" +
+func updateReleaseAssetURLForRepo(repository, tag, assetName string) string {
+	parts := strings.Split(repository, "/")
+	if len(parts) != 2 {
+		return ""
+	}
+	return "https://github.com/" + url.PathEscape(parts[0]) + "/" + url.PathEscape(parts[1]) + "/releases/download/" +
 		url.PathEscape(tag) + "/" + url.PathEscape(assetName)
 }
 
@@ -295,8 +448,7 @@ func fetchUpdateJSON(ctx context.Context, client *http.Client, endpoint string, 
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "clickup-cli/"+VersionString())
+	setUpdateRequestHeaders(req, true)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -322,7 +474,7 @@ func fetchAssetChecksum(ctx context.Context, client *http.Client, endpoint, asse
 	if err != nil {
 		return "", false, fmt.Errorf("fetch checksums.txt: %w", err)
 	}
-	req.Header.Set("User-Agent", "clickup-cli/"+VersionString())
+	setUpdateRequestHeaders(req, false)
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", false, fmt.Errorf("fetch checksums.txt: %w", err)
@@ -365,163 +517,18 @@ func findReleaseAsset(assets []githubReleaseAsset, name string) (githubReleaseAs
 }
 
 func platformAssetName(tag, goos, goarch string) string {
-	version := strings.TrimPrefix(strings.TrimSpace(tag), "v")
-	if version == "" {
+	if strings.TrimSpace(selfupdate.NormalizeVersion(tag)) == "" {
 		return ""
 	}
-	extension := ".tar.gz"
-	if goos == "windows" {
-		extension = ".zip"
-	}
-	return fmt.Sprintf("clickup-cli_%s_%s_%s%s", version, goos, goarch, extension)
+	return selfupdate.AssetNameForPlatform(tag, goos, goarch)
 }
 
 func updateAvailable(current, latest string) (bool, bool) {
-	comparison, ok := compareReleaseVersions(current, latest)
+	comparison, ok := selfupdate.CompareVersions(current, latest)
 	if !ok {
 		return false, false
 	}
 	return comparison < 0, true
-}
-
-type releaseVersion struct {
-	parts      []int
-	prerelease []string
-}
-
-func compareReleaseVersions(current, latest string) (int, bool) {
-	currentVersion, currentOK := parseReleaseVersion(current)
-	latestVersion, latestOK := parseReleaseVersion(latest)
-	if !currentOK || !latestOK {
-		return 0, false
-	}
-
-	maxLen := len(currentVersion.parts)
-	if len(latestVersion.parts) > maxLen {
-		maxLen = len(latestVersion.parts)
-	}
-	for i := 0; i < maxLen; i++ {
-		var currentPart, latestPart int
-		if i < len(currentVersion.parts) {
-			currentPart = currentVersion.parts[i]
-		}
-		if i < len(latestVersion.parts) {
-			latestPart = latestVersion.parts[i]
-		}
-		if currentPart < latestPart {
-			return -1, true
-		}
-		if currentPart > latestPart {
-			return 1, true
-		}
-	}
-
-	return comparePrerelease(currentVersion.prerelease, latestVersion.prerelease), true
-}
-
-func parseReleaseVersion(value string) (releaseVersion, bool) {
-	value = strings.TrimPrefix(strings.TrimSpace(value), "v")
-	if value == "" || strings.HasPrefix(value, "dev") {
-		return releaseVersion{}, false
-	}
-
-	value, _, _ = strings.Cut(value, "+")
-	core, prerelease, hasPrerelease := strings.Cut(value, "-")
-	if hasPrerelease && isGitDescribePrerelease(prerelease) {
-		return releaseVersion{}, false
-	}
-
-	fields := strings.Split(core, ".")
-	parts := make([]int, 0, len(fields))
-	for _, field := range fields {
-		if field == "" {
-			return releaseVersion{}, false
-		}
-		part, err := strconv.Atoi(field)
-		if err != nil || part < 0 {
-			return releaseVersion{}, false
-		}
-		parts = append(parts, part)
-	}
-
-	var prereleaseParts []string
-	if hasPrerelease {
-		prereleaseParts = strings.Split(prerelease, ".")
-		for _, part := range prereleaseParts {
-			if part == "" {
-				return releaseVersion{}, false
-			}
-		}
-	}
-	return releaseVersion{parts: parts, prerelease: prereleaseParts}, true
-}
-
-func comparePrerelease(current, latest []string) int {
-	switch {
-	case len(current) == 0 && len(latest) == 0:
-		return 0
-	case len(current) == 0:
-		return 1
-	case len(latest) == 0:
-		return -1
-	}
-
-	maxLen := len(current)
-	if len(latest) > maxLen {
-		maxLen = len(latest)
-	}
-	for i := 0; i < maxLen; i++ {
-		if i >= len(current) {
-			return -1
-		}
-		if i >= len(latest) {
-			return 1
-		}
-
-		currentNumber, currentErr := strconv.Atoi(current[i])
-		latestNumber, latestErr := strconv.Atoi(latest[i])
-		switch {
-		case currentErr == nil && latestErr == nil:
-			if currentNumber < latestNumber {
-				return -1
-			}
-			if currentNumber > latestNumber {
-				return 1
-			}
-		case currentErr == nil:
-			return -1
-		case latestErr == nil:
-			return 1
-		default:
-			if current[i] < latest[i] {
-				return -1
-			}
-			if current[i] > latest[i] {
-				return 1
-			}
-		}
-	}
-	return 0
-}
-
-func isGitDescribePrerelease(value string) bool {
-	parts := strings.Split(value, "-")
-	if len(parts) < 2 {
-		return false
-	}
-	if _, err := strconv.Atoi(parts[0]); err != nil || !strings.HasPrefix(parts[1], "g") {
-		return false
-	}
-	hash := strings.TrimPrefix(parts[1], "g")
-	if hash == "" {
-		return false
-	}
-	for _, character := range hash {
-		if !strings.ContainsRune("0123456789abcdefABCDEF", character) {
-			return false
-		}
-	}
-	return len(parts) == 2 || (len(parts) == 3 && parts[2] == "dirty")
 }
 
 func detectUpdateInstallMethod() (method, executable string, warnings []string) {
