@@ -112,3 +112,17 @@ if outfmt.IsPlain(ctx) {
 - Skip or disable tests
 - Leave debug logging
 - Make live API calls in tests — use `httptest` mock servers
+
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues for `Robben-Media/clickup-cli`. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Triage uses `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This is a single-context repository using root `CONTEXT.md` and `docs/adr/` when they exist. See `docs/agents/domain.md`.
