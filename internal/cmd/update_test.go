@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/builtbyrobben/clickup-cli/internal/outfmt"
+	"github.com/builtbyrobben/clickup-cli/internal/selfupdate"
 )
 
 func TestUpdateStatusReportsAvailableReleaseAsJSON(t *testing.T) {
@@ -94,6 +95,97 @@ func setUpdateTestState(t *testing.T, client *http.Client, latestURL, webURL str
 		version = oldVersion
 		commit = oldCommit
 		date = oldDate
+	}
+}
+
+func TestUpdateInstallsByDefault(t *testing.T) {
+	restore := setUpdateTestState(t, http.DefaultClient, updateDefaultLatestReleaseURL, updateDefaultLatestWebURL)
+	defer restore()
+
+	oldApply := applySelfUpdate
+	defer func() { applySelfUpdate = oldApply }()
+
+	called := false
+	applySelfUpdate = func(_ context.Context, opts selfupdate.ApplyOptions) (selfupdate.CheckResult, error) {
+		called = true
+		if opts.CurrentVer != "v1.1.0" || opts.Force {
+			t.Fatalf("options = %#v", opts)
+		}
+		return selfupdate.CheckResult{Current: "v1.1.0", Latest: "1.2.0", Update: true, Applied: true}, nil
+	}
+
+	stderr := captureStderr(t, func() error {
+		return Execute([]string{"update"})
+	})
+	if !called {
+		t.Fatal("self-update was not applied")
+	}
+	if !strings.Contains(stderr, "Updated clickup-cli: v1.1.0 -> 1.2.0") {
+		t.Fatalf("stderr = %q", stderr)
+	}
+}
+
+func TestUpdateForceBinaryIsPassedToInstaller(t *testing.T) {
+	restore := setUpdateTestState(t, http.DefaultClient, updateDefaultLatestReleaseURL, updateDefaultLatestWebURL)
+	defer restore()
+
+	oldApply := applySelfUpdate
+	defer func() { applySelfUpdate = oldApply }()
+
+	applySelfUpdate = func(_ context.Context, opts selfupdate.ApplyOptions) (selfupdate.CheckResult, error) {
+		if !opts.Force {
+			t.Fatal("Force = false, want true")
+		}
+		return selfupdate.CheckResult{Current: opts.CurrentVer, Latest: "1.2.0", Update: true, Applied: true}, nil
+	}
+
+	_ = captureStderr(t, func() error {
+		return Execute([]string{"update", "--force-binary"})
+	})
+}
+
+func TestUpdateCheckFlagDoesNotApply(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = fmt.Fprint(w, `{"tag_name":"v1.1.0","assets":[]}`)
+	}))
+	defer server.Close()
+
+	restore := setUpdateTestState(t, server.Client(), server.URL, server.URL)
+	defer restore()
+
+	oldApply := applySelfUpdate
+	defer func() { applySelfUpdate = oldApply }()
+	applySelfUpdate = func(context.Context, selfupdate.ApplyOptions) (selfupdate.CheckResult, error) {
+		t.Fatal("check mode attempted to apply an update")
+		return selfupdate.CheckResult{}, nil
+	}
+
+	stdout := captureStdout(t, func() error {
+		return Execute([]string{"--json", "update", "--check"})
+	})
+	if !strings.Contains(stdout, `"update_available": false`) {
+		t.Fatalf("check output = %q", stdout)
+	}
+}
+
+func TestNewSelfUpdateClientUsesRepositoryAndTokenEnvironment(t *testing.T) {
+	t.Setenv("CLICKUP_UPDATE_REPO", "example/clickup-cli")
+	t.Setenv("GITHUB_TOKEN", "github-token")
+	t.Setenv("GH_TOKEN", "gh-token")
+
+	client := newSelfUpdateClient(time.Second)
+	if client.Repo != "example/clickup-cli" {
+		t.Fatalf("Repo = %q", client.Repo)
+	}
+	if client.Token != "github-token" {
+		t.Fatalf("Token = %q, want GITHUB_TOKEN precedence", client.Token)
+	}
+}
+
+func TestUpdateRejectsUnknownAction(t *testing.T) {
+	err := Execute([]string{"update", "install"})
+	if err == nil || !strings.Contains(err.Error(), `unknown update action "install"`) {
+		t.Fatalf("error = %v", err)
 	}
 }
 

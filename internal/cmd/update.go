@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/builtbyrobben/clickup-cli/internal/outfmt"
+	"github.com/builtbyrobben/clickup-cli/internal/selfupdate"
 )
 
 const (
@@ -32,14 +33,18 @@ var (
 	updateHTTPClient       = http.DefaultClient
 	updateLatestReleaseURL = updateDefaultLatestReleaseURL
 	updateLatestWebURL     = updateDefaultLatestWebURL
+	applySelfUpdate        = selfupdate.Apply
 )
 
 type UpdateCmd struct {
-	Status UpdateStatusCmd `cmd:"" name:"status" aliases:"check" help:"Show installed and latest clickup-cli release status"`
+	Action      string        `arg:"" optional:"" help:"Optional read-only action: status or check"`
+	Check       bool          `help:"Only check for an update; do not install"`
+	ForceBinary bool          `name:"force-binary" help:"Allow replacing a development or dirty binary"`
+	Timeout     time.Duration `name:"timeout" help:"HTTP timeout for GitHub release requests" default:"10s"`
 }
 
 type UpdateStatusCmd struct {
-	Timeout time.Duration `name:"timeout" help:"HTTP timeout for GitHub release metadata" default:"10s"`
+	Timeout time.Duration
 }
 
 type updateStatusReport struct {
@@ -71,6 +76,64 @@ type githubRelease struct {
 type githubReleaseAsset struct {
 	Name               string `json:"name"`
 	BrowserDownloadURL string `json:"browser_download_url"`
+}
+
+func (cmd *UpdateCmd) Run(ctx context.Context) error {
+	if cmd.Action != "" && cmd.Action != "status" && cmd.Action != "check" {
+		return newUsageError(fmt.Errorf("unknown update action %q (expected status or check)", cmd.Action))
+	}
+
+	readOnly := cmd.Check || cmd.Action != ""
+	if readOnly {
+		if cmd.ForceBinary {
+			return newUsageError(fmt.Errorf("--force-binary cannot be used with check mode"))
+		}
+		return (&UpdateStatusCmd{Timeout: cmd.Timeout}).Run(ctx)
+	}
+
+	result, err := applySelfUpdate(ctx, selfupdate.ApplyOptions{
+		Client:     newSelfUpdateClient(cmd.Timeout),
+		CurrentVer: VersionString(),
+		Force:      cmd.ForceBinary,
+	})
+	if err != nil {
+		return fmt.Errorf("update clickup-cli: %w", err)
+	}
+
+	if result.Applied {
+		_, err = fmt.Fprintf(os.Stderr, "Updated clickup-cli: %s -> %s\n", result.Current, result.Latest)
+	} else {
+		_, err = fmt.Fprintf(os.Stderr, "No update needed: current %s, latest %s\n", result.Current, result.Latest)
+	}
+	if err != nil {
+		return fmt.Errorf("write update result: %w", err)
+	}
+	return nil
+}
+
+func newSelfUpdateClient(timeout time.Duration) *selfupdate.Client {
+	return &selfupdate.Client{
+		HTTP:  updateClient(timeout),
+		Repo:  strings.TrimSpace(os.Getenv("CLICKUP_UPDATE_REPO")),
+		Token: updateGitHubToken(),
+	}
+}
+
+func updateGitHubToken() string {
+	if token := strings.TrimSpace(os.Getenv("GITHUB_TOKEN")); token != "" {
+		return token
+	}
+	return strings.TrimSpace(os.Getenv("GH_TOKEN"))
+}
+
+func setUpdateRequestHeaders(request *http.Request, acceptJSON bool) {
+	request.Header.Set("User-Agent", "clickup-cli/"+VersionString())
+	if acceptJSON {
+		request.Header.Set("Accept", "application/vnd.github+json")
+	}
+	if token := updateGitHubToken(); token != "" {
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
 }
 
 func (cmd *UpdateStatusCmd) Run(ctx context.Context) error {
@@ -238,7 +301,7 @@ func fetchLatestGitHubReleaseRedirect(ctx context.Context, client *http.Client, 
 	if err != nil {
 		return githubRelease{}, err
 	}
-	req.Header.Set("User-Agent", "clickup-cli/"+VersionString())
+	setUpdateRequestHeaders(req, false)
 
 	redirectClient := *client
 	redirectClient.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
@@ -295,8 +358,7 @@ func fetchUpdateJSON(ctx context.Context, client *http.Client, endpoint string, 
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "clickup-cli/"+VersionString())
+	setUpdateRequestHeaders(req, true)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -322,7 +384,7 @@ func fetchAssetChecksum(ctx context.Context, client *http.Client, endpoint, asse
 	if err != nil {
 		return "", false, fmt.Errorf("fetch checksums.txt: %w", err)
 	}
-	req.Header.Set("User-Agent", "clickup-cli/"+VersionString())
+	setUpdateRequestHeaders(req, false)
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", false, fmt.Errorf("fetch checksums.txt: %w", err)
