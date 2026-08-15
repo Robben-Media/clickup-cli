@@ -387,7 +387,7 @@ func TestTasksUpdate_SendsDueDate(t *testing.T) {
 			t.Fatalf("decode request: %v", err)
 		}
 
-		if body["due_date"] != "1786140000000" {
+		if body["due_date"] != float64(1786140000000) {
 			t.Fatalf("expected due_date 1786140000000, got %#v", body["due_date"])
 		}
 
@@ -404,7 +404,7 @@ func TestTasksUpdate_SendsDueDate(t *testing.T) {
 	dueDateTime := true
 
 	_, err := client.Tasks().Update(context.Background(), "task-1", UpdateTaskRequest{
-		DueDate:     "1786140000000",
+		DueDate:     1786140000000,
 		DueDateTime: &dueDateTime,
 	})
 	if err != nil {

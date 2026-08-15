@@ -157,7 +157,7 @@ type TasksUpdateCmd struct {
 	Assignee int    `help:"Assign to user ID (adds assignee)"`
 	Unassign int    `help:"Unassign user ID (removes assignee)"`
 	Priority *int   `help:"New priority (1=urgent, 2=high, 3=normal, 4=low)"`
-	Due      string `help:"New due date (unix timestamp in milliseconds)"`
+	Due      int64  `help:"New due date (unix timestamp in milliseconds)"`
 }
 
 func (cmd *TasksUpdateCmd) Run(ctx context.Context) error {
@@ -185,7 +185,7 @@ func (cmd *TasksUpdateCmd) Run(ctx context.Context) error {
 		req.Priority = cmd.Priority
 	}
 
-	if cmd.Due != "" {
+	if cmd.Due != 0 {
 		req.DueDate = cmd.Due
 		dueDateTime := true
 		req.DueDateTime = &dueDateTime

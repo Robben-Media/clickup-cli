@@ -297,7 +297,7 @@ type UpdateTaskRequest struct {
 	Status      string               `json:"status,omitempty"`
 	Assignees   *TaskAssigneesUpdate `json:"assignees,omitempty"`
 	Priority    *int                 `json:"priority,omitempty"`
-	DueDate     string               `json:"due_date,omitempty"`
+	DueDate     int64                `json:"due_date,omitempty"`
 	DueDateTime *bool                `json:"due_date_time,omitempty"`
 }
 
