@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Claude Code skill at `.claude/skills/clickup` for using the CLI against ClickUp
+
+### Changed
+- README install URLs now point at `Robben-Media/clickup-cli`
+- Removed Homebrew tap instructions (tap is not published)
+- `AGENTS.md` no longer frames the repo as a Ralph Wiggum loop
+
 ## [0.1.0] - 2026-02-15
 
 ### Added
