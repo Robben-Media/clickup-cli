@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `tasks update --due` to set task due date (unix ms), matching `tasks create --due`
 - Claude Code skill at `.claude/skills/clickup` for using the CLI against ClickUp
 
 ### Changed
