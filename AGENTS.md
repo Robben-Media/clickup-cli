@@ -1,6 +1,6 @@
 # AGENTS.md — ClickUp CLI
 
-Project context for autonomous agents (Ralph Wiggum).
+Project context for agents working on this CLI.
 
 ## What We're Building
 
@@ -114,6 +114,10 @@ if outfmt.IsPlain(ctx) {
 - Make live API calls in tests — use `httptest` mock servers
 
 ## Agent skills
+
+### ClickUp usage
+
+To *use* ClickUp with this CLI (create lists, wire dependencies, and so on), load `.claude/skills/clickup`. That skill is for operating ClickUp. This file is for developing the CLI. Do not start implementing remaining API endpoints unless that is the assigned work.
 
 ### Issue tracker
 

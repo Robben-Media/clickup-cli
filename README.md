@@ -4,24 +4,33 @@ Command-line interface for ClickUp project management. Manage tasks, spaces, lis
 
 ## Installation
 
-### Homebrew (macOS/Linux)
+### Download binary
+
+Download the latest release from [GitHub Releases](https://github.com/Robben-Media/clickup-cli/releases).
+
+### Build from source
 
 ```bash
-brew tap builtbyrobben/tap
-brew install clickup-cli
-```
-
-### Download Binary
-
-Download the latest release from [GitHub Releases](https://github.com/builtbyrobben/clickup-cli/releases).
-
-### Build from Source
-
-```bash
-git clone https://github.com/builtbyrobben/clickup-cli.git
+git clone https://github.com/Robben-Media/clickup-cli.git
 cd clickup-cli
 make build
 ```
+
+The binary is `bin/clickup-cli`.
+
+### Agent skill
+
+Claude Code loads `.claude/skills/clickup` when you work in this checkout.
+
+To install the skill globally:
+
+```bash
+git clone --depth 1 https://github.com/Robben-Media/clickup-cli.git /tmp/clickup-cli
+mkdir -p ~/.claude/skills
+cp -R /tmp/clickup-cli/.claude/skills/clickup ~/.claude/skills/clickup
+```
+
+Use that skill for ClickUp work. Do not treat `AGENTS.md` as a job to extend the CLI unless that is the task.
 
 ## Configuration
 
