@@ -6,8 +6,46 @@ import (
 	"os"
 
 	"github.com/builtbyrobben/clickup-cli/internal/clickup"
+	"github.com/builtbyrobben/clickup-cli/internal/markdown"
 	"github.com/builtbyrobben/clickup-cli/internal/outfmt"
 )
+
+// formatFlags are the shared flags on comment-writing commands that choose
+// between plain text and rich-text (markdown-converted) delivery.
+//
+// The long flag is named --plain-text rather than --plain because --plain is
+// already a persistent root flag (RootFlags.Plain, TSV output mode); Kong
+// rejects a duplicate --plain flag on a subcommand, so this uses the closest
+// non-colliding name.
+type formatFlags struct {
+	PlainText bool `name:"plain-text" help:"Send as plain text (comment_text), even if it contains markdown."`
+	Markdown  bool `help:"Convert markdown to rich text (comment blocks), even without detected markers."`
+}
+
+// commentFields decides, for a given comment text and formatting flags,
+// whether to send plain comment_text or a converted rich-text comment block
+// array. By default (neither flag set), text containing a markdown marker
+// (**, `, "> ", "- "/"* ", "1. ", or [text](url)) is converted; anything
+// else is sent as plain text, since ClickUp does not parse markdown out of
+// comment_text.
+func commentFields(text string, flags formatFlags) (commentText string, blocks []markdown.Block, err error) {
+	if flags.PlainText && flags.Markdown {
+		return "", nil, fmt.Errorf("--plain-text and --markdown are mutually exclusive")
+	}
+
+	if text == "" {
+		return "", nil, nil
+	}
+
+	switch {
+	case flags.PlainText:
+		return text, nil, nil
+	case flags.Markdown, markdown.HasMarkdown(text):
+		return "", markdown.ToBlocks(text), nil
+	default:
+		return text, nil, nil
+	}
+}
 
 type CommentsCmd struct {
 	List         CommentsListCmd         `cmd:"" help:"List comments on a task"`
@@ -75,6 +113,7 @@ func (cmd *CommentsListCmd) Run(ctx context.Context) error {
 type CommentsAddCmd struct {
 	TaskID string `arg:"" required:"" help:"Task ID"`
 	Text   string `arg:"" required:"" help:"Comment text"`
+	formatFlags
 }
 
 func (cmd *CommentsAddCmd) Run(ctx context.Context) error {
@@ -83,7 +122,15 @@ func (cmd *CommentsAddCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	result, err := client.Comments().Add(ctx, cmd.TaskID, cmd.Text)
+	commentText, blocks, err := commentFields(cmd.Text, cmd.formatFlags)
+	if err != nil {
+		return err
+	}
+
+	result, err := client.Comments().Add(ctx, cmd.TaskID, clickup.CreateCommentRequest{
+		CommentText: commentText,
+		Comment:     blocks,
+	})
 	if err != nil {
 		return err
 	}
@@ -142,6 +189,7 @@ type CommentsUpdateCmd struct {
 	Text      string `help:"New comment text"`
 	Resolved  bool   `help:"Mark as resolved"`
 	Assignee  int    `help:"Reassign to user ID"`
+	formatFlags
 }
 
 func (cmd *CommentsUpdateCmd) Run(ctx context.Context) error {
@@ -150,8 +198,14 @@ func (cmd *CommentsUpdateCmd) Run(ctx context.Context) error {
 		return err
 	}
 
+	commentText, blocks, err := commentFields(cmd.Text, cmd.formatFlags)
+	if err != nil {
+		return err
+	}
+
 	req := clickup.UpdateCommentRequest{
-		CommentText: cmd.Text,
+		CommentText: commentText,
+		Comment:     blocks,
 		Assignee:    cmd.Assignee,
 	}
 
@@ -226,6 +280,7 @@ func (cmd *CommentsRepliesCmd) Run(ctx context.Context) error {
 type CommentsReplyCmd struct {
 	CommentID string `arg:"" required:"" help:"Comment ID"`
 	Text      string `arg:"" required:"" help:"Reply text"`
+	formatFlags
 }
 
 func (cmd *CommentsReplyCmd) Run(ctx context.Context) error {
@@ -234,7 +289,15 @@ func (cmd *CommentsReplyCmd) Run(ctx context.Context) error {
 		return err
 	}
 
-	result, err := client.Comments().Reply(ctx, cmd.CommentID, cmd.Text)
+	commentText, blocks, err := commentFields(cmd.Text, cmd.formatFlags)
+	if err != nil {
+		return err
+	}
+
+	result, err := client.Comments().Reply(ctx, cmd.CommentID, clickup.CreateCommentRequest{
+		CommentText: commentText,
+		Comment:     blocks,
+	})
 	if err != nil {
 		return err
 	}
@@ -308,6 +371,7 @@ type CommentsAddListCmd struct {
 	ListID   string `arg:"" required:"" help:"List ID"`
 	Text     string `arg:"" required:"" help:"Comment text"`
 	Assignee int    `help:"Assign to user ID"`
+	formatFlags
 }
 
 func (cmd *CommentsAddListCmd) Run(ctx context.Context) error {
@@ -316,8 +380,14 @@ func (cmd *CommentsAddListCmd) Run(ctx context.Context) error {
 		return err
 	}
 
+	commentText, blocks, err := commentFields(cmd.Text, cmd.formatFlags)
+	if err != nil {
+		return err
+	}
+
 	req := clickup.CreateListCommentRequest{
-		CommentText: cmd.Text,
+		CommentText: commentText,
+		Comment:     blocks,
 		Assignee:    cmd.Assignee,
 	}
 
@@ -395,6 +465,7 @@ type CommentsAddViewCmd struct {
 	ViewID   string `arg:"" required:"" help:"View ID"`
 	Text     string `arg:"" required:"" help:"Comment text"`
 	Assignee int    `help:"Assign to user ID"`
+	formatFlags
 }
 
 func (cmd *CommentsAddViewCmd) Run(ctx context.Context) error {
@@ -403,8 +474,14 @@ func (cmd *CommentsAddViewCmd) Run(ctx context.Context) error {
 		return err
 	}
 
+	commentText, blocks, err := commentFields(cmd.Text, cmd.formatFlags)
+	if err != nil {
+		return err
+	}
+
 	req := clickup.CreateViewCommentRequest{
-		CommentText: cmd.Text,
+		CommentText: commentText,
+		Comment:     blocks,
 		Assignee:    cmd.Assignee,
 	}
 

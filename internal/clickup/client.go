@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/builtbyrobben/clickup-cli/internal/api"
+	"github.com/builtbyrobben/clickup-cli/internal/markdown"
 )
 
 var (
@@ -1233,6 +1234,19 @@ type CommentsService struct {
 	client *Client
 }
 
+// displayText returns text to show the user for a comment that was just
+// created or replied to. The list/view/task "add" endpoints only return the
+// new comment's ID, not its rendered comment_text, so when rich-text blocks
+// were sent instead of plain text, fall back to a plain-text approximation
+// of those blocks.
+func displayText(commentText string, blocks []markdown.Block) string {
+	if commentText != "" {
+		return commentText
+	}
+
+	return markdown.PlainText(blocks)
+}
+
 // List returns all comments for a task.
 func (s *CommentsService) List(ctx context.Context, taskID string) (*CommentsListResponse, error) {
 	if taskID == "" {
@@ -1249,17 +1263,16 @@ func (s *CommentsService) List(ctx context.Context, taskID string) (*CommentsLis
 	return &result, nil
 }
 
-// Add creates a new comment on a task.
-func (s *CommentsService) Add(ctx context.Context, taskID string, text string) (*Comment, error) {
+// Add creates a new comment on a task. req.CommentText and req.Comment are
+// mutually exclusive; see CreateCommentRequest.
+func (s *CommentsService) Add(ctx context.Context, taskID string, req CreateCommentRequest) (*Comment, error) {
 	if taskID == "" {
 		return nil, errIDRequired
 	}
 
-	if text == "" {
+	if req.CommentText == "" && len(req.Comment) == 0 {
 		return nil, errTextRequired
 	}
-
-	req := CreateCommentRequest{CommentText: text}
 
 	// ClickUp returns the comment ID as a number in a wrapper
 	var result struct {
@@ -1271,7 +1284,7 @@ func (s *CommentsService) Add(ctx context.Context, taskID string, text string) (
 		return nil, fmt.Errorf("add comment: %w", err)
 	}
 
-	return &Comment{ID: result.ID, Text: text}, nil
+	return &Comment{ID: result.ID, Text: displayText(req.CommentText, req.Comment)}, nil
 }
 
 // Delete removes a comment.
@@ -1318,17 +1331,16 @@ func (s *CommentsService) Replies(ctx context.Context, commentID string) (*Threa
 	return &result, nil
 }
 
-// Reply creates a threaded reply to a comment.
-func (s *CommentsService) Reply(ctx context.Context, commentID string, text string) (*Comment, error) {
+// Reply creates a threaded reply to a comment. req.CommentText and
+// req.Comment are mutually exclusive; see CreateCommentRequest.
+func (s *CommentsService) Reply(ctx context.Context, commentID string, req CreateCommentRequest) (*Comment, error) {
 	if commentID == "" {
 		return nil, errIDRequired
 	}
 
-	if text == "" {
+	if req.CommentText == "" && len(req.Comment) == 0 {
 		return nil, errTextRequired
 	}
-
-	req := CreateCommentRequest{CommentText: text}
 
 	var result Comment
 
@@ -1362,7 +1374,7 @@ func (s *CommentsService) AddList(ctx context.Context, listID string, req Create
 		return nil, errIDRequired
 	}
 
-	if req.CommentText == "" {
+	if req.CommentText == "" && len(req.Comment) == 0 {
 		return nil, errTextRequired
 	}
 
@@ -1376,7 +1388,7 @@ func (s *CommentsService) AddList(ctx context.Context, listID string, req Create
 		return nil, fmt.Errorf("add list comment: %w", err)
 	}
 
-	return &Comment{ID: result.ID, Text: req.CommentText}, nil
+	return &Comment{ID: result.ID, Text: displayText(req.CommentText, req.Comment)}, nil
 }
 
 // ViewComments returns view-level comments with pagination.
@@ -1414,7 +1426,7 @@ func (s *CommentsService) AddView(ctx context.Context, viewID string, req Create
 		return nil, errIDRequired
 	}
 
-	if req.CommentText == "" {
+	if req.CommentText == "" && len(req.Comment) == 0 {
 		return nil, errTextRequired
 	}
 
@@ -1428,7 +1440,7 @@ func (s *CommentsService) AddView(ctx context.Context, viewID string, req Create
 		return nil, fmt.Errorf("add view comment: %w", err)
 	}
 
-	return &Comment{ID: result.ID, Text: req.CommentText}, nil
+	return &Comment{ID: result.ID, Text: displayText(req.CommentText, req.Comment)}, nil
 }
 
 // Subtypes returns post subtype IDs for a type (v3 API).

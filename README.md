@@ -205,6 +205,31 @@ clickup-cli comments add TASK_ID "Looks good, deploying now"
 clickup-cli comments list TASK_ID --json
 ```
 
+#### Markdown formatting
+
+`comments add`, `comments update`, `comments reply`, `comments add-list`, and
+`comments add-view` auto-detect markdown in the comment text (`**bold**`,
+`` `code` ``, fenced code blocks, `> ` blockquotes, `- `/`* ` bullets, `1. `
+ordered lists, `[text](url)` links) and convert it to ClickUp's rich-text
+`comment` block format so it renders instead of posting as literal
+asterisks and angle brackets. Plain text with no markdown markers is sent
+as-is.
+
+```bash
+# Auto-detected: contains **bold**, so this renders as rich text
+clickup-cli comments add TASK_ID "**Status:** done. See \`config.yaml\`."
+
+# Force plain text even if it looks like markdown
+clickup-cli comments add TASK_ID "5 * 3 = 15" --plain-text
+
+# Force rich-text conversion even without a detected marker
+clickup-cli comments add TASK_ID "Section Title" --markdown
+```
+
+`comments list --json` and `comments replies --json` include a `comment`
+field with the raw rich-text block array as returned by the API, useful for
+inspecting exactly how a comment is formatted.
+
 ### time
 
 Track time on tasks.

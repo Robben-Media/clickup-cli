@@ -1,6 +1,10 @@
 package clickup
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/builtbyrobben/clickup-cli/internal/markdown"
+)
 
 // Task represents a ClickUp task.
 type Task struct {
@@ -216,6 +220,14 @@ type Comment struct {
 	Text string      `json:"comment_text"`
 	User User        `json:"user"`
 	Date string      `json:"date"`
+	// Raw holds the raw "comment" rich-text block array as returned by the
+	// ClickUp API (when present). Each element is an object like
+	// {"text": "...", "attributes": {...}}. It is passed through unmodified
+	// so callers can inspect exact formatting attributes (bold, italic,
+	// code, link, list, code-block, and undocumented ones such as the
+	// blockquote attribute used to render "> " lines — see
+	// internal/markdown for the confirmed attribute name).
+	Raw json.RawMessage `json:"comment,omitempty"`
 }
 
 // TimeEntry represents a ClickUp time entry.
@@ -301,9 +313,13 @@ type UpdateTaskRequest struct {
 	DueDateTime *bool                `json:"due_date_time,omitempty"`
 }
 
-// CreateCommentRequest is the request body for creating a comment.
+// CreateCommentRequest is the request body for creating a comment. Set
+// either CommentText (plain text) or Comment (rich-text block array,
+// produced by internal/markdown) — not both. ClickUp does not parse
+// markdown in comment_text, so rich formatting requires Comment.
 type CreateCommentRequest struct {
-	CommentText string `json:"comment_text"`
+	CommentText string           `json:"comment_text,omitempty"`
+	Comment     []markdown.Block `json:"comment,omitempty"`
 }
 
 // CreateTimeEntryRequest is the request body for creating a time entry.
@@ -787,23 +803,29 @@ type OAuthTokenResponse struct {
 
 // --- Comment extension types ---
 
-// UpdateCommentRequest is the request body for updating a comment.
+// UpdateCommentRequest is the request body for updating a comment. Set
+// either CommentText or Comment (rich-text blocks), not both.
 type UpdateCommentRequest struct {
-	CommentText string `json:"comment_text,omitempty"`
-	Assignee    int    `json:"assignee,omitempty"`
-	Resolved    *bool  `json:"resolved,omitempty"`
+	CommentText string           `json:"comment_text,omitempty"`
+	Comment     []markdown.Block `json:"comment,omitempty"`
+	Assignee    int              `json:"assignee,omitempty"`
+	Resolved    *bool            `json:"resolved,omitempty"`
 }
 
 // CreateListCommentRequest is the request body for creating a list comment.
+// Set either CommentText or Comment (rich-text blocks), not both.
 type CreateListCommentRequest struct {
-	CommentText string `json:"comment_text"`
-	Assignee    int    `json:"assignee,omitempty"`
+	CommentText string           `json:"comment_text,omitempty"`
+	Comment     []markdown.Block `json:"comment,omitempty"`
+	Assignee    int              `json:"assignee,omitempty"`
 }
 
 // CreateViewCommentRequest is the request body for creating a view comment.
+// Set either CommentText or Comment (rich-text blocks), not both.
 type CreateViewCommentRequest struct {
-	CommentText string `json:"comment_text"`
-	Assignee    int    `json:"assignee,omitempty"`
+	CommentText string           `json:"comment_text,omitempty"`
+	Comment     []markdown.Block `json:"comment,omitempty"`
+	Assignee    int              `json:"assignee,omitempty"`
 }
 
 // ThreadedCommentsResponse is the response for getting threaded replies.

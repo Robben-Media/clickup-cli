@@ -84,6 +84,12 @@ clickup-cli relationships add-dep TASK_ID --dependency-of OTHER_ID
 clickup-cli comments add TASK_ID "..."
 ```
 
+`comments add`/`update`/`reply`/`add-list`/`add-view` auto-convert markdown
+(`**bold**`, `` `code` ``, fenced code, `> ` quotes, `- `/`1. ` lists,
+`[text](url)`) into ClickUp rich text so it renders instead of posting as
+literal `**`/`>` characters. Use `--plain-text` to force plain text or
+`--markdown` to force conversion.
+
 `--depends-on`: this task waits on the other. `--dependency-of`: this task blocks the other. They are the same ClickUp link. Do not create both for one pair.
 
 Trust `relies_on` / `--depends-on` as the source of truth when a spec lists both sides and they disagree.

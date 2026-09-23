@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/builtbyrobben/clickup-cli/internal/api"
+	"github.com/builtbyrobben/clickup-cli/internal/markdown"
 )
 
 func newTestClient(server *httptest.Server) *Client {
@@ -276,7 +278,7 @@ func TestCommentsAdd_ReturnsIDAndText(t *testing.T) {
 
 	client := newTestClient(server)
 
-	result, err := client.Comments().Add(context.Background(), "task-1", "hello from test")
+	result, err := client.Comments().Add(context.Background(), "task-1", CreateCommentRequest{CommentText: "hello from test"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -287,6 +289,60 @@ func TestCommentsAdd_ReturnsIDAndText(t *testing.T) {
 
 	if result.Text != "hello from test" {
 		t.Fatalf("expected text hello from test, got %s", result.Text)
+	}
+}
+
+func TestCommentsAdd_RequiresText(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatal("unexpected request")
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	if _, err := client.Comments().Add(context.Background(), "task-1", CreateCommentRequest{}); err == nil {
+		t.Fatal("expected error for missing text, got nil")
+	}
+}
+
+func TestCommentsAdd_SendsRichTextBlocksAndOmitsCommentText(t *testing.T) {
+	t.Parallel()
+
+	blocks := []markdown.Block{
+		{Text: "bold", Attributes: map[string]any{"bold": true}},
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+
+		if _, present := body["comment_text"]; present {
+			t.Fatalf("expected comment_text to be omitted, got %v", body["comment_text"])
+		}
+
+		comment, ok := body["comment"].([]any)
+		if !ok || len(comment) != 1 {
+			t.Fatalf("expected one comment block, got %v", body["comment"])
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]int{"id": 123})
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Comments().Add(context.Background(), "task-1", CreateCommentRequest{Comment: blocks})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if result.Text != "bold" {
+		t.Fatalf("expected fallback display text bold, got %s", result.Text)
 	}
 }
 
@@ -3134,6 +3190,45 @@ func TestCommentsUpdate_RequiresCommentID(t *testing.T) {
 	}
 }
 
+func TestCommentsList_IncludesRawCommentBlocks(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v2/task/task-1/comment" {
+			t.Fatalf("expected path /v2/task/task-1/comment, got %s", r.URL.Path)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{"comments":[{"id":"1","comment_text":"Status: In progress","user":{"id":1,"username":"alice"},"date":"1700000000000","comment":[{"text":"Status:","attributes":{"bold":true}},{"text":" In progress","attributes":{}},{"text":"\n","attributes":{"blockquote":{}}}]}]}`)
+	}))
+	defer server.Close()
+
+	client := newTestClient(server)
+
+	result, err := client.Comments().List(context.Background(), "task-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(result.Comments) != 1 {
+		t.Fatalf("expected 1 comment, got %d", len(result.Comments))
+	}
+
+	var raw []map[string]any
+	if err := json.Unmarshal(result.Comments[0].Raw, &raw); err != nil {
+		t.Fatalf("unmarshal raw comment blocks: %v", err)
+	}
+
+	if len(raw) != 3 {
+		t.Fatalf("expected 3 raw blocks, got %d", len(raw))
+	}
+
+	lastAttrs, _ := raw[2]["attributes"].(map[string]any)
+	if _, ok := lastAttrs["blockquote"]; !ok {
+		t.Fatalf("expected blockquote attribute on last block, got %v", lastAttrs)
+	}
+}
+
 func TestCommentsReplies_ReturnsThreadedComments(t *testing.T) {
 	t.Parallel()
 
@@ -3220,7 +3315,7 @@ func TestCommentsReply_CreatesThreadedReply(t *testing.T) {
 
 	client := newTestClient(server)
 
-	result, err := client.Comments().Reply(context.Background(), "comment-1", "My reply")
+	result, err := client.Comments().Reply(context.Background(), "comment-1", CreateCommentRequest{CommentText: "My reply"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -3244,7 +3339,7 @@ func TestCommentsReply_RequiresText(t *testing.T) {
 
 	client := newTestClient(server)
 
-	_, err := client.Comments().Reply(context.Background(), "comment-1", "")
+	_, err := client.Comments().Reply(context.Background(), "comment-1", CreateCommentRequest{})
 	if err == nil {
 		t.Fatal("expected error for missing text, got nil")
 	}
